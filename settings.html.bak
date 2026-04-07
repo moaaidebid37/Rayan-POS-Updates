@@ -1,0 +1,2717 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعدادات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .header-search input {
+            color: #000000;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .settings-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: var(--spacing-lg);
+        }
+        
+        .settings-sidebar {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            height: fit-content;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .settings-nav-item {
+            padding: var(--spacing-md);
+            border-radius: 12px;
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #000000;
+            text-decoration: none;
+            display: block;
+            font-weight: 500;
+        }
+        
+        .settings-nav-item:hover {
+            background: #f5f5f5;
+            color: #000000;
+        }
+        
+        .settings-nav-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .settings-content {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            width: 100%; /* Ensure it takes full width of the grid column */
+        }
+
+        @media (max-width: 768px) {
+            .settings-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        
+        .settings-section {
+            display: none;
+        }
+        
+        .settings-section.active {
+            display: block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+        }
+        
+        .user-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: var(--spacing-md);
+            border: 1px solid #f0f0f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .user-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-color: #e8e8e8;
+        }
+        
+        .user-card:hover::before {
+            opacity: 1;
+        }
+        
+        .user-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: var(--spacing-sm);
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .user-card:hover .user-avatar {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .user-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            margin-right: var(--spacing-sm);
+        }
+        
+        .user-name {
+            font-weight: 700;
+            font-size: 18px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-role {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: auto;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            align-self: flex-start;
+        }
+        
+        .user-role.owner {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(251, 191, 36, 0.3);
+        }
+        
+                
+        .user-role.cashier {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        }
+        
+        .user-role.custom {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: var(--spacing-sm);
+            justify-content: flex-end;
+        }
+        
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            background: #ffffff;
+            color: #6b7280;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .btn-icon:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .btn-icon::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 4px;
+            z-index: 1000;
+        }
+        
+        .btn-icon:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .cashier-stats {
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 4px 2px;
+            background: #fafafa;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        
+        .stat-value {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1px;
+            line-height: 1.2;
+        }
+        
+        .stat-label {
+            font-size: 8px;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            line-height: 1.1;
+        }
+        
+        .settings-section h3 {
+            color: #000000;
+            font-weight: 800;
+            font-size: 28px;
+            margin-bottom: var(--spacing-xl);
+            letter-spacing: -0.5px;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 16px;
+            background: #fafafa;
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #fafafa 0%, #f8f9fa 100%);
+            color: #1a1a1a;
+            border: 2px solid #f0f0f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn-icon:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-lg {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #f0f0f0;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+        
+        .modal-close {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: #e9ecef;
+            color: #495057;
+            transform: scale(1.05);
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cccccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <a href="index.html" class="sidebar-item">
+            <i class="fas fa-home" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الرئيسية</span>
+        </a>
+        <a href="orders.html" class="sidebar-item">
+            <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الطلبات</span>
+        </a>
+        <a href="reports.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">التقارير</span>
+        </a>
+        <a href="menu.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المطبخ</span>
+        </a>
+        <a href="ingredients.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المخزون</span>
+        </a>
+        <a href="customers.html" class="sidebar-item">
+            <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">العملاء</span>
+        </a>
+        <a href="employees.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-users" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموظفون</span>
+        </a>
+        <a href="suppliers.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-truck" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموردين</span>
+        </a>
+        <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">ادارة التسويق</span>
+        </a>
+        <a href="settings.html" class="sidebar-item active" data-restricted="owner">
+            <i class="fas fa-cog" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الإعدادات</span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="header">
+        <h2 class="header-title">الإعدادات</h2>
+        <div class="header-search">
+            <i class="fas fa-search header-search-icon"></i>
+            <input type="text" placeholder="ابحث...">
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn" onclick="handleRefresh()" title="تحديث الصفحة">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="header-action-btn" onclick="showStockNotifications()" title="تنبيهات المطبخ">
+                <i class="fas fa-bell"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="settings-container" style="align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+
+                <div class="settings-sidebar">
+                    <a href="#" class="settings-nav-item active" data-section="general" onclick="switchSettingsSection('general', this); return false;">عام</a>
+                    <a href="#" class="settings-nav-item" data-section="users" onclick="switchSettingsSection('users', this); return false;">إدارة المستخدمين</a>
+                    <a href="#" class="settings-nav-item" data-section="tax" onclick="switchSettingsSection('tax', this); return false;">الضريبة ورسوم الخدمة</a>
+                    <a href="#" class="settings-nav-item" data-section="invoice" onclick="switchSettingsSection('invoice', this); return false;">إعدادات الفاتورة</a>
+                    <a href="#" class="settings-nav-item" data-section="subscription" onclick="switchSettingsSection('subscription', this); return false;">الاشتراك</a>
+                    <a href="#" class="settings-nav-item" data-section="aggregators" onclick="switchSettingsSection('aggregators', this); return false;">شركات التوصيل</a>
+                    <a href="#" class="settings-nav-item" data-section="danger" onclick="switchSettingsSection('danger', this); return false;" style="color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="margin-left: 8px;"></i>
+                        منطقة الخطر
+                    </a>
+                </div>
+
+
+            </div>
+            
+            <div class="settings-content">
+                <!-- General Settings -->
+                <div class="settings-section active" id="generalSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">الإعدادات العامة</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إعدادات المتجر الأساسية</p>
+                        </div>
+                    </div>
+                    
+                    <form id="generalSettingsForm" onsubmit="saveGeneralSettings(event); return false;">
+                        <div class="form-group">
+                            <label class="label">اسم المتجر *</label>
+                            <input type="text" class="input" id="storeNameInput" value="مطعم ريان" disabled>
+                            <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">سيظهر هذا الاسم في جميع صفحات النظام والفواتير</small>
+                        </div>
+                        
+
+                    </form>
+                </div>
+                
+                <!-- Tax and Service Charge Settings -->
+                <div class="settings-section" id="taxSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">الضريبة ورسوم الخدمة</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إعدادات الضرائب ورسوم الخدمة وفقاً للوائح المصرية</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e8f5e9; padding: var(--spacing-md); border-radius: 12px; margin-bottom: var(--spacing-lg); border-right: 4px solid #27AE60;">
+                        <div style="display: flex; align-items: flex-start; gap: var(--spacing-sm);">
+                            <i class="fas fa-info-circle" style="color: #27AE60; font-size: 20px; margin-top: 2px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #000000; margin-bottom: 4px;">اللوائح المصرية:</div>
+                                <div style="font-size: 13px; color: #666666; line-height: 1.6;">
+                                    • الضريبة المضافة (VAT): 14% حسب القانون المصري<br>
+                                    • رسوم الخدمة: تطبق على طلبات الداخل (Dine-in) فقط<br>
+                                    • يجب إظهار رقم السجل الضريبي على جميع الفواتير
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="taxSettingsForm" onsubmit="saveTaxSettings(event); return false;">
+                        <div class="form-group">
+                            <label class="label">معدل الضريبة المضافة (VAT) (%)</label>
+                            <input type="number" class="input" id="taxRateInput" placeholder="0" min="0" max="100" step="0.01" value="">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="label">معدل رسوم الخدمة (%)</label>
+                            <input type="number" class="input" id="serviceChargeInput" placeholder="0" min="0" max="100" step="0.01" value="">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="label">رقم السجل الضريبي</label>
+                            <input type="text" class="input" id="taxIdInput" placeholder="مثال: 123-456-789" maxlength="50" value="">
+                            <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">رقم السجل الضريبي الذي سيظهر على الفواتير (اختياري)</small>
+                        </div>
+                        
+                        <div style="margin-top: var(--spacing-xl); display: flex; gap: var(--spacing-md);">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                                <i class="fas fa-save" style="margin-left: 8px;"></i>
+                                حفظ الإعدادات
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetTaxSettings()" style="flex: 1;">
+                                <i class="fas fa-undo" style="margin-left: 8px;"></i>
+                                إعادة تعيين
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Invoice Settings -->
+                <div class="settings-section" id="invoiceSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">إعدادات الفاتورة</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">التحكم في معلومات الفاتورة الحرارية 80mm</p>
+                        </div>
+                    </div>
+                    
+                    <form id="invoiceSettingsForm" onsubmit="saveInvoiceSettings(event); return false;">
+                        <div class="form-group">
+                            <label class="label">عنوان المتجر</label>
+                            <input type="text" class="input" id="storeAddressInput" readonly>
+                            <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">سيظهر هذا العنوان في رأس الفاتورة</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="label">رقم الهاتف</label>
+                            <input type="text" class="input" id="storePhoneInput" readonly>
+                            <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">سيظهر رقم الهاتف في رأس الفاتورة</small>
+                        </div>
+                        
+
+                    </form>
+                </div>
+                
+                <!-- Users Management -->
+                <div class="settings-section" id="usersSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">إدارة المستخدمين</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إدارة حسابات المستخدمين والصلاحيات</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddUserModal()" style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+                            <i class="fas fa-plus"></i>
+                            <span>إضافة مستخدم جديد</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Users List -->
+                    <div class="users-grid" id="usersList">
+                        <!-- سيتم ملؤها ديناميكياً -->
+                    </div>
+                </div>
+                
+                <!-- Subscription Section -->
+                <div class="settings-section" id="subscriptionSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">الاشتراك</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إدارة ترخيص النظام والاشتراك</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-radius: 20px; padding: var(--spacing-xl); border: 2px solid #e8e8e8; margin-bottom: var(--spacing-lg); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);">
+                        <!-- Status Cards -->
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+                            <div style="background: #ffffff; border-radius: 16px; padding: var(--spacing-lg); border: 2px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                                <div style="color: #666666; font-size: 13px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">حالة الاشتراك</div>
+                                <div id="sub-status" style="font-size: 24px; font-weight: 800; color: #000000;">
+                                    جاري التحميل...
+                                </div>
+                            </div>
+                            
+                            <div style="background: #ffffff; border-radius: 16px; padding: var(--spacing-lg); border: 2px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                                <div style="color: #666666; font-size: 13px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">ينتهي في</div>
+                                <div id="sub-expiry" style="font-size: 20px; font-weight: 700; color: #666666;">
+                                    جاري التحميل...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- License Input Section -->
+                        <div style="background: #ffffff; border-radius: 16px; padding: var(--spacing-xl); border: 2px solid #e8e8e8; margin-bottom: var(--spacing-lg);">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--spacing-md);">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-key" style="color: #ffffff; font-size: 20px;"></i>
+                                </div>
+                                <div>
+                                    <label class="label" style="display: block; margin-bottom: 4px; color: #000000; font-weight: 700; font-size: 16px;">كود الترخيص</label>
+                                    <p style="color: #666666; font-size: 13px; margin: 0;">أدخل كود الترخيص الذي حصلت عليه من المسؤول</p>
+                                </div>
+                            </div>
+                            
+                            <input type="text" class="input" id="license-input" placeholder="أدخل كود الترخيص هنا..." style="width: 100%; padding: 16px 20px; border: 2px solid #e8e8e8; border-radius: 12px; background: #fafafa; color: #000000; font-size: 16px; font-weight: 600; letter-spacing: 1px; font-family: 'Courier New', monospace; transition: all 0.3s ease;" onfocus="this.style.borderColor='#667eea'; this.style.background='#ffffff';" onblur="this.style.borderColor='#e8e8e8'; this.style.background='#fafafa';">
+                            
+                            <div style="background: #f0f7ff; border-right: 4px solid #3498DB; border-radius: 8px; padding: 12px 16px; margin-top: var(--spacing-md);">
+                                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                    <i class="fas fa-info-circle" style="color: #3498DB; font-size: 16px; margin-top: 2px;"></i>
+                                    <div style="color: #2c3e50; font-size: 13px; line-height: 1.6;">
+                                        <strong>ملاحظة:</strong> تأكد من إدخال كود الترخيص بشكل صحيح. بعد التفعيل، سيتم تمديد فترة الاشتراك تلقائياً حسب نوع الكود.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Activate Button -->
+                        <button type="button" class="btn btn-primary" id="btn-activate-license" onclick="handleActivateLicense()" style="width: 100%; padding: 18px 32px; font-weight: 800; font-size: 18px; border-radius: 12px; background: linear-gradient(135deg, #000000 0%, #333333 100%); border: none; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.2)';">
+                            <i class="fas fa-check-circle" style="margin-left: 10px; font-size: 20px;"></i>
+                            تفعيل الترخيص
+                        </button>
+                    </div>
+
+                    <!-- Telegram Bot Settings Card Removed -->
+                </div>
+
+                <!-- Aggregators Settings -->
+                <div class="settings-section" id="aggregatorsSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">شركات التوصيل</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إضافة وتعديل منصات التوصيل الخارجية</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openAggregatorModal()">
+                            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                            إضافة شركة
+                        </button>
+                    </div>
+
+                    <div id="aggregatorsList" class="users-grid">
+                        <!-- Aggregator cards will be dynamically inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Danger Zone Section -->
+                <div class="settings-section" id="dangerSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #e74c3c;">
+                        <div>
+                            <h3 style="margin-bottom: 4px; color: #e74c3c;">منطقة الخطر</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">إجراءات لا يمكن التراجع عنها</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%); border-radius: 20px; padding: var(--spacing-xl); border: 2px solid #e74c3c; margin-bottom: var(--spacing-lg); box-shadow: 0 4px 16px rgba(231, 76, 60, 0.1);">
+                        <div style="background: #ffffff; border-right: 4px solid #e74c3c; border-radius: 16px; padding: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+                            <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: var(--spacing-md);">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #ffffff; font-size: 24px;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h4 style="color: #2c3e50; font-weight: 700; font-size: 18px; margin-bottom: var(--spacing-md);">مسح البيانات التشغيلية</h4>
+                                    <p style="color: #2c3e50; font-size: 15px; line-height: 1.8; margin: 0;">
+                                        سيتم حذف <strong>فقط</strong> البيانات التشغيلية التالية:
+                                    </p>
+                                    <ul style="color: #2c3e50; font-size: 15px; line-height: 2; margin: var(--spacing-md) 0 0 0; padding-right: var(--spacing-md);">
+                                        <li>📊 جميع الأوردرات</li>
+                                        <li>💸 جميع المصاريف</li>
+                                        <li>👥 سجل الحضور والانصراف</li>
+                                        <li>🔄 بيانات الشيفتات</li>
+                                    </ul>
+                                    <p style="color: #27ae60; font-size: 14px; font-weight: 600; margin-top: var(--spacing-md);">
+                                        ✅ لن يتم حذف: المنيو، المخزون والخامات، الموردين، الإعدادات، المستخدمين
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn" id="clearDataBtn" style="width: 100%; padding: 18px 32px; font-weight: 800; font-size: 18px; border-radius: 12px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: #ffffff; border: none; box-shadow: 0 4px 16px rgba(231, 76, 60, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(231, 76, 60, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(231, 76, 60, 0.3)';">
+                            <i class="fas fa-broom" style="margin-left: 10px; font-size: 20px;"></i>
+                            مسح البيانات التشغيلية فقط
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="userModalTitle">إضافة مستخدم جديد</h3>
+                <button class="modal-close" onclick="closeUserModal()">×</button>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label class="label">اسم المستخدم *</label>
+                    <input type="text" class="input" id="userDisplayName" placeholder="أدخل اسم المستخدم" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">رقم PIN *</label>
+                    <input type="number" class="input" id="userPin" placeholder="أدخل رقم PIN (مثال: 1234)" required minlength="4" maxlength="4">
+                    <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">يجب أن يكون 4 أرقام</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">نوع الحساب *</label>
+                    <select class="input" id="userRole" required>
+                        <option value="cashier">كاشير</option>
+                        <option value="admin">المالك</option>
+                    </select>
+                </div>
+                
+                <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeUserModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cashier History Modal -->
+    <div class="modal" id="cashierHistoryModal">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="cashierHistoryTitle">تاريخ الكاشير</h3>
+                <button class="modal-close" onclick="closeCashierHistoryModal()">×</button>
+            </div>
+            <div id="cashierHistoryContent">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Aggregator Modal -->
+    <div class="modal" id="aggregatorModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="aggregatorModalTitle">إضافة شركة توصيل</h3>
+                <button class="modal-close" onclick="closeAggregatorModal()">&times;</button>
+            </div>
+            <form id="aggregatorForm">
+                <input type="hidden" id="aggregatorId">
+                <div class="form-group">
+                    <label class="label">اسم الشركة *</label>
+                    <input type="text" class="input" id="aggregatorName" placeholder="e.g., Talabat" required>
+                </div>
+                <div class="form-group">
+                    <label class="label">نسبة العمولة (%) *</label>
+                    <input type="number" class="input" id="aggregatorCommission" placeholder="e.g., 20" required>
+                </div>
+
+                <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeAggregatorModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Core Libraries -->
+  
+
+    <!-- Firebase Compat SDKs (Order is important) -->
+  
+  
+  
+
+    <!-- Application Services (Order is important) -->
+  
+  
+  
+  
+  
+  
+    
+    <!-- Other Scripts -->
+  
+  
+  
+  
+  
+  
+    <script>
+        // Helper function to wait for FirestoreService to be ready
+        window.waitForFirestoreService = function(timeoutMs = 5000) {
+            return new Promise((resolve) => {
+                if (window.FirestoreService && typeof window.FirestoreService.getCollection === 'function') {
+                    resolve(true);
+                    return;
+                }
+
+                const startTime = Date.now();
+                const interval = setInterval(() => {
+                    if (window.FirestoreService && typeof window.FirestoreService.getCollection === 'function') {
+                        clearInterval(interval);
+                        resolve(true);
+                    } else if (Date.now() - startTime > timeoutMs) {
+                        clearInterval(interval);
+                        resolve(false);
+                    }
+                }, 100); // Check every 100ms
+            });
+        }
+
+        // Check login
+        // Check login and apply permissions
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('settings.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // New robust way to handle header button clicks
+        document.addEventListener('DOMContentLoaded', () => {
+            const clearDataBtn = document.getElementById('clearDataBtn');
+            if (clearDataBtn) {
+                clearDataBtn.addEventListener('click', clearOperationalDataOnly);
+            }
+
+            const refreshButton = document.querySelector('.header-action-btn[title=\"تحديث الصفحة\"]');
+            const notificationButton = document.querySelector('.header-action-btn[title=\"تنبيهات المطبخ\"]');
+
+            function handleRefreshClick() {
+                window.location.reload();
+            }
+
+            function showStockNotificationsClick() {
+                alert('سيتم عرض إشعارات المخزون هنا.');
+            }
+
+            if (refreshButton) {
+                refreshButton.removeAttribute('onclick'); 
+                refreshButton.addEventListener('click', handleRefreshClick);
+            }
+
+            if (notificationButton) {
+                notificationButton.removeAttribute('onclick');
+                notificationButton.addEventListener('click', showStockNotificationsClick);
+            }
+        });
+        
+        // Global function for switching sections (works in Electron)
+        window.switchSettingsSection = function(section, element) {
+            console.log('switchSettingsSection called:', section);
+            
+            // Remove active from all
+            document.querySelectorAll('.settings-nav-item').forEach(nav => nav.classList.remove('active'));
+            document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('active'));
+            
+            // Add active to clicked item
+            if (element) {
+                element.classList.add('active');
+            }
+            
+            const sectionEl = document.getElementById(section + 'Section');
+            if (sectionEl) {
+                sectionEl.classList.add('active');
+                console.log('Section activated:', section + 'Section');
+            } else {
+                console.error('Section not found:', section + 'Section');
+            }
+            
+            // Load store name in general section
+            if (section === 'general') {
+                setTimeout(() => {
+                    const storeNameInput = document.getElementById('storeNameInput');
+                    if (storeNameInput) {
+                        storeNameInput.value = DataManager.getStoreName();
+                        console.log('Store name loaded:', storeNameInput.value);
+                    }
+                }, 100);
+            }
+            
+            // تحميل إعدادات الضرائب عند فتح قسم الضرائب
+            if (section === 'tax') {
+                loadTaxSettings();
+            }
+            
+            // Load invoice settings when invoice section is activated
+            if (section === 'invoice') {
+                loadInvoiceSettings();
+            }
+
+            if (section === 'aggregators') {
+                loadAggregators();
+            }
+            
+            // تحميل المستخدمين عند فتح قسم إدارة المستخدمين - بدون شرط Role
+            if (section === 'users') {
+                // انتظار FirestoreService إذا لم يكن جاهزاً
+                const waitAndLoad = async () => {
+                    if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                        loadUsers(0);
+                    } else {
+                        // انتظار firestoreReady event
+                        const onReady = () => {
+                            window.removeEventListener('firestoreReady', onReady);
+                            setTimeout(() => loadUsers(0), 200);
+                        };
+                        window.addEventListener('firestoreReady', onReady, { once: true });
+                        
+                        // Fallback: محاولة بعد 1 ثانية
+                        setTimeout(() => {
+                            if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                                loadUsers(0);
+                            } else {
+                                // استخدام localStorage كبديل
+                                loadUsers(0);
+                            }
+                        }, 1000);
+                    }
+                };
+                waitAndLoad();
+            }
+        };
+        
+        // Initialize on DOM ready (works in both browser and Electron)
+        async function initializeSettings() {
+            console.log('Initializing settings page...');
+            initSettingsNav();
+            loadSettings();
+            
+            // Load store name in general section
+            const storeNameInput = document.getElementById('storeNameInput');
+            if (storeNameInput) {
+                storeNameInput.value = await DataManager.getStoreName();
+            }
+            
+            // Update store info
+            if (typeof updateStoreInfo === 'function') {
+                updateStoreInfo();
+            }
+            
+            // تحميل المستخدمين إذا كان قسم المستخدمين نشطاً
+            const usersSection = document.getElementById('usersSection');
+            const isUsersSectionActive = usersSection && usersSection.classList.contains('active');
+            
+            if (isUsersSectionActive) {
+                // Wait for FirestoreService to be ready
+                const waitForFirestore = () => {
+                    if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                        loadUsers();
+                    } else {
+                        // Wait for firestoreReady event
+                        window.addEventListener('firestoreReady', () => {
+                            loadUsers();
+                        }, { once: true });
+                        // Also try after a delay
+                        setTimeout(() => {
+                            if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                loadUsers();
+            }
+                        }, 1000);
+                    }
+                };
+                waitForFirestore();
+            }
+        }
+        
+        // Try multiple initialization methods for Electron compatibility
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSettings);
+        } else {
+            // DOM already loaded
+            initializeSettings();
+        }
+        
+        // Fallback for Electron (sometimes DOMContentLoaded fires too early)
+        setTimeout(() => {
+            const navItems = document.querySelectorAll('.settings-nav-item');
+            if (navItems.length > 0) {
+                console.log('Re-initializing nav (fallback for Electron)');
+                initSettingsNav();
+            }
+        }, 500);
+        
+        function loadSettings() {
+            // لم يعد هناك إعدادات أخرى أو حساب شخصي
+        }
+        
+        function initSettingsNav() {
+            const navItems = document.querySelectorAll('.settings-nav-item');
+            console.log('initSettingsNav: Found', navItems.length, 'nav items');
+            
+            navItems.forEach(item => {
+                // Remove any existing listeners by cloning
+                const newItem = item.cloneNode(true);
+                item.parentNode.replaceChild(newItem, item);
+                
+                newItem.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Nav item clicked:', this.dataset.section);
+                    
+                    // Remove active from all
+                    document.querySelectorAll('.settings-nav-item').forEach(nav => nav.classList.remove('active'));
+                    document.querySelectorAll('.settings-section').forEach(section => section.classList.remove('active'));
+                    
+                    // Add active to clicked item
+                    this.classList.add('active');
+                    
+                    const section = this.dataset.section;
+                    console.log('Switching to section:', section);
+                    
+                    const sectionEl = document.getElementById(section + 'Section');
+                    if (sectionEl) {
+                        sectionEl.classList.add('active');
+                        console.log('Section activated:', section + 'Section');
+                    } else {
+                        console.error('Section not found:', section + 'Section');
+                    }
+                    
+                    // Load store name in general section
+                    if (section === 'general') {
+                        const storeNameInput = document.getElementById('storeNameInput');
+                        if (storeNameInput) {
+                            storeNameInput.value = await DataManager.getStoreName();
+                            console.log('Store name loaded:', storeNameInput.value);
+                        }
+                    }
+                    
+                    // تحميل إعدادات الضرائب عند فتح قسم الضرائب
+                    if (section === 'tax') {
+                        loadTaxSettings();
+                    }
+                    
+                    if (section === 'invoice') {
+                        loadInvoiceSettings();
+                    }
+
+                    if (section === 'aggregators') {
+                        loadAggregators();
+                    }
+                    
+                    // تحميل المستخدمين عند فتح قسم إدارة المستخدمين - بدون شرط Role
+                    if (section === 'users') {
+                        // انتظار FirestoreService إذا لم يكن جاهزاً
+                        const waitAndLoad = async () => {
+                            if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                                loadUsers(0);
+                            } else {
+                                // انتظار firestoreReady event
+                                const onReady = () => {
+                                    window.removeEventListener('firestoreReady', onReady);
+                                    setTimeout(() => loadUsers(0), 200);
+                                };
+                                window.addEventListener('firestoreReady', onReady, { once: true });
+                                
+                                // Fallback: محاولة بعد 1 ثانية
+                                setTimeout(() => {
+                                    if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                                        loadUsers(0);
+                                    } else {
+                                        // استخدام localStorage كبديل
+                                        loadUsers(0);
+                                    }
+                                }, 1000);
+                            }
+                        };
+                        waitAndLoad();
+                    }
+                });
+            });
+        }
+        
+        // إدارة المستخدمين
+        let editingUserId = null;
+        
+        let isLoadingUsers = false; // Flag to prevent concurrent loads
+        
+        async function loadUsers(retryCount = 0) { 
+            const usersList = document.getElementById('usersList'); 
+            if (!usersList) { 
+                console.warn('⚠️ usersList element not found'); 
+                return; 
+            } 
+            
+            if (isLoadingUsers) return; 
+            isLoadingUsers = true; 
+            
+            usersList.innerHTML = ` 
+                <div style=\"text-align: center; padding: var(--spacing-xl);\"> 
+                    <div class=\"spinner\" style=\"width: 48px; height: 48px; border: 4px solid #f0f0f0; border-top-color: #000000; border-radius: 50%; margin: 0 auto var(--spacing-md); animation: spin 1s linear infinite;\"></div> 
+                    <div style=\"font-size: 14px; color: #666666; font-weight: 500;\">جاري التحميل...</div> 
+                </div> 
+            `; 
+            
+            try { 
+                let users = []; 
+                
+                // التعديل السحري: لو أونلاين، جيب من الفايربيز واحفظ نسخة باك أب في الجهاز 
+                if (navigator.onLine && window.FirestoreService && window.FirestoreService.getAllUsers) { 
+                    try { 
+                        const fetchedUsers = await window.FirestoreService.getAllUsers(); 
+                        users = fetchedUsers.filter(u => u.deleted !== true && u.active !== false); 
+                        
+                        // السر هنا: حفظ نسخة في اللوكال ستورج عشان تلاقيها لما النت يقطع! 
+                        localStorage.setItem('users', JSON.stringify(users)); 
+                    } catch (firestoreError) { 
+                        const localUsers = JSON.parse(localStorage.getItem('users') || '[]'); 
+                        users = localUsers.filter(u => !u.deleted && u.active !== false); 
+                    } 
+                } else { 
+                    // التعديل التاني: لو أوفلاين، اقرأ من اللوكال فوراً بدون تأخير 
+                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]'); 
+                    users = localUsers.filter(u => !u.deleted && u.active !== false); 
+                } 
+                
+                if (users.length === 0) { 
+                    usersList.innerHTML = ` 
+                        <div style=\"text-align: center; padding: var(--spacing-xl); background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border-radius: 16px; border: 2px dashed #e8e8e8;\"> 
+                            <i class=\"fas fa-users\" style=\"font-size: 64px; color: #cccccc; margin-bottom: var(--spacing-md);\"></i> 
+                            <div style=\"font-size: 18px; font-weight: 600; color: #000000; margin-bottom: 8px;\">لا يوجد مستخدمين</div> 
+                            <div style=\"font-size: 14px; color: #666666; margin-bottom: var(--spacing-lg);\">ابدأ بإضافة مستخدم جديد لإدارة النظام</div> 
+                            <button class=\"btn btn-primary\" onclick=\"openAddUserModal()\" style=\"display: inline-flex; align-items: center; gap: 8px;\"> 
+                                <i class=\"fas fa-plus\"></i> 
+                                <span>إضافة مستخدم جديد</span> 
+                            </button> 
+                        </div> 
+                    `; 
+                    isLoadingUsers = false; 
+                    return; 
+                } 
+                
+                usersList.innerHTML = ''; 
+                
+                for (const user of users) { 
+                    const userCard = document.createElement('div'); 
+                    userCard.className = 'user-card'; 
+                    
+                    const username = user.displayName || user.name || user.username || 'مستخدم'; 
+                    const firstLetter = username.charAt(0).toUpperCase(); 
+                    const userRole = user.role || 'cashier'; 
+                    let roleLabel, roleDisplayClass, roleIcon; 
+                    
+                    let stats = { sessions: 0, orders: 0, totalRevenue: 0 }; 
+                    const cashierName = username; 
+                    if (typeof getCashierStats === 'function') { 
+                        stats = await getCashierStats(cashierName); 
+                    } 
+                    
+                    if (userRole === 'owner' || userRole === 'admin') { 
+                        roleLabel = 'المالك'; 
+                        roleDisplayClass = 'owner'; 
+                        roleIcon = '👑'; 
+                    } else if (userRole === 'cashier') { 
+                        roleLabel = 'كاشير'; 
+                        roleDisplayClass = 'cashier'; 
+                        roleIcon = '💼'; 
+                    } else { 
+                        roleLabel = userRole; 
+                        roleDisplayClass = 'custom'; 
+                        roleIcon = '👤'; 
+                    } 
+                    
+                    userCard.innerHTML = ` 
+                        <div class=\"user-card-header\"> 
+                            <div class=\"user-avatar\">${firstLetter}</div> 
+                            <div class=\"user-info\"> 
+                                <div class=\"user-name\">${username}</div> 
+                                <div class=\"user-email\">${user.email || ''}</div> 
+                            </div> 
+                            <span class=\"user-role ${roleDisplayClass}\">${roleIcon} ${roleLabel}</span> 
+                        </div> 
+                        <div class=\"cashier-stats\"> 
+                            <div class=\"stat-item\"> 
+                                <div class=\"stat-value\">${stats.sessions}</div> 
+                                <div class=\"stat-label\">جلسات</div> 
+                            </div> 
+                            <div class=\"stat-item\"> 
+                                <div class=\"stat-value\">${stats.orders}</div> 
+                                <div class=\"stat-label\">طلبات</div> 
+                            </div> 
+                            <div class=\"stat-item\"> 
+                                <div class=\"stat-value\">${typeof Utils !== 'undefined' ? Utils.formatCurrency(stats.totalRevenue) : stats.totalRevenue}</div> 
+                                <div class=\"stat-label\">مبيعات</div> 
+                            </div> 
+                        </div> 
+                        <div class=\"user-actions\"> 
+                            <button class=\"btn-icon\" data-tooltip=\"تعديل\" onclick=\"editUser('${user.id || user.uid || user.email}')\"> 
+                                <i class=\"fas fa-edit\"></i> 
+                            </button> 
+                            <button class=\"btn-icon\" data-tooltip=\"حذف\" onclick=\"deleteUser('${user.id || user.uid || user.email}', '${username}')\" style=\"color: #e74c3c;\"> 
+                                <i class=\"fas fa-trash\"></i> 
+                            </button> 
+                        </div> 
+                    `; 
+                    
+                    usersList.appendChild(userCard); 
+                } 
+            } catch (error) { 
+                console.error('❌ Error loading users:', error); 
+                usersList.innerHTML = ` 
+                    <div style=\"text-align: center; padding: var(--spacing-xl); color: #e74c3c;\"> 
+                        <i class=\"fas fa-exclamation-triangle\" style=\"font-size: 48px; margin-bottom: var(--spacing-md);\"></i> 
+                        <div>حدث خطأ أثناء تحميل المستخدمين</div> 
+                        <button class=\"btn btn-primary\" onclick=\"loadUsers(0)\" style=\"margin-top: 10px;\">إعادة المحاولة</button> 
+                    </div> 
+                `; 
+            } finally { 
+                isLoadingUsers = false; 
+            } 
+        }
+        
+        async function getCashierStats(username) {
+            try {
+                const sessions = await DataManager.getCashSessions();
+                const cashierSessions = sessions.filter(s => {
+                    const openedBy = s.openedBy || s.cashier || s.userName;
+                    const closedBy = s.closedBy || s.cashier || s.userName;
+                    return openedBy === username || closedBy === username;
+                });
+                
+                const orders = await DataManager.getOrders();
+                const cashierOrders = orders.filter(o => {
+                    const orderCashier = o.cashier || o.createdBy || o.userName || o.openedBy;
+                    return orderCashier === username;
+                });
+                const totalRevenue = cashierOrders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+                
+                return {
+                    sessions: cashierSessions.length,
+                    orders: cashierOrders.length,
+                    totalRevenue: totalRevenue
+                };
+            } catch (error) {
+                console.error('Error getting cashier stats:', error);
+                return { sessions: 0, orders: 0, totalRevenue: 0 };
+            }
+        }
+        
+        function openAddUserModal() {
+            editingUserId = null;
+            document.getElementById('userModalTitle').textContent = 'إضافة مستخدم جديد';
+            document.getElementById('userForm').reset();
+            document.getElementById('userModal').classList.add('active');
+        }
+        
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('active');
+            document.getElementById('userForm').reset();
+            editingUserId = null;
+        }
+        
+        async function editUser(userId) {
+            try {
+                let user = null;
+                
+                // استخدام Firestore إذا كان متاحاً
+                if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                    const users = await window.FirestoreService.getAllUsers();
+                    user = users.find(u => u.id === userId || u.uid === userId || (u.uid || u.username || u.displayName) === userId);
+                } else {
+                    // Fallback إلى localStorage
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    user = users.find(u => (u.uid || u.username || u.displayName || u.id) === userId);
+                }
+                
+                if (!user) {
+                    Notification.error('المستخدم غير موجود');
+                    return;
+                }
+                
+                editingUserId = userId;
+                document.getElementById('userModalTitle').textContent = 'تعديل المستخدم';
+                // تحديث: إعطاء الأولوية لـ displayName ثم name ثم username
+                document.getElementById('userDisplayName').value = user.displayName || user.name || user.username || '';
+                // عرض PIN الحالي في حقل الإدخال
+                document.getElementById('userPin').value = user.pin || '';
+                document.getElementById('userPin').required = false;
+                document.getElementById('userPin').placeholder = 'أدخل PIN جديد إذا أردت التغيير';
+                document.getElementById('userRole').value = user.role === 'admin' ? 'admin' : (user.role === 'manager' ? 'manager' : 'cashier');
+                document.getElementById('userModal').classList.add('active');
+            } catch (error) {
+                console.error('Error editing user:', error);
+                Notification.error('حدث خطأ أثناء تحميل بيانات المستخدم');
+            }
+        }
+        
+        async function deleteUser(userId, userName) {
+            // الحذف مسموح لصاحب المحل/المدير فقط
+            try {
+                if (typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function' && !Auth.canDelete()) {
+                    Notification.error('الحذف مسموح لصاحب المحل فقط');
+                    return;
+                }
+            } catch (_) { /* ignore */ }
+
+            if (!confirm(`هل أنت متأكد من حذف المستخدم \"${userName}\"؟`)) {
+                return;
+            }
+            
+            try {
+                // حذف محلياً دائماً
+                let users = JSON.parse(localStorage.getItem('users') || '[]');
+                users = users.filter(u => (u.uid || u.username || u.displayName || u.id) !== userId);
+                localStorage.setItem('users', JSON.stringify(users));
+
+                // مزامنة الحذف مع Firebase (Online/Offline) عبر SyncManager
+                if (window.SyncManager && typeof window.SyncManager.addToSyncQueue === 'function') {
+                    window.SyncManager.addToSyncQueue('users', 'delete', { id: String(userId) });
+                } else if (window.FirestoreService && window.FirestoreService.deleteUser && navigator.onLine) {
+                    // fallback لو SyncManager غير متاح
+                    await window.FirestoreService.deleteUser(userId);
+                }
+
+                Notification.success('تم حذف المستخدم بنجاح');
+                await loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                Notification.error('حدث خطأ أثناء حذف المستخدم: ' + (error.message || ''));
+            }
+        }
+        
+        async function viewCashierHistory(userId, userName) {
+            const modal = document.getElementById('cashierHistoryModal');
+            const content = document.getElementById('cashierHistoryContent');
+            const title = document.getElementById('cashierHistoryTitle');
+            
+            title.textContent = `تاريخ الكاشير: ${userName}`;
+            content.innerHTML = '<div style=\"text-align: center; padding: var(--spacing-lg);\">جاري التحميل...</div>';
+            modal.classList.add('active');
+            
+            try {
+                const sessions = await DataManager.getCashSessions();
+                const cashierSessions = sessions.filter(s => s.openedBy === userName || s.closedBy === userName);
+                
+                const orders = await DataManager.getOrders();
+                const cashierOrders = orders.filter(o => o.cashier === userName || o.createdBy === userName);
+                
+                let historyHTML = `
+                    <div style=\"margin-bottom: var(--spacing-lg);\">
+                        <h4 style=\"color: #000000; font-weight: 700; margin-bottom: var(--spacing-md);\">جلسات الصندوق (${cashierSessions.length})</h4>
+                        <div style=\"display: grid; gap: var(--spacing-sm);\">
+                `;
+                
+                if (cashierSessions.length === 0) {
+                    historyHTML += '<div style=\"text-align: center; padding: var(--spacing-md); color: #666666;\">لا توجد جلسات</div>';
+                } else {
+                    cashierSessions.forEach(session => {
+                        const openDate = new Date(session.createdAt || session.date).toLocaleDateString('ar-EG', {  });
+                        const closeDate = session.closedAt ? new Date(session.closedAt).toLocaleDateString('ar-EG', {  }) : 'لم يتم الإغلاق';
+                        historyHTML += `
+                            <div style=\"background: #fafafa; padding: var(--spacing-md); border-radius: 8px; border: 1px solid #e8e8e8;\">
+                                <div style=\"display: flex; justify-content: space-between; margin-bottom: 8px;\">
+                                    <strong>${openDate}</strong>
+                                    <span style=\"color: ${session.status === 'closed' ? '#27ae60' : '#f39c12'}; font-weight: 600;\">
+                                        ${session.status === 'closed' ? 'مغلقة' : 'مفتوحة'}
+                                    </span>
+                                </div>
+                                <div style=\"font-size: 12px; color: #666666;\">
+                                    <div>فتح: ${session.openedBy || 'غير معروف'}</div>
+                                    ${session.closedBy ? `<div>إغلاق: ${session.closedBy}</div>` : ''}
+                                    <div>المبلغ الافتتاحي: ${Utils.formatCurrency(session.openingAmount || 0)}</div>
+                                    ${session.closingAmount ? `<div>المبلغ الإغلاقي: ${Utils.formatCurrency(session.closingAmount)}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                historyHTML += `
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style=\"color: #000000; font-weight: 700; margin-bottom: var(--spacing-md);\">الطلبات (${cashierOrders.length})</h4>
+                        <div style=\"display: grid; gap: var(--spacing-sm);\">
+                `;
+                
+                if (cashierOrders.length === 0) {
+                    historyHTML += '<div style=\"text-align: center; padding: var(--spacing-md); color: #666666;\">لا توجد طلبات</div>';
+                } else {
+                    cashierOrders.slice(0, 10).forEach(order => {
+                        const orderDate = new Date(order.date).toLocaleDateString('ar-EG', {  });
+                        historyHTML += `
+                            <div style=\"background: #fafafa; padding: var(--spacing-md); border-radius: 8px; border: 1px solid #e8e8e8;\">
+                                <div style=\"display: flex; justify-content: space-between; margin-bottom: 8px;\">
+                                    <strong>${order.id}</strong>
+                                    <span>${Utils.formatCurrency(order.total || 0)}</span>
+                                </div>
+                                <div style=\"font-size: 12px; color: #666666;\">
+                                    ${orderDate} - ${order.items ? order.items.length : 0} منتج
+                                </div>
+                            </div>
+                        `;
+                    });
+                    if (cashierOrders.length > 10) {
+                        historyHTML += `<div style=\"text-align: center; padding: var(--spacing-md); color: #666666;\">و ${cashierOrders.length - 10} طلب آخر</div>`;
+                    }
+                }
+                
+                historyHTML += '</div></div>';
+                content.innerHTML = historyHTML;
+            } catch (error) {
+                console.error('Error loading cashier history:', error);
+                content.innerHTML = '<div style=\"text-align: center; padding: var(--spacing-lg); color: #e74c3c;\">حدث خطأ أثناء تحميل التاريخ</div>';
+            }
+        }
+        
+        function closeCashierHistoryModal() {
+            document.getElementById('cashierHistoryModal').classList.remove('active');
+        }
+        
+        // حذف جميع الطلبات
+        async function clearAllOrders() {
+            if (!confirm('هل أنت متأكد من حذف جميع الطلبات؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+                return;
+            }
+            
+            try {
+                // حذف من localStorage
+                localStorage.setItem('orders', JSON.stringify([]));
+                localStorage.setItem('ordersOnHold', JSON.stringify([]));
+                localStorage.setItem('salesHistory', JSON.stringify([]));
+                
+                // البيانات محذوفة من localStorage فقط (لا يوجد Firebase)
+                
+                Notification.success('تم حذف جميع الطلبات بنجاح');
+            } catch (error) {
+                console.error('Error clearing orders:', error);
+                Notification.error('حدث خطأ أثناء حذف الطلبات');
+            }
+        }
+        
+        // معالج نموذج إضافة/تعديل مستخدم
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('userDisplayName').value.trim();
+            const pin = document.getElementById('userPin').value.trim();
+            const role = document.getElementById('userRole').value;
+            
+            if (!username) {
+                Notification.error('يرجى إدخال اسم المستخدم');
+                return;
+            }
+            
+            if (!editingUserId && !pin) {
+                Notification.error('رقم PIN مطلوب للمستخدمين الجدد');
+                return;
+            }
+            
+            if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) {
+                Notification.error('رقم PIN يجب أن يكون 4 أرقام');
+                return;
+            }
+            
+            try {
+                if (editingUserId) {
+                    // تحديث مستخدم موجود
+                    if (window.FirestoreService && window.FirestoreService.updateUser) {
+                        // تحديث شامل للمستخدم في Firestore
+                        const updateData = {
+                            name: username,
+                            displayName: username, // إضافة displayName أيضاً
+                            username: username, // إضافة username أيضاً
+                            role: role, // حفظ الدور كما هو بدون تحويل
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        // تحديث PIN إذا تم إدخاله، وإلا احتفظ بالقيمة الحالية
+                        if (pin && pin.trim() !== '') {
+                            updateData.pin = String(pin); // تحويل PIN لـ String
+                        }
+                        
+                        console.log('🔄 Updating user in Firestore:', editingUserId, updateData);
+                        await window.FirestoreService.updateUser(editingUserId, updateData);
+                        
+                        // تحديث فوري في LocalStorage بعد نجاح Firestore
+                        let localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                        const localIndex = localUsers.findIndex(u => (u.uid || u.username || u.displayName || u.id) === editingUserId);
+                        
+                        if (localIndex !== -1) {
+                            localUsers[localIndex] = {
+                                ...localUsers[localIndex],
+                                name: username,
+                                displayName: username,
+                                username: username,
+                                role: role, // حفظ الدور كما هو بدون تحويل
+                                updatedAt: updateData.updatedAt
+                            };
+                            
+                            // تحديث PIN فقط إذا تم إدخاله
+                            if (pin && pin.trim() !== '') {
+                                localUsers[localIndex].pin = String(pin);
+                            }
+                            
+                            localStorage.setItem('users', JSON.stringify(localUsers));
+                            console.log('✅ LocalStorage updated successfully');
+                        }
+                        
+                        Notification.success('تم تحديث المستخدم بنجاح');
+                        closeUserModal();
+                        await loadUsers(); // إعادة تحميل الواجهة فوراً
+                        
+                    } else {
+                        // Fallback إلى localStorage
+                        let users = JSON.parse(localStorage.getItem('users') || '[]');
+                        const index = users.findIndex(u => (u.uid || u.username || u.displayName || u.id) === editingUserId);
+                        if (index !== -1) {
+                            users[index] = {
+                                ...users[index],
+                                displayName: username,
+                                username: username,
+                                name: username,
+                                role: role, // حفظ الدور كما هو بدون تحويل
+                                updatedAt: new Date().toISOString()
+                            };
+                            // تحديث PIN فقط إذا تم إدخاله
+                            if (pin && pin.trim() !== '') {
+                                users[index].pin = String(pin); // تحويل PIN لـ String
+                            }
+                            localStorage.setItem('users', JSON.stringify(users));
+                        }
+                        Notification.success('تم تحديث المستخدم بنجاح');
+                        closeUserModal();
+                        await loadUsers();
+                    }
+                } else {
+                    // إضافة مستخدم جديد
+                    if (window.FirestoreService && window.FirestoreService.addUser) {
+                        await window.FirestoreService.addUser({
+                            name: username,
+                            displayName: username, // إضافة displayName أيضاً
+                            username: username, // إضافة username أيضاً
+                            pin: pin,
+                            role: role
+                        });
+                        Notification.success('تم إضافة المستخدم بنجاح');
+                        closeUserModal();
+                        await loadUsers();
+                    } else {
+                        // Fallback إلى localStorage
+                        await createUserInLocalStorage(username, pin, role);
+                    }
+                    
+                    // تحديث LocalStorage فوراً بعد إضافة المستخدم الجديد (للتزامن)
+                    if (window.FirestoreService && window.FirestoreService.getAllUsers) {
+                        try {
+                            const freshUsers = await window.FirestoreService.getAllUsers();
+                            localStorage.setItem('users', JSON.stringify(freshUsers));
+                            console.log('✅ LocalStorage synced with fresh Firestore data');
+                        } catch (syncError) {
+                            console.warn('⚠️ Failed to sync LocalStorage:', syncError);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving user:', error);
+                Notification.error('حدث خطأ أثناء حفظ المستخدم: ' + (error.message || ''));
+            }
+        });
+        
+        // تصدير جميع البيانات إلى ملف CSV شامل
+        async function exportAllDataToExcel() {
+            try {
+                // جلب جميع البيانات
+                // ملاحظة: المصاريف يتم أخذها من expensesHistory فقط (تاريخ المصاريف)
+                // لا يتم أخذ أي بيانات من expenses (المصاريف الحالية)
+                const orders = await DataManager.getOrders() || [];
+                const sales = await DataManager.getSalesHistory() || [];
+                
+                // ===== المصاريف: نأخذ البيانات من expensesHistory فقط =====
+                // ⚠️ مهم جداً: لا يتم أخذ أي بيانات من expenses (المصاريف الحالية) على الإطلاق
+                // ✅ المصدر الوحيد للبيانات هو expensesHistory (تاريخ المصاريف)
+                console.log('=== بدء تصدير Excel ===');
+                console.log('جاري جلب expensesHistory...');
+                const expensesHistory = await DataManager.getExpensesHistory() || [];
+                console.log('✅ تم جلب expensesHistory');
+                console.log('✅ عدد المصاريف في expensesHistory:', expensesHistory.length);
+                console.log('✅ expensesHistory:', JSON.stringify(expensesHistory, null, 2));
+                
+                // ⚠️ تأكيد: لا نستخدم expenses على الإطلاق
+                // const expenses = await DataManager.getExpenses(); // ❌ محذوف - لا نستخدمه
+                
+                const sessions = await DataManager.getCashSessions() || [];
+                const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+                const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                
+                // إنشاء ملف Excel متعدد الأوراق (CSV متعدد)
+                let csv = '';
+                
+                // ورقة الطلبات
+                csv += '=== الطلبات ===\\n';
+                csv += 'رقم الطلب,التاريخ,النوع,عدد المنتجات,الإجمالي,الكاشير,الحالة\\n';
+                orders.forEach(order => {
+                    const date = order.date ? new Date(order.date).toLocaleDateString('ar-EG', {  }) : '-';
+                    const itemsCount = order.items ? order.items.length : 0;
+                    csv += `${order.id || '-'},${date},${order.type || 'takeaway'},${itemsCount},${order.total || 0},${order.cashier || order.createdBy || '-'},${order.status || 'completed'}\\n`;
+                });
+                csv += '\\n';
+                
+                // ورقة المبيعات
+                csv += '=== المبيعات ===\\n';
+                csv += 'رقم المبيعة,رقم الطلب,التاريخ,المبلغ,التاريخ التجاري\\n';
+                sales.forEach(sale => {
+                    const date = sale.date ? new Date(sale.date).toLocaleDateString('ar-EG', {  }) : '-';
+                    csv += `${sale.id || '-'},${sale.orderId || '-'},${date},${sale.amount || 0},${sale.businessDate || '-'}\\n`;
+                });
+                csv += '\\n';
+                
+                // ورقة المصاريف
+                csv += '=== المصاريف ===\\n';
+                csv += 'رقم المصروف,النوع,التاريخ,المبلغ,الوصف,من أنشأه,تاريخ الإنشاء,تاريخ الجلسة\\n';
+                
+                console.log('=== إضافة المصاريف إلى CSV ===');
+                console.log('expenses.length:', expenses.length);
+                
+                // التأكد من أن expenses موجود وليس فارغاً
+                if (expenses && expenses.length > 0) {
+                    console.log('✅ يوجد', expenses.length, 'مصروف في expenses');
+                    let count = 0;
+                    expenses.forEach(expense => {
+                        count++;
+                        const date = expense.date ? new Date(expense.date).toLocaleDateString('ar-EG', {  }) : '-';
+                        const createdAt = expense.createdAt ? new Date(expense.createdAt).toLocaleDateString('ar-EG', {  }) : '-';
+                        csv += `${expense.id || '-'},${expense.category || expense.type || '-'},${date},${expense.amount || 0},${expense.description || '-'},${expense.createdBy || '-'},${createdAt},${expense.sessionDate || '-'}\\n`;
+                    });
+                    console.log('✅ تم إضافة', count, 'مصروف إلى CSV');
+                } else {
+                    // إذا كان expenses فارغاً، لا نضيف أي بيانات
+                    console.log('⚠️ expenses فارغ - لا توجد بيانات');
+                    csv += 'لا توجد بيانات في المصاريف\\n';
+                }
+                csv += '\\n';
+                
+                // ورقة الشيفتات
+                csv += '=== الشيفتات النقدية ===\\n';
+                csv += 'رقم الشيفت,التاريخ,من فتحه,وقت الفتح,وقت الإغلاق,المبلغ الابتدائي,المبلغ النهائي,المبلغ المتوقع,الفرق,الحالة\\n';
+                sessions.forEach(session => {
+                    const date = session.date ? new Date(session.date).toLocaleDateString('ar-EG', {}) : '-';
+                    const openedAt = session.createdAt ? new Date(session.createdAt).toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-';
+                    const closedAt = session.closedAt ? new Date(session.closedAt).toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-';
+                    const openingAmount = session.openingAmount || 0;
+                    const closingAmount = session.closingAmount || 0;
+                    const expectedAmount = openingAmount + (session.totalSales || 0) - (session.totalExpenses || 0);
+                    const difference = closingAmount - expectedAmount;
+                    csv += `${session.id || '-'},${date},${session.openedBy || '-'},${openedAt},${closedAt},${openingAmount},${closingAmount},${expectedAmount},${difference},${session.status || 'open'}\\n`;
+                });
+                csv += '\\n';
+                
+                // ورقة المخزون / المنيو
+                csv += '=== المخزون (المنيو) ===\\n';
+                csv += 'رقم الصنف,الاسم,الفئة,النوع,سعر البيع,سعر التكلفة,المكسب للوحدة,الكمية الحالية,حد التنبيه الأصفر,حد التنبيه الأحمر\\n';
+                menuItems.forEach(item => {
+                    const sellingPrice = item.price || 0;
+                    const costPrice = item.costPrice || 0;
+                    const profit = sellingPrice - costPrice;
+                    csv += `${item.id || '-'},${item.name || '-'},${item.categoryName || '-'},${item.type || 'physical'},${sellingPrice},${costPrice},${profit},${item.stock || 0},${item.minStockLimit || 0},${item.criticalStockLimit || 0}\\n`;
+                });
+                csv += '\\n';
+                
+                // ورقة الموظفين
+                csv += '=== الموظفون ===\\n';
+                csv += 'رقم الموظف,الاسم,الدور,الراتب الشهري,رقم الهاتف\\n';
+                employees.forEach(emp => {
+                    csv += `${emp.id || '-'},${emp.name || '-'},${emp.role || '-'},${emp.salary || 0},${emp.phone || '-'}\\n`;
+                });
+                
+                // تحميل الملف
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const fileName = `rayan-pos-backup-${year}-${month}-${day}.csv`;
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success('تم تصدير جميع البيانات بنجاح');
+                } else {
+                    alert('تم تصدير جميع البيانات بنجاح');
+                }
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء تصدير البيانات');
+                } else {
+                    alert('حدث خطأ أثناء تصدير البيانات');
+                }
+            }
+        }
+        
+        // دالة مساعدة لإنشاء مستخدم في localStorage
+        async function createUserInLocalStorage(username, pin, role) {
+            let users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            // التحقق من عدم وجود مستخدم بنفس الاسم أو PIN
+            if (users.some(u => (u.username || u.displayName) === username)) {
+                Notification.error('اسم المستخدم موجود بالفعل');
+                return;
+            }
+            
+            if (users.some(u => u.pin === pin)) {
+                Notification.error('رقم PIN موجود بالفعل');
+                return;
+            }
+            
+            const newUser = {
+                uid: 'USER-' + Date.now(),
+                id: 'USER-' + Date.now(),
+                username: username,
+                displayName: username,
+                name: username,
+                role: role === "admin" || role === "owner" || role === "manager" ? "admin" : "cashier",
+                pin: String(pin), // تحويل PIN لـ String
+                createdAt: new Date().toISOString(),
+                createdBy: typeof Auth !== 'undefined' ? Auth.getUsername() : 'owner',
+                active: true
+            };
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            Notification.success('تم إنشاء المستخدم بنجاح');
+            closeUserModal();
+            await loadUsers(); // إعادة تحميل الواجهة فوراً
+        }
+        
+        function saveGeneralSettings(event) { 
+            event.preventDefault(); 
+            
+            const storeName = document.getElementById('storeNameInput').value.trim(); 
+            
+            if (!storeName) { 
+                if (typeof Notification !== 'undefined') Notification.error('يرجى إدخال اسم المتجر'); 
+                return; 
+            } 
+            
+            // 1. الحفظ المحلي فوراً 
+            localStorage.setItem('solo_store_name', storeName); 
+            if (typeof DataManager !== 'undefined' && typeof DataManager.setStoreName === 'function') { 
+                DataManager.setStoreName(storeName); 
+            } 
+            
+            // 2. تحديث كائن الإعدادات الشامل للمزامنة 
+            let appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}'); 
+            appSettings.storeName = storeName; 
+            appSettings.id = 'global_settings'; // ID ثابت للإعدادات 
+            localStorage.setItem('appSettings', JSON.stringify(appSettings)); 
+            
+            // 3. المزامنة مع فايربيز (يشتغل أوفلاين وأونلاين) 
+            if (typeof window !== 'undefined' && window.SyncManager) { 
+                appSettings._synced = false; 
+                window.SyncManager.addToSyncQueue('settings', 'update', appSettings, 'global_settings'); 
+            } 
+            
+            // 4. تحديث الواجهة فوراً 
+            if (typeof updateStoreInfo === 'function') { 
+                updateStoreInfo(); 
+            } 
+            
+            if (typeof Notification !== 'undefined') { 
+                Notification.success('تم حفظ الإعدادات بنجاح!'); 
+            } else { 
+                alert('تم حفظ الإعدادات بنجاح!'); 
+            } 
+        }
+        
+        function resetStoreName() {
+            if (!confirm('هل تريد إعادة تعيين اسم المتجر إلى القيمة الافتراضية؟')) {
+                return;
+            }
+            
+            localStorage.removeItem('solo_store_name');
+            document.getElementById('storeNameInput').value = 'Solo Restaurant';
+            
+            // Update UI immediately
+            if (typeof updateStoreInfo === 'function') {
+                updateStoreInfo();
+            }
+            
+            Notification.success('تم إعادة تعيين اسم المتجر');
+        }
+        
+        // إعدادات الضرائب ورسوم الخدمة
+        function loadTaxSettings() {
+            const taxSettings = JSON.parse(localStorage.getItem('taxServiceSettings') || '{}');
+            
+            const taxRateInput = document.getElementById('taxRateInput');
+            const serviceChargeInput = document.getElementById('serviceChargeInput');
+            const taxIdInput = document.getElementById('taxIdInput');
+            
+            // إذا كانت هناك قيمة محفوظة، عرضها. وإلا اترك الحقل فارغاً
+            if (taxRateInput) {
+                taxRateInput.value = taxSettings.taxRate !== undefined ? taxSettings.taxRate : '';
+            }
+            
+            if (serviceChargeInput) {
+                serviceChargeInput.value = taxSettings.serviceChargeRate !== undefined ? taxSettings.serviceChargeRate : '';
+            }
+            
+            if (taxIdInput) {
+                taxIdInput.value = taxSettings.taxId || '';
+            }
+        }
+        
+        function saveTaxSettings(event) {
+            event.preventDefault();
+            
+            const taxRateInput = document.getElementById('taxRateInput').value.trim();
+            const serviceChargeInput = document.getElementById('serviceChargeInput').value.trim();
+            const taxIdInput = document.getElementById('taxIdInput').value.trim();
+            
+            // إذا كان الحقل فارغاً، لا تطبق ضريبة/رسوم خدمة
+            let taxRate = null;
+            let serviceChargeRate = null;
+            
+            if (taxRateInput !== '') {
+                taxRate = parseFloat(taxRateInput);
+                if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) {
+                    Notification.error('يرجى إدخال معدل ضريبة صحيح (0-100)');
+                    return;
+                }
+            }
+            
+            if (serviceChargeInput !== '') {
+                serviceChargeRate = parseFloat(serviceChargeInput);
+                if (isNaN(serviceChargeRate) || serviceChargeRate < 0 || serviceChargeRate > 100) {
+                    Notification.error('يرجى إدخال معدل رسوم خدمة صحيح (0-100)');
+                    return;
+                }
+            }
+            
+            // حفظ القيم (null إذا كانت فارغة)
+            const taxSettings = {
+                taxRate: taxRate,
+                serviceChargeRate: serviceChargeRate,
+                taxId: taxIdInput || ''
+            };
+            
+            localStorage.setItem('taxServiceSettings', JSON.stringify(taxSettings));
+            
+            Notification.success('تم حفظ إعدادات الضرائب ورسوم الخدمة بنجاح!');
+        }
+        
+        function resetTaxSettings() {
+            if (!confirm('هل تريد إعادة تعيين إعدادات الضرائب ورسوم الخدمة إلى القيم الافتراضية؟')) {
+                return;
+            }
+            
+            // إعادة تعيين الحقول إلى فارغة
+            document.getElementById('taxRateInput').value = '';
+            document.getElementById('serviceChargeInput').value = '';
+            document.getElementById('taxIdInput').value = '';
+            
+            // حذف الإعدادات المحفوظة (ليستخدم النظام القيم الافتراضية)
+            localStorage.removeItem('taxServiceSettings');
+            
+            Notification.success('تم إعادة تعيين إعدادات الضرائب ورسوم الخدمة');
+        }
+        
+        // Invoice Settings Functions
+        function loadInvoiceSettings() {
+            const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+            
+            const storeAddressInput = document.getElementById('storeAddressInput');
+            const storePhoneInput = document.getElementById('storePhoneInput');
+            
+            if (storeAddressInput) {
+                storeAddressInput.value = storeSettings.address || 'المحله الكبري - منطقه ابو راضي - بجوار صيدليه زرمبه';
+            }
+            
+            if (storePhoneInput) {
+                storePhoneInput.value = storeSettings.phone || '01044057605';
+            }
+        }
+        
+        function saveInvoiceSettings(event) {
+            event.preventDefault();
+            
+            const address = document.getElementById('storeAddressInput').value.trim();
+            const phone = document.getElementById('storePhoneInput').value.trim();
+            
+            const storeSettings = {
+                address: address || 'المحلة الكبرى، مصر',
+                phone: phone || '01000000000'
+            };
+            
+            localStorage.setItem('storeSettings', JSON.stringify(storeSettings));
+            
+            Notification.success('تم حفظ إعدادات الفاتورة بنجاح!');
+        }
+        
+        function resetInvoiceSettings() {
+            if (!confirm('هل تريد إعادة تعيين إعدادات الفاتورة إلى القيم الافتراضية؟')) {
+                return;
+            }
+            
+            document.getElementById('storeAddressInput').value = '';
+            document.getElementById('storePhoneInput').value = '';
+            
+            localStorage.removeItem('storeSettings');
+            
+            Notification.success('تم إعادة تعيين إعدادات الفاتورة');
+        }
+        
+        function saveOtherSettings() {
+            const settings = {
+                taxRate: parseFloat(document.getElementById('taxRate').value),
+                currency: document.getElementById('currency').value,
+                language: document.getElementById('language').value
+            };
+            
+            const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            settings._localId = localId;
+            settings._synced = false;
+            
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            
+            // إضافة للمزامنة مع Firebase
+            if (typeof window !== 'undefined' && window.SyncManager) {
+                window.SyncManager.addToSyncQueue('settings', 'update', settings, localId);
+            }
+            
+            Notification.success('تم حفظ الإعدادات بنجاح!');
+        }
+        
+        // Load subscription status on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSubscriptionStatus();
+        });
+        
+        // Load subscription status
+        async function loadSubscriptionStatus() {
+            try {
+                const licenseInfo = JSON.parse(localStorage.getItem('solo_license_info') || 'null');
+                const statusEl = document.getElementById('sub-status');
+                const expiryEl = document.getElementById('sub-expiry');
+
+                if (!licenseInfo || !licenseInfo.isActivated) {
+                    if (statusEl) {
+                        statusEl.textContent = 'غير مفعل';
+                        statusEl.style.color = '#e74c3c';
+                        statusEl.parentElement.style.borderColor = '#e74c3c';
+                    }
+                    if (expiryEl) expiryEl.textContent = '-';
+                    return;
+                }
+
+                const now = new Date();
+                const expiryDate = new Date(licenseInfo.expiryDate);
+                const gracePeriodInMs = 30 * 24 * 60 * 60 * 1000;
+                const finalExpiryDate = new Date(expiryDate.getTime() + gracePeriodInMs);
+
+                // Always display the original expiry date
+                if (expiryEl && licenseInfo.expiryDate) {
+                    const formattedDate = expiryDate.toLocaleDateString('ar-EG', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    expiryEl.textContent = formattedDate;
+                }
+
+                if (now < expiryDate) {
+                    // License is active and not expired
+                    statusEl.textContent = 'نشط';
+                    statusEl.style.color = '#27AE60';
+                    statusEl.parentElement.style.borderColor = '#27AE60';
+                } else if (now < finalExpiryDate) {
+                    // License is expired but within the grace period
+                    statusEl.textContent = 'فترة سماح';
+                    statusEl.style.color = '#f39c12'; // Orange
+                    statusEl.parentElement.style.borderColor = '#f39c12';
+                } else {
+                    // License and grace period have expired
+                    statusEl.textContent = 'غير نشط';
+                    statusEl.style.color = '#e74c3c';
+                    statusEl.parentElement.style.borderColor = '#e74c3c';
+                }
+
+            } catch (error) {
+                console.error('Error loading subscription status:', error);
+                const statusEl = document.getElementById('sub-status');
+                const expiryEl = document.getElementById('sub-expiry');
+                if (statusEl) statusEl.textContent = 'خطأ في التحميل';
+                if (expiryEl) expiryEl.textContent = '-';
+            }
+        }
+        
+        // Handle license activation
+        window.handleActivateLicense = async function() {
+            const licenseInput = document.getElementById('license-input');
+            const activateBtn = document.getElementById('btn-activate-license');
+            
+            if (!licenseInput || !activateBtn) return;
+            
+            const licenseCode = licenseInput.value.trim();
+            
+            if (!licenseCode) {
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('يرجى إدخال كود الترخيص');
+                } else {
+                    alert('يرجى إدخال كود الترخيص');
+                }
+                return;
+            }
+            
+            // Disable button
+            activateBtn.disabled = true;
+            activateBtn.style.opacity = '0.6';
+            activateBtn.style.cursor = 'not-allowed';
+            activateBtn.textContent = 'جاري التفعيل...';
+            
+            try {
+                // Call validateLicense function
+                if (typeof window.validateLicense === 'function') {
+                    const result = await window.validateLicense(licenseCode);
+                    
+                    if (result.success) {
+                        // Show success message
+                        if (typeof Notification !== 'undefined') {
+                            Notification.success(result.message);
+                        } else {
+                            alert(result.message);
+                        }
+                        
+                        // Clear input
+                        licenseInput.value = '';
+                        
+                        // Reload subscription status
+                        await loadSubscriptionStatus();
+                    } else {
+                        // Show error message
+                        if (typeof Notification !== 'undefined') {
+                            Notification.error(result.message);
+                        } else {
+                            alert(result.message);
+                        }
+                    }
+                } else {
+                    throw new Error('دالة validateLicense غير متاحة');
+                }
+            } catch (error) {
+                console.error('Error activating license:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء التفعيل: ' + error.message);
+                } else {
+                    alert('حدث خطأ أثناء التفعيل: ' + error.message);
+                }
+            } finally {
+                // Re-enable button
+                activateBtn.disabled = false;
+                activateBtn.style.opacity = '1';
+                activateBtn.style.cursor = 'pointer';
+                activateBtn.innerHTML = '<i class=\"fas fa-key\" style=\"margin-left: 8px;\"></i> تفعيل';
+            }
+        };
+        
+        // Clear IndexedDB if it exists
+        async function clearIndexedDB() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) {
+                    resolve();
+                    return;
+                }
+                
+                // Get all database names
+                const databases = [];
+                if (indexedDB.databases) {
+                    indexedDB.databases().then(dbs => {
+                        dbs.forEach(db => {
+                            databases.push(db.name);
+                        });
+                        
+                        // Delete each database
+                        const deletePromises = databases.map(dbName => {
+                            return new Promise((res, rej) => {
+                                const deleteRequest = indexedDB.deleteDatabase(dbName);
+                                deleteRequest.onsuccess = () => res();
+                                deleteRequest.onerror = () => rej(deleteRequest.error);
+                                deleteRequest.onblocked = () => {
+                                    console.warn(`Database ${dbName} is blocked`);
+                                    res(); // Continue even if blocked
+                                };
+                            });
+                        });
+                        
+                        Promise.all(deletePromises)
+                            .then(() => resolve())
+                            .catch(err => {
+                                console.warn('Error deleting IndexedDB:', err);
+                                resolve(); // Continue even if there's an error
+                            });
+                    }).catch(err => {
+                        console.warn('Error getting databases:', err);
+                        resolve(); // Continue even if there's an error
+                    });
+                } else {
+                    // Fallback: try to delete common Firebase database names
+                    const commonNames = ['firebaseLocalStorageDb', 'firestore'];
+                    const deletePromises = commonNames.map(dbName => {
+                        return new Promise((res) => {
+                            const deleteRequest = indexedDB.deleteDatabase(dbName);
+                            deleteRequest.onsuccess = () => res();
+                            deleteRequest.onerror = () => res(); // Continue on error
+                            deleteRequest.onblocked = () => res(); // Continue if blocked
+                        });
+                    });
+                    
+                    Promise.all(deletePromises)
+                        .then(() => resolve())
+                        .catch(() => resolve()); // Always resolve
+                }
+            });
+        }
+        
+        // Perform Factory Reset
+        async function performFactoryReset() {
+            // First confirmation
+            const confirm1 = confirm(
+                '⚠️ تحذير: هذا الإجراء سيقوم بحذف جميع البيانات!\\n\\n' +
+                'سيتم حذف:\\n' +
+                '• جميع البيانات المحلية (localStorage)\\n' +
+                '• جميع البيانات من Firebase (الطلبات / المصاريف / المخزون / المطبخ / الفئات / الموظفين / الموردين / الشيفتات)\\n' +
+                '• قاعدة بيانات IndexedDB\\n\\n' +
+                'هذا الإجراء لا يمكن التراجع عنه!\\n\\n' +
+                'هل أنت متأكد تماماً؟'
+            );
+            
+            if (!confirm1) {
+                return;
+            }
+            
+            // Second confirmation (extra safety)
+            const confirm2 = confirm(
+                '⚠️ تحذير نهائي!\\n\\n' +
+                'أنت على وشك حذف جميع البيانات بشكل نهائي.\\n' +
+                'لا يمكن التراجع عن هذا الإجراء.\\n\\n' +
+                'هل أنت متأكد 100%؟'
+            );
+            
+            if (!confirm2) {
+                return;
+            }
+            
+            // Third confirmation (prompt() not supported in Electron; use confirm instead)
+            const confirm3 = confirm(
+                '⚠️ تحذير نهائي جداً!\\n\\n' +
+                'اضغط \"موافق\" لحذف جميع البيانات نهائياً.\\n' +
+                'لا يمكن التراجع عن هذا الإجراء.\\n\\n' +
+                'هل تريد المتابعة؟'
+            );
+            
+            if (!confirm3) {
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('تم إلغاء العملية.');
+                } else {
+                    alert('تم إلغاء العملية.');
+                }
+                return;
+            }
+            
+            try {
+                // Show loading notification
+                if (typeof Notification !== 'undefined') {
+                    Notification.info('جاري حذف جميع البيانات... قد تستغرق العملية بضع لحظات.');
+                }
+                
+                // Step 1: Clear Firebase data first
+                if (
+                    typeof window !== 'undefined' &&
+                    window.FirestoreService &&
+                    typeof window.FirestoreService.factoryResetFirebase === 'function' &&
+                    navigator.onLine
+                ) {
+                    console.log('Clearing Firebase data...');
+                    try {
+                        const results = await window.FirestoreService.factoryResetFirebase();
+                        console.log('Firebase deletion results:', results);
+                    } catch (error) {
+                        console.error('Error clearing Firebase:', error);
+                        // Continue even if Firebase deletion fails
+                    }
+                } else {
+                    console.warn('Firebase not available or offline - skipping Firebase deletion');
+                }
+                
+                // Step 2: Clear localStorage
+                console.log('Clearing localStorage...');
+                localStorage.clear();
+                
+                // Step 3: Clear IndexedDB
+                console.log('Clearing IndexedDB...');
+                await clearIndexedDB();
+                
+                // Step 4: Reload the page
+                if (typeof Notification !== 'undefined') {
+                    Notification.success('تم حذف جميع البيانات بنجاح! جاري إعادة تحميل الصفحة...');
+                }
+                
+                // Wait a moment before reloading to show the notification
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error during factory reset:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حذف البيانات: ' + error.message);
+                } else {
+                    alert('حدث خطأ أثناء حذف البيانات: ' + error.message);
+                }
+            }
+        }
+        
+// ============================================================ 
+// دالة مسح البيانات التشغيلية فقط (تعمل أوفلاين وأونلاين بشكل سليم) 
+// ============================================================ 
+async function clearOperationalDataOnly() { 
+    // 1. رسالة تأكيد قوية 
+    const confirmReset = confirm('⚠️ تأكيد مسح البيانات التشغيلية\\n\\nسيتم حذف البيانات التالية فقط:\\n📊 جميع الأوردرات (والمبيعات)\\n💸 جميع المصاريف (وتاريخها)\\n👥 سجل الحضور والانصراف\\n🔄 بيانات الشيفتات واليومية\\n\\nلن يتم حذف:\\n🍔 المنيو والفئات\\n📦 المخزون والخامات\\n👥 الموردين\\n⚙️ الإعدادات والمستخدمين\\n\\nهل تريد المتابعة؟'); 
+    
+    if (!confirmReset) { 
+        return; 
+    } 
+
+    const btn = document.querySelector('button[onclick=\"clearOperationalDataOnly()\"]') || event.target; 
+    const originalText = btn.innerHTML; 
+    btn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> جاري الحذف الجذري...'; 
+    btn.disabled = true; 
+
+    try { 
+        // 2. تحديد الجداول التشغيلية فقط 
+        const operationalCollections = [ 
+            'orders',           // الأوردرات 
+            'salesHistory',     // تاريخ المبيعات 
+            'expenses',         // المصاريف 
+            'expensesHistory',  // تاريخ المصاريف 
+            'attendance',       // سجل الحضور 
+            'cashSessions',     // الشيفتات محلياً 
+            'shifts',           // الشيفتات في الفايربيز 
+            'daily_log'         // اليومية 
+        ]; 
+
+        // 3. مسح البيانات من LocalStorage 
+        operationalCollections.forEach(key => { 
+            localStorage.removeItem(key); 
+            // تفريغ المصفوفة عشان الشاشة متضربش 
+            localStorage.setItem(key, JSON.stringify([])); 
+        }); 
+
+        // 4. تنظيف طابور المزامنة (عشان السيستم ميرفعش أوردرات قديمة كانت معلقة) 
+        let syncQueue = JSON.parse(localStorage.getItem('_syncQueue') || '[]'); 
+        syncQueue = syncQueue.filter(item => !operationalCollections.includes(item.collection)); 
+        localStorage.setItem('_syncQueue', JSON.stringify(syncQueue)); 
+        if (typeof window.SyncManager !== 'undefined') { 
+            window.SyncManager.syncQueue = syncQueue; 
+        } 
+
+        // 5. المسح الشامل من Firebase (إذا كان متصلاً بالإنترنت) 
+        if (navigator.onLine && window.FirestoreService && window.FirestoreService.clearCollection) { 
+            console.log('🔄 جاري مسح البيانات التشغيلية من Firebase...'); 
+            
+            // استخدام دالة clearCollection الاحترافية الموجودة في فايربيز 
+            const firebaseCollections = ['orders', 'salesHistory', 'expenses', 'expensesHistory', 'attendance', 'shifts', 'daily_log']; 
+            
+            for (const col of firebaseCollections) { 
+                try { 
+                    await window.FirestoreService.clearCollection(col); 
+                    console.log(`✅ تم مسح ${col} من الفايربيز بنجاح`); 
+                } catch (e) { 
+                    console.error(`❌ لم يتم مسح ${col}:`, e); 
+                } 
+            } 
+        } 
+
+        // 6. رسالة النجاح 
+        if (typeof Notification !== 'undefined') { 
+            Notification.success('✅ تم مسح البيانات التشغيلية بنجاح من الجهاز والسيرفر'); 
+        } else { 
+            alert('✅ تم مسح البيانات التشغيلية بنجاح من الجهاز والسيرفر'); 
+        } 
+
+        // 7. إعادة تحميل الصفحة بعد ثانية ونص 
+        setTimeout(() => { 
+            window.location.reload(); 
+        }, 1500); 
+
+    } catch (error) { 
+        console.error('❌ خطأ عام أثناء الحذف:', error); 
+        if (typeof Notification !== 'undefined') { 
+            Notification.error('❌ حدث خطأ أثناء مسح البيانات'); 
+        } else { 
+            alert('❌ حدث خطأ أثناء مسح البيانات'); 
+        } 
+        btn.innerHTML = originalText; 
+        btn.disabled = false; 
+    } 
+}
+    
+    // Telegram Settings & Accordion Logic
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- Accordion Logic ---
+        // This will handle all accordions on the page
+        const accordionHeaders = document.querySelectorAll('.accordion-header');
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const accordion = header.parentElement;
+                const content = header.nextElementSibling;
+
+                // Toggle active class for animation
+                accordion.classList.toggle('active');
+
+                // Toggle icon
+                const accordionIcon = header.querySelector('.accordion-icon');
+                if (accordion.classList.contains('active')) {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    content.style.padding = "var(--spacing-md)";
+                } else {
+                    content.style.maxHeight = "0";
+                    content.style.padding = "0 var(--spacing-md)";
+                }
+            });
+        });
+
+        // --- Telegram Specific Logic ---
+        // Check if the Telegram card is on the page before running its logic
+        if (document.getElementById('telegramChatId')) {
+            loadTelegramSettings();
+        }
+    });
+
+    async function loadTelegramSettings() {
+        const chatId = await DataManager.getSetting('telegramChatId');
+        const chatIdInput = document.getElementById('telegramChatId');
+        const statusBadge = document.getElementById('telegramStatusBadge');
+
+        if (chatId) {
+            chatIdInput.value = chatId;
+            statusBadge.textContent = 'متصل';
+            statusBadge.classList.remove('badge-gray');
+            statusBadge.classList.add('badge-green');
+        } else {
+            statusBadge.textContent = 'غير نشط';
+            statusBadge.classList.remove('badge-green');
+            statusBadge.classList.add('badge-gray');
+        }
+    }
+
+    async function saveTelegramSettings() {
+        const saveBtn = document.getElementById('saveTelegramBtn');
+        const btnText = saveBtn.querySelector('.btn-text');
+        const btnLoader = saveBtn.querySelector('.btn-loader');
+        const chatIdInput = document.getElementById('telegramChatId');
+        const chatId = chatIdInput.value.trim();
+
+        if (!chatId) {
+            showToast('الرجاء إدخال Chat ID صحيح.', 'error');
+            return;
+        }
+
+        // Show loader and disable button
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'block';
+        saveBtn.disabled = true;
+
+        try {
+            await DataManager.saveSetting('telegramChatId', chatId);
+            showToast('تم حفظ الإعدادات بنجاح!', 'success');
+            // Update status badge after saving
+            const statusBadge = document.getElementById('telegramStatusBadge');
+            statusBadge.textContent = 'متصل';
+            statusBadge.classList.remove('badge-gray');
+            statusBadge.classList.add('badge-green');
+        } catch (error) {
+            console.error("Error saving Telegram Chat ID: ", error);
+            showToast('حدث خطأ أثناء حفظ الإعدادات.', 'error');
+        } finally {
+            // Hide loader and enable button
+            setTimeout(() => {
+                btnText.style.display = 'inline';
+                btnLoader.style.display = 'none';
+                saveBtn.disabled = false;
+            }, 1000); // Keep loader for a second for better UX
+        }
+    }
+
+    // You can replace this with your actual toast notification implementation
+        function showToast(message, type = 'info') {
+            // This is a placeholder. You might have a more sophisticated toast system.
+            console.log(`Toast: [${type}] ${message}`);
+            alert(message);
+        }
+
+        // --- Aggregators Logic ---
+        let editingAggregatorId = null;
+
+        function openAggregatorModal() {
+            editingAggregatorId = null;
+            document.getElementById('aggregatorModalTitle').textContent = 'إضافة شركة توصيل';
+            document.getElementById('aggregatorForm').reset();
+            document.getElementById('aggregatorId').value = '';
+            document.getElementById('aggregatorModal').classList.add('active');
+        }
+
+        function closeAggregatorModal() {
+            document.getElementById('aggregatorModal').classList.remove('active');
+        }
+
+        async function loadAggregators() {
+            const aggregatorsList = document.getElementById('aggregatorsList');
+            if (!aggregatorsList) return;
+
+            aggregatorsList.innerHTML = `<div class="spinner\" style=\"width: 48px; height: 48px; border: 4px solid #f0f0f0; border-top-color: #000000; border-radius: 50%; margin: 0 auto var(--spacing-md); animation: spin 1s linear infinite;\"></div>`;
+
+            try {
+                const aggregators = await window.DataManager.getAggregators();
+                aggregatorsList.innerHTML = '';
+                if (aggregators.length === 0) {
+                    aggregatorsList.innerHTML = `<p>لا توجد شركات توصيل مضافة حالياً.</p>`;
+                    return;
+                }
+
+                aggregators.forEach(aggregator => {
+                    const card = document.createElement('div');
+                    card.className = 'user-card'; // Using user-card style for consistency
+                    card.innerHTML = `
+                        <div class="user-card-header">
+                            <div class="user-info">
+                                <div class="user-name">${aggregator.companyName}</div>
+                            </div>
+                        </div>
+                        <div class="cashier-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${aggregator.commissionPercentage}%</div>
+                                <div class="stat-label">العمولة</div>
+                            </div>
+
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn-icon" data-tooltip="تعديل" onclick="editAggregator('${aggregator.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon" data-tooltip="حذف" onclick="deleteAggregator('${aggregator.id}')" style="color: #e74c3c;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    aggregatorsList.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading aggregators:', error);
+                aggregatorsList.innerHTML = `<p>حدث خطأ أثناء تحميل البيانات.</p>`;
+            }
+        }
+
+        async function editAggregator(id) {
+            try {
+                const aggregators = await window.DataManager.getAggregators();
+                const aggregator = aggregators.find(a => a.id === id);
+                if (aggregator) {
+                    editingAggregatorId = id;
+                    document.getElementById('aggregatorModalTitle').textContent = 'تعديل شركة توصيل';
+                    document.getElementById('aggregatorId').value = id;
+                    document.getElementById('aggregatorName').value = aggregator.companyName;
+                    document.getElementById('aggregatorCommission').value = aggregator.commissionPercentage;
+                    // document.getElementById('aggregatorMarkup').value = aggregator.menuMarkupPercentage;
+                    document.getElementById('aggregatorModal').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error fetching aggregator for editing:', error);
+            }
+        }
+
+        async function deleteAggregator(id) {
+            if (confirm('هل أنت متأكد من حذف هذه الشركة؟')) {
+                try {
+                    await window.DataManager.removeAggregator(id);
+                    Notification.success('تم حذف الشركة بنجاح');
+                    loadAggregators();
+                } catch (error) {
+                    console.error('Error deleting aggregator:', error);
+                    Notification.error('حدث خطأ أثناء الحذف');
+                }
+            }
+        }
+
+        document.getElementById('aggregatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('aggregatorId').value;
+            const companyName = document.getElementById('aggregatorName').value;
+            const commissionPercentage = parseFloat(document.getElementById('aggregatorCommission').value);
+
+            const data = { companyName, commissionPercentage };
+
+            try {
+                if (id) {
+                    data.id = id;
+                }
+                await window.DataManager.saveAggregator(data);
+                Notification.success(id ? 'تم تحديث الشركة بنجاح' : 'تمت إضافة الشركة بنجاح');
+                closeAggregatorModal();
+                loadAggregators();
+            } catch (error) {
+                console.error('Error saving aggregator:', error);
+                Notification.error('حدث خطأ أثناء الحفظ');
+            }
+        });
+
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase.js"></script>
+
+    <script src="activation.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+</body>
+</html>

@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقارير</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        /* تنسيقات الصفحة الأصلية */
+        * { font-family: 'Poppins', 'Cairo', sans-serif; }
+        body { background: #fafafa; }
+        .sidebar { background: #ffffff; border-left: 1px solid #e8e8e8; }
+        .main-content { background: #fafafa; padding: var(--spacing-lg); }
+        .card { background: #ffffff; border-radius: 16px; padding: var(--spacing-lg); border: 1px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .tab { padding: 10px 20px; border: 1px solid #e8e8e8; background: #ffffff; border-radius: 12px; cursor: pointer; font-weight: 500; color: #000; }
+        .tab.active { background: #000000; color: #ffffff; border-color: #000000; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px; border-bottom: 1px solid #eee; text-align: right; }
+        .table th { background: #f9f9f9; }
+        
+        /* Grid Layout for Performance Cards */
+        #performanceCardsGrid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 1200px) { #performanceCardsGrid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { #performanceCardsGrid { grid-template-columns: 1fr; } }
+
+        .stat-value { font-size: 28px; font-weight: 700; margin: 10px 0; }
+        .stat-label { font-size: 13px; color: #666; }
+
+        /* --- تصميم كارت جرد العهدة (Statement Style) --- */
+        .audit-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+        }
+
+        /* الهيدر: التاريخ والكاشير */
+        .audit-header {
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .audit-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .audit-info {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .audit-body {
+            padding: 20px;
+        }
+        .calc-table {
+            width: 100%;
+        }
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .calc-row:last-child {
+            border-bottom: none;
+        }
+        .calc-label {
+            font-size: 14px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .calc-val {
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Cairo', sans-serif;
+        }
+        .result-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+        }
+        .final-diff {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-top: 2px solid #e2e8f0;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .bg-open {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .bg-closed {
+            background: #f1f5f9;
+            color: #1e40af;
+        }
+        .val-plus {
+            color: #16a34a;
+        }
+        .val-minus {
+            color: #dc2626;
+        }
+        .val-neutral {
+            color: #64748b;
+        }
+        .visa-section {
+            margin-top: 15px;
+            padding: 10px;
+            background: #eff6ff;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+            display: flex;
+            justify-content: space-between;
+            color: #1e40af;
+            font-weight: 700;
+        }
+
+        /* --- تنسيق جدول السجلات والفلتر --- */
+        .log-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            align-items: center;
+        }
+        .log-date-input {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        .log-table-container {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .log-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            padding: 15px;
+            text-align: right;
+            font-size: 13px;
+        }
+        .log-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            font-size: 14px;
+        }
+        .log-table tr:hover { background-color: #f8fafc; }
+        .btn-view-details {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-view-details:hover { background: #2563eb; color: #fff; }
+
+        /* --- تنسيق المودال (النافذة المنبثقة) --- */
+        .audit-modal {
+            display: none; /* مخفي افتراضياً */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .audit-modal.active { display: flex; animation: fadeIn 0.2s; }
+        .audit-modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative; /* مهم عشان الزرار يثبت بالنسبة للكارت */
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            left: 15px; /* مكان الزر على اليسار */
+            top: 15px;  /* مكان الزر من فوق */
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0; /* برواز خفيف */
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100; /* عشان يبقى فوق أي حاجة */
+            transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fecaca;
+            transform: rotate(90deg); /* حركة شيك لما تقف عليه */
+        }
+
+        /* الهيدر بتاع الكارت في المودال */
+        .audit-header {
+            background: #f8fafc;
+            padding: 20px;
+            padding-left: 60px; /* 🔥 الحل هنا: وسعنا مسافة 60px على الشمال عشان الزرار ياخد راحته والكلام ميبوظش */
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* عشان لو الكلام كتير ينزل تحت بعضه بانتظام */
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <a href="index.html" class="sidebar-item">
+            <i class="fas fa-home" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الرئيسية</span>
+        </a>
+        <a href="orders.html" class="sidebar-item">
+            <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الطلبات</span>
+        </a>
+        <a href="reports.html" class="sidebar-item active" data-restricted="owner">
+            <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">التقارير</span>
+        </a>
+        <a href="menu.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المطبخ</span>
+        </a>
+        <a href="ingredients.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المخزون</span>
+        </a>
+        <a href="customers.html" class="sidebar-item">
+            <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">العملاء</span>
+        </a>
+        <a href="employees.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-users" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموظفون</span>
+        </a>
+        <a href="suppliers.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-truck" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموردين</span>
+        </a>
+        <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">ادارة التسويق</span>
+        </a>
+        <a href="settings.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-cog" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الإعدادات</span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <h2 class="header-title">التقارير</h2>
+        <div class="header-actions">
+            <button class="header-action-btn" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="tabs">
+            <button class="tab active" data-tab="expenses-history" onclick="switchTab('expenses-history', this)">💸 تاريخ المصاريف</button>
+            <button class="tab" data-tab="top-products" onclick="switchTab('top-products', this)">⭐ الأكثر مبيعاً</button>
+            <button class="tab" data-tab="performance" onclick="switchTab('performance', this)">📈 الأداء المالي</button>
+            <button class="tab" data-tab="daily-log" onclick="switchTab('daily-log', this)">📝 سجل اليوم</button>
+        </div>
+        
+        <div id="expensesHistoryTab" class="tab-content active">
+            <!-- Summary Cards by Category -->
+            <div class="expenses-summary-cards">
+                <div class="summary-card salaries">
+                    <div class="summary-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">الرواتب</div>
+                        <div class="summary-value" id="salariesExpensesTotal">0 ج.م</div>
+                        <div class="summary-subtitle">يومية ورواتب شهرية</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card supplies">
+                    <div class="summary-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">البضاعة</div>
+                        <div class="summary-value" id="suppliesExpensesTotal">0 ج.م</div>
+                        <div class="summary-subtitle">شراء بضاعة ومستلزمات</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card bills">
+                    <div class="summary-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">الفواتير</div>
+                        <div class="summary-value" id="billsExpensesTotal">0 ج.م</div>
+                        <div class="summary-subtitle">كهرباء، ماء، غاز</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card rent">
+                    <div class="summary-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">الإيجار</div>
+                        <div class="summary-value" id="rentExpensesTotal">0 ج.م</div>
+                        <div class="summary-subtitle">إيجار المحل</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card other">
+                    <div class="summary-icon">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">أخرى</div>
+                        <div class="summary-value" id="otherExpensesTotal">0 ج.م</div>
+                        <div class="summary-subtitle">مصاريف متنوعة</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card total">
+                    <div class="summary-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-title">إجمالي المصاريف</div>
+                        <div class="summary-value" id="expensesHistoryTotalCard">0 ج.م</div>
+                        <div class="summary-subtitle">شامل كل الفئات</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Unified Expenses Table -->
+            <div class="unified-expenses-card">
+                <div class="table-header">
+                    <h3>📊 سجل المصاريف الموحد</h3>
+                    <div class="table-controls">
+                        <input type="text" id="expenseSearch" placeholder="البحث في المصاريف..." class="search-input">
+                        <select id="expenseCategoryFilter" class="filter-select">
+                            <option value="">كل الفئات</option>
+                            <option value="employees">رواتب</option>
+                            <option value="supplies">البضاعة</option>
+                            <option value="bills">فواتير</option>
+                            <option value="rent">إيجار</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="unified-expenses-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الوصف</th>
+                                <th>الفئة</th>
+                                <th>المبلغ</th>
+                                <th>بواسطة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unifiedExpensesTableBody">
+                            <tr class="loading-row">
+                                <td colspan="5" style="text-align: center; padding: 40px; color: #6c757d;">
+                                    <i class="fas fa-spinner fa-spin"></i> جاري تحميل المصاريف...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="topProductsTab" class="tab-content">
+            <div class="card">
+                <h3>⭐ المنتجات الأكثر مبيعاً</h3>
+                <table class="table">
+                    <thead><tr><th>#</th><th>المنتج</th><th>القسم</th><th>العدد</th></tr></thead>
+                    <tbody id="topProductsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="performanceTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                <h3 style="margin:0; font-size: 20px; font-weight: 600; color: #1a1a1a;">📈 تحليل الأداء المالي</h3>
+                <div class="tabbed-date-selector">
+                    <button class="date-tab active" data-value="all_time" onclick="selectDateRange('all_time', this)">
+                        <i class="fas fa-infinity"></i>
+                        <span>الكل</span>
+                    </button>
+                    <button class="date-tab" data-value="today" onclick="selectDateRange('today', this)">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>اليوم</span>
+                    </button>
+                    <button class="date-tab" data-value="yesterday" onclick="selectDateRange('yesterday', this)">
+                        <i class="fas fa-calendar-minus"></i>
+                        <span>أمس</span>
+                    </button>
+                    <button class="date-tab" data-value="this_week" onclick="selectDateRange('this_week', this)">
+                        <i class="fas fa-calendar-week"></i>
+                        <span>الأسبوع</span>
+                    </button>
+                    <button class="date-tab" data-value="this_month" onclick="selectDateRange('this_month', this)">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>الشهر</span>
+                    </button>
+                    <!-- Hidden select to maintain functionality -->
+                    <select id="performanceRangeSelector" style="display: none;" onchange="loadPerformance()">
+                        <option value="all_time" selected>الكل (All Time)</option>
+                        <option value="today">اليوم</option>
+                        <option value="yesterday">أمس</option>
+                        <option value="this_week">هذا الأسبوع</option>
+                        <option value="this_month">هذا الشهر</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="performanceCardsGrid">
+                
+                <div class="card" style="border-left: 4px solid #27AE60; background: #f9fff9;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-coins" style="color: #27AE60;"></i> إجمالي الإيرادات</h3>
+                    <div class="stat-value" style="color: #27AE60;" id="performanceGrossRevenue">0.00 ج.م</div>
+                    <div class="stat-label">مجموع (الكاش + الفيزا + الضريبة + الخدمة) قبل أي خصم</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #27AE60;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-money-bill-wave" style="color: #27AE60;"></i> مبيعات نقدية</h3>
+                    <div class="stat-value" style="color: #27AE60;" id="performanceCashRevenue">0.00 ج.م</div>
+                    <div class="stat-label">الفلوس 'الورقية' اللي المفروض تكون موجودة في الدرج</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #3498DB;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-credit-card" style="color: #3498DB;"></i> مبيعات فيزا</h3>
+                    <div class="stat-value" style="color: #3498DB;" id="performanceVisaRevenue">0.00 ج.م</div>
+                    <div class="stat-label">رصيد مبيعات الماكينة المستحق تحويله لحساب البنك</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #9B59B6;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-file-invoice-dollar" style="color: #9B59B6;"></i> ضريبة القيمة المضافة</h3>
+                    <div class="stat-value" style="color: #9B59B6;" id="performanceTax">0.00 ج.م</div>
+                    <div class="stat-label">أمانة محصلة من الزبائن لصالح الضرائب (مش تبع ربحك)</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #8E44AD;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-concierge-bell" style="color: #8E44AD;"></i> رسوم الخدمة</h3>
+                    <div class="stat-value" style="color: #8E44AD;" id="performanceService">0.00 ج.م</div>
+                    <div class="stat-label">إيراد إضافي محصل من 'خدمة الصالة' داخل المطعم</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #E74C3C;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-percent" style="color: #E74C3C;"></i> إجمالي الخصومات</h3>
+                    <div class="stat-value" style="color: #E74C3C;" id="totalDiscounts">0.00 ج.م</div>
+                    <div class="stat-label">مبالغ 'تنازلت' عنها للزبائن في شكل عروض أو ضيافة</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #F39C12;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-boxes" style="color: #F39C12;"></i> تكلفة الخامات (COGS)</h3>
+                    <div class="stat-value" style="color: #F39C12;" id="performanceCOGS">0.00 ج.م</div>
+                    <div class="stat-label">تمن الخامات اللي اتطبخت للأصناف اللي اتباعت فعلياً</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #E74C3C;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-money-bill-alt" style="color: #E74C3C;"></i> المصاريف والرواتب</h3>
+                    <div class="stat-value" style="color: #E74C3C;" id="performanceTotalExpenses">0.00 ج.م</div>
+                    <div class="stat-label">كل المصاريف التشغيلية (كهرباء، غاز، يوميات، مشتريات)</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #3498DB;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-box" style="color: #3498DB;"></i> عدد الطلبات</h3>
+                    <div class="stat-value" style="color: #3498DB;" id="performanceOrdersCount">0</div>
+                    <div class="stat-label">إجمالي عدد طلبات الأوردرات المسجلة</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #16A085;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-chart-area" style="color: #16A085;"></i> مجمل الربح</h3>
+                    <div class="stat-value" style="color: #16A085;" id="totalProfit">0.00 ج.م</div>
+                    <div class="stat-label">(صافي المبيعات ناقص تمن الخامات) - بيعرفك مكسب المطبخ كام</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #F39C12; background: #fffbf0;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-chart-pie" style="color: #F39C12;"></i> صافي الربح النهائي</h3>
+                    <div class="stat-value" style="color: #F39C12;" id="performanceNetRevenue">0.00 ج.م</div>
+                    <div class="stat-label">اللي دخل جيبك فعلياً (مجمل الربح ناقص المصاريف والرواتب)</div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #2980B9;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-tachometer-alt" style="color: #2980B9;"></i> نسبة الربحية</h3>
+                    <div class="stat-value" style="color: #2980B9;" id="profitMarginCard">0%</div>
+                    <div class="stat-label">نسبة ربحك الصافي من كل جنيه مبيعات بيدخل المحل</div>
+                </div>
+            </div>
+
+            <div id="aggregatorsReportSection" style="display: none; margin-top: var(--spacing-xl); padding-top: var(--spacing-lg); border-top: 2px dashed #e8e8e8;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: var(--spacing-lg);">
+                    <i class="fas fa-motorcycle" style="font-size: 24px; color: #000000;"></i>
+                    <h3 style="color: #000000; font-weight: 800; font-size: 20px; margin: 0;">أداء منصات التوصيل</h3>
+                </div>
+                <div id="aggregatorsCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-lg);">
+                </div>
+                                        <div class="card" style="margin-top: var(--spacing-xl); background: #f8f9fa; border-radius: 16px; padding: 20px; border: 1px solid #e8e8e8;"> 
+             <h4 style="color: #000000; font-weight: 800; font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"> 
+                 <i class="fas fa-lightbulb" style="color: #f39c12; font-size: 20px;"></i> 
+                 إزاي تقرأ أرقام شركات التوصيل وتظبط أسعارك؟ 
+             </h4> 
+             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;"> 
+                 
+                 <div style="background: #ffffff; padding: 15px; border-radius: 12px; border-right: 4px solid #e74c3c; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"> 
+                     <div style="font-weight: 700; color: #e74c3c; margin-bottom: 8px; font-size: 14px;">⚠️ فخ العمولة</div> 
+                     <div style="font-size: 13px; color: #666666; line-height: 1.6;"> 
+                         الشركة مابتاخدش نسبتها من <b>سعرك الأساسي</b>، دي بتاخدها من <b>الإجمالي النهائي</b> اللي الزبون بيدفعه على الأبلكيشن. 
+                     </div> 
+                 </div> 
+                 <div style="background: #ffffff; padding: 15px; border-radius: 12px; border-right: 4px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"> 
+                 <div style="font-weight: 700; color: #3498db; margin-bottom: 8px; font-size: 14px;">🧮 مثال (عمولة 20%)</div> 
+                 <div style="font-size: 13px; color: #666666; line-height: 1.6;"> 
+                     لو ساندوتش بـ 100 وزودت 20%، سعره هيبقى 120. المنصة هتاخد 20% من الـ 120 (يعني 24 جنيه)، يصفالك <b>96 جنيه</b> بس! (خسارة). 
+                 </div> 
+             </div> 
+                 <div style="background: #ffffff; padding: 15px; border-radius: 12px; border-right: 4px solid #27ae60; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"> 
+                 <div style="font-weight: 700; color: #27ae60; margin-bottom: 8px; font-size: 14px;">💡 روشتة التسعير (الصح)</div> 
+                 <div style="font-size: 13px; color: #666666; line-height: 1.6;"> 
+                     عشان يرجعلك تمن الأكل بالكامل، حط نسب الزيادة دي في الإعدادات: 
+                     <ul style="margin: 4px 0 0; padding-right: 20px; list-style-type: none;"> 
+                         <li>🔹 عمولة <b>10%</b> 👈 زيادة <b>11.2%</b></li> 
+                         <li>🔹 عمولة <b>15%</b> 👈 زيادة <b>17.7%</b></li> 
+                         <li>🔹 عمولة <b>20%</b> 👈 زيادة <b>25%</b></li> 
+                         <li>🔹 عمولة <b>25%</b> 👈 زيادة <b>33.3%</b></li> 
+                     </ul> 
+                 </div> 
+             </div> 
+         </div> 
+     </div>
+            </div>
+
+                        <div class="card" style="background: #f8fafc; border: 1px solid #e2e8f0; margin-top: 30px;"> 
+                 <h3 style="color: #1e293b; font-weight: 700; margin-bottom: 16px; font-size: 18px; display: flex; align-items: center; gap: 8px;"> 
+                     <i class="fas fa-lightbulb" style="color: #F39C12; font-size: 22px;"></i> 
+                     الدليل المبسط لتحليل أرقام المحل: 
+                 </h3> 
+                 
+                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;"> 
+                     <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);"> 
+                         <div style="color: #27AE60; font-weight: 700; font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;"> 
+                             <i class="fas fa-arrow-down" style="background: #e6f6ec; padding: 6px; border-radius: 50%;"></i> 1. الفلوس اللي دخلت (الإيرادات) 
+                         </div> 
+                         <div style="color: #475569; font-size: 13.5px; line-height: 1.7;"> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #27AE60;">• إجمالي الإيرادات:</strong> كل مليم دخل المحل (كاش أو فيزا) قبل ما نخصم منه أي حاجة.</div> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #3498DB;">• مبيعات نقدية/فيزا:</strong> تقسيمة الفلوس اللي دخلت عشان تراجع الدرج ورصيد البنك.</div> 
+                             <div><strong style="color: #9B59B6;">• ضريبة القيمة المضافة:</strong> فلوس الزباين دفعتها كأمانة للضرائب (بنخصمها من الحسبة عشان مش مكسب ليك).</div> 
+                         </div> 
+                     </div> 
+ 
+                     <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);"> 
+                         <div style="color: #E74C3C; font-weight: 700; font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;"> 
+                             <i class="fas fa-arrow-up" style="background: #fdf0ed; padding: 6px; border-radius: 50%;"></i> 2. الفلوس اللي طارت (التكلفة) 
+                         </div> 
+                         <div style="color: #475569; font-size: 13.5px; line-height: 1.7;"> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #F39C12;">• تكلفة الخامات (COGS):</strong> تمن البضاعة والمقادير اللي استهلكناها عشان نطلع الأوردرات دي.</div> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #E74C3C;">• المصاريف والرواتب:</strong> أي فلوس طلعت من الدرج لتشغيل المحل (يوميات، إيجار، كهرباء، صيانة).</div> 
+                             <div><strong style="color: #E74C3C;">• الخصومات:</strong> الفلوس اللي تنازلت عنها للزبائن في شكل عروض أو ضيافة.</div> 
+                         </div> 
+                     </div> 
+ 
+                     <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; border-right: 4px solid #F39C12; box-shadow: 0 4px 6px rgba(0,0,0,0.04);"> 
+                         <div style="color: #F39C12; font-weight: 800; font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;"> 
+                             <i class="fas fa-wallet" style="background: #fef5e6; padding: 6px; border-radius: 50%;"></i> 3. الخلاصة (مكسبك) 
+                         </div> 
+                         <div style="color: #475569; font-size: 13.5px; line-height: 1.7;"> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #16A085;">• مجمل الربح:</strong> مكسب "شغل إيدك" في الأكل.. (ثمن بيع الأكل ناقص تمن تكلفة خاماته).</div> 
+                             <div style="margin-bottom: 8px;"><strong style="color: #F39C12; font-size: 14.5px;">• صافي الربح النهائي:</strong> الخلاصة! الفلوس اللي دخلت جيبك بعد ما شلنا الخامات والمصاريف والرواتب.</div> 
+                             <div><strong style="color: #2980B9;">• نسبة الربحية:</strong> مؤشر بيقولك كل 100 جنيه بتدخل المحل، بيفضلك منها كام جنيه صافي مكسب.</div> 
+                         </div> 
+                     </div> 
+                 </div> 
+             </div>
+        </div>
+        
+        <div id="dailyLogTab" class="tab-content">
+            <div class="log-controls">
+                <div>
+                    <label style="font-size:13px; font-weight:bold; margin-left:8px;">� تصفية بالتاريخ:</label>
+                    <input type="date" id="logDateFilter" class="log-date-input" onchange="loadDailyLog()">
+                </div>
+                <button onclick="document.getElementById('logDateFilter').value=''; loadDailyLog()" class="btn-secondary" style="padding:8px 15px; border-radius:8px; border:1px solid #cbd5e1; cursor:pointer;">
+                    <i class="fas fa-undo"></i> عرض الكل
+                </button>
+            </div>
+
+            <div class="log-table-container">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الكاشير</th>
+                            <th>وقت الفتح/الإغلاق</th>
+                            <th>الحالة</th>
+                            <th>نتيجة الجرد</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyLogTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="auditDetailModal" class="audit-modal">
+                <div class="audit-modal-content">
+                    <button class="modal-close-btn" onclick="closeAuditModal()"><i class="fas fa-times"></i></button>
+                    <div id="auditModalBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/activation.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="js/dashboard.js"></script>
+    
+    <script>
+        // ==========================================
+        // 1. إدارة التبويبات
+        // ==========================================
+        window.switchTab = function(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if(tabElement) tabElement.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(c => {
+                c.style.display = 'none';
+                c.classList.remove('active');
+            });
+            
+            const targetId = tabName === 'performance' ? 'performanceTab' : 
+                             tabName === 'daily-log' ? 'dailyLogTab' :
+                             tabName === 'top-products' ? 'topProductsTab' : 'expensesHistoryTab';
+            
+            const target = document.getElementById(targetId);
+            if(target) {
+                target.style.display = 'block';
+                target.classList.add('active');
+                setTimeout(() => {
+                    if(tabName === 'performance') loadPerformance();
+                    else if(tabName === 'daily-log') loadDailyLog();
+                    else if(tabName === 'top-products') loadTopProducts();
+                    else loadExpensesHistory();
+                }, 50);
+            }
+        };
+        
+        // ==========================================
+        // Date Range Selector Function
+        // ==========================================
+        window.selectDateRange = function(value, buttonElement) {
+            // Update active state
+            document.querySelectorAll('.date-tab').forEach(tab => tab.classList.remove('active'));
+            buttonElement.classList.add('active');
+            
+            // Update hidden select and trigger change
+            const hiddenSelect = document.getElementById('performanceRangeSelector');
+            if (hiddenSelect) {
+                hiddenSelect.value = value;
+                // Trigger the onchange event
+                const event = new Event('change', { bubbles: true });
+                hiddenSelect.dispatchEvent(event);
+            }
+        };
+        
+        // ==========================================
+        // Update Expense Summary Cards
+        // ==========================================
+        window.updateExpenseSummaryCards = function() {
+            // Get all expenses from localStorage
+            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            const expensesHistory = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
+            
+            // Create a Set to track unique expense IDs and avoid duplicates
+            const uniqueExpenses = new Map();
+            
+            // Add expenses with unique IDs to avoid duplication
+            // 🔥 Consolidating expenses: Use only the main expenses array
+            const allExpenses = [...expenses];
+            
+            // Calculate totals by category
+            const totals = {
+                employees: 0,
+                supplies: 0,
+                bills: 0,
+                rent: 0,
+                other: 0
+            };
+            
+            allExpenses.forEach(expense => {
+                const expenseType = expense.type || expense.category || 'other';
+                const amount = parseFloat(expense.amount || expense.cost || 0);
+                
+                // Smart category detection including payroll
+                if (expenseType === 'employees' || String(expense.description || '').includes('راتب') || String(expense.description || '').includes('حضور') || expense.source === 'payroll_daily' || String(expense.id || '').startsWith('PAYROLL_')) {
+                    totals.employees += amount;
+                } else if (expenseType === 'supplies') {
+                    totals.supplies += amount;
+                } else if (expenseType === 'bills') {
+                    totals.bills += amount;
+                } else if (expenseType === 'rent') {
+                    totals.rent += amount;
+                } else {
+                    totals.other += amount;
+                }
+            });
+            
+            // Calculate grand total
+            const grandTotal = Object.values(totals).reduce((sum, total) => sum + total, 0);
+            
+            // Update summary cards
+            const updateCard = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = `${value.toFixed(2)} ج.م`;
+                }
+            };
+            
+            updateCard('salariesExpensesTotal', totals.employees);
+            updateCard('suppliesExpensesTotal', totals.supplies);
+            updateCard('billsExpensesTotal', totals.bills);
+            updateCard('rentExpensesTotal', totals.rent);
+            updateCard('otherExpensesTotal', totals.other);
+            updateCard('expensesHistoryTotalCard', grandTotal);
+            
+            // Debug logging to check for duplicates
+            console.log('Unique expenses count:', allExpenses.length);
+            console.log('Category totals:', totals);
+        };
+        
+        // ==========================================
+        // Render Unified Expenses Table
+        // ==========================================
+        window.renderUnifiedExpensesTable = function() {
+            const tbody = document.getElementById('unifiedExpensesTableBody');
+            if (!tbody) return;
+
+            // Get all expenses from localStorage
+            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            const expensesHistory = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
+
+            // Debug: Log the raw data to see field names
+            console.log('Raw expenses data:', expenses);
+            console.log('Raw expensesHistory data:', expensesHistory);
+
+            // Create a Set to track unique expense IDs and avoid duplicates
+            const uniqueExpenses = new Map();
+
+            // Add expenses with unique IDs to avoid duplication
+            [...expenses, ...expensesHistory].forEach(expense => {
+                const expenseId = expense.id || `${expense.type}_${expense.amount}_${expense.date}_${expense.description || ''}`;
+                if (!uniqueExpenses.has(expenseId)) {
+                    uniqueExpenses.set(expenseId, expense);
+                }
+            });
+
+            // Convert Map back to array and sort by date (newest first)
+            const allExpenses = Array.from(uniqueExpenses.values()).sort((a, b) => {
+                const dateA = new Date(a.date || a.businessDate || a.createdAt || 0);
+                const dateB = new Date(b.date || b.businessDate || b.createdAt || 0);
+                return dateB - dateA;
+            });
+
+            // Debug: Log the processed data
+            console.log('Processed expenses:', allExpenses);
+
+            // Clear loading message
+            tbody.innerHTML = '';
+
+            if (allExpenses.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="empty-state-row">
+                        <td colspan="5" style="text-align: center; padding: 60px 20px;">
+                            <div class="empty-state">
+                                <i class="fas fa-receipt"></i>
+                                <h4>لا توجد مصاريف</h4>
+                                <p>لم يتم تسجيل أي مصاريف حتى الآن</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Render each expense
+            allExpenses.forEach((expense, index) => {
+                // Debug: Log each expense to see the fields
+                console.log(`Expense ${index}:`, expense);
+                
+                const expenseType = expense.type || expense.category || 'other';
+                const amount = parseFloat(expense.amount || expense.cost || 0);
+
+                // Get date from multiple possible fields
+                let date = expense.date || expense.businessDate || expense.createdAt || expense.timestamp || '';
+
+                // Get description from multiple possible fields
+                const description = expense.description || expense.note || expense.reason || expense.item || expenseType || '-';
+
+                // Get user who added the expense - check all possible field names
+                const addedBy = expense.createdBy || expense.addedBy || expense.user || expense.employee || expense.cashier || expense.userName || 'مجهول';
+
+                // Get notes/remarks - REMOVED from view as per request
+                // const notes = expense.notes || expense.remarks || expense.details || '';
+
+                // Format date using the new formatSafeDate function
+                const formattedDate = formatSafeDate(expense);
+                
+                // Smart category detection to avoid duplication
+                let categoryLabel = 'أخرى';
+                let categoryClass = 'other';
+                
+                if (expenseType === 'employees' || String(expense.description || '').includes('راتب') || String(expense.description || '').includes('حضور') || expense.source === 'payroll_daily' || String(expense.id || '').startsWith('PAYROLL_')) {
+                    categoryLabel = 'رواتب';
+                    categoryClass = 'employees';
+                } else if (expenseType === 'supplies' || String(expense.description || '').includes('بضاعة') || String(expense.description || '').includes('خامات')) {
+                    categoryLabel = 'بضاعة';
+                    categoryClass = 'supplies';
+                } else if (expenseType === 'bills' || String(expense.description || '').includes('فاتور') || String(expense.description || '').includes('كهرباء') || String(expense.description || '').includes('ماء')) {
+                    categoryLabel = 'فواتير';
+                    categoryClass = 'bills';
+                } else if (expenseType === 'rent' || String(expense.description || '').includes('إيجار')) {
+                    categoryLabel = 'إيجار';
+                    categoryClass = 'rent';
+                }
+                
+                // Clean up description to avoid repetition
+                let cleanDescription = description;
+                if (description && categoryLabel && description.toLowerCase().includes(categoryLabel.toLowerCase())) {
+                    cleanDescription = description.replace(new RegExp(categoryLabel, 'gi'), '').trim();
+                    if (!cleanDescription) cleanDescription = categoryLabel;
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="date-cell">${formattedDate}</td>
+                    <td>${cleanDescription}</td>
+                    <td><span class="category-badge ${categoryClass}">${categoryLabel}</span></td>
+                    <td class="amount-cell">${amount.toFixed(2)} ج.م</td>
+                    <td>${addedBy}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        };
+        
+
+        
+        // Auto-update summary cards when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update expense summary cards
+            updateExpenseSummaryCards();
+            
+            // Render unified expenses table
+            renderUnifiedExpensesTable();
+            
+            // Load performance with fresh data from DataManager
+            loadPerformance();
+            
+            console.log('All functions loaded: expenses, table, and performance');
+            
+            // Listen for localStorage changes (when new expenses are added)
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'expenses' || e.key === 'expensesHistory') {
+                    console.log('Expenses changed, updating...');
+                    updateExpenseSummaryCards();
+                    renderUnifiedExpensesTable();
+                    loadPerformance();
+                }
+            });
+            
+            // Also update when the tab becomes visible (in case expenses were added in another tab)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('Tab became visible, refreshing...');
+                    updateExpenseSummaryCards();
+                    renderUnifiedExpensesTable();
+                    loadPerformance();
+                }
+            });
+        });
+
+        // ==========================================
+        // Add search and filter functionality
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('expenseSearch');
+            const categoryFilter = document.getElementById('expenseCategoryFilter');
+            
+            if (searchInput && categoryFilter) {
+                const filterExpenses = function() {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    const selectedCategory = categoryFilter.value;
+                    const rows = document.querySelectorAll('#unifiedExpensesTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const description = row.cells[1].textContent.toLowerCase();
+                        const categoryBadge = row.querySelector('.category-badge');
+                        const category = categoryBadge ? categoryBadge.classList[1] : '';
+                        
+                        const matchesSearch = description.includes(searchTerm);
+                        const matchesCategory = !selectedCategory || category === selectedCategory;
+                        
+                        row.style.display = matchesSearch && matchesCategory ? '' : 'none';
+                    });
+                };
+                
+                searchInput.addEventListener('input', filterExpenses);
+                categoryFilter.addEventListener('change', filterExpenses);
+            }
+        });
+
+        // ==========================================
+        // دالة "الرادار" لإصلاح التاريخ (تم التعديل للأرقام الإنجليزية)
+        // ==========================================
+        function formatSafeDate(expense) {
+            let raw = expense.date || expense.businessDate || expense.createdAt || expense.timestamp;
+            if (!raw) return '<span style="color:#94a3b8">غير محدد</span>';
+            
+            let d;
+            try {
+                // Firestore Timestamp
+                if (raw.toDate) {
+                    d = raw.toDate();
+                }
+                // LocalStorage Serialized (seconds + nanoseconds)
+                else if (raw.seconds) {
+                    d = new Date(raw.seconds * 1000);
+                }
+                // ISO String or Number
+                else {
+                    d = new Date(raw);
+                }
+            } catch(e) { 
+                return '<span style="color:#94a3b8">تاريخ خاطئ</span>'; 
+            }
+
+            if (isNaN(d.getTime())) return '<span style="color:#94a3b8">-</span>';
+
+            // 🔥 التعديل هنا: إرجاع التاريخ بتنسيق رقمي إنجليزي YYYY-MM-DD 🔥
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            // النتيجة ستكون مثل: 2026-02-04
+            return `<span style="font-family: 'Poppins', sans-serif; direction: ltr;">${year}-${month}-${day}</span>`;
+        }
+
+        // ==========================================
+        // 1. دي الدالة الناقصة اللي بتسبب الإيرور
+        // ==========================================
+        function getLocalDateString(dateInput) {
+            if (!dateInput) return null;
+
+            // 🔥 الحل السحري هنا 🔥
+            // لو التاريخ جاي نص "سادة" (2026-02-04)، خده زي ما هو ومتحولوش لتاريخ، عشان فرق التوقيت ميبوظش اليوم
+            if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+                return dateInput;
+            }
+            
+            // لو التاريخ فيه وقت (T) زي "2026-02-04T15:30:00" خليه يكمل عادي
+            if (typeof dateInput === 'string' && dateInput.includes('T')) {
+                dateInput = new Date(dateInput);
+            }
+
+            let d;
+            try {
+                // لو جاي من Firebase
+                if (dateInput && typeof dateInput.toDate === 'function') {
+                    d = dateInput.toDate();
+                }
+                // لو تاريخ عادي
+                else {
+                    d = new Date(dateInput);
+                }
+            } catch(e) { return null; }
+
+            if (isNaN(d.getTime())) return null;
+            
+            // حساب التاريخ المحلي للجهاز
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        }
+
+        // ==========================================
+        async function loadPerformance() {
+            console.log("🚀 Starting loadPerformance (Optimized)...");
+            const rangeSelector = document.getElementById('performanceRangeSelector');
+            const rangeType = rangeSelector ? rangeSelector.value : 'all_time';
+            
+            // 1. تحميل البيانات وتنقيتها من التكرار
+            let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            let menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+            let ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+
+            // 🔥 منع تكرار الأوردرات نهائياً (باستخدام ID فريد)
+            const ordersMap = new Map();
+            orders.forEach(o => {
+                if (o && o.id && !String(o.id).startsWith('SALE-') && o.status !== 'cancelled') {
+                    ordersMap.set(String(o.id).toLowerCase(), o);
+                }
+            });
+            let allOrders = Array.from(ordersMap.values());
+            console.log(`✅ Unique Orders to process: ${allOrders.length}`);
+
+            // 2. خريطة التكلفة الذكية (بناءً على ID الصنف لضمان عدم التداخل)
+            const itemCostMap = {};
+            const calculateRecipeCost = (recipe) => {
+                if (!recipe || !Array.isArray(recipe)) return 0;
+                return recipe.reduce((total, item) => {
+                    const ing = ingredients.find(i => String(i.id) === String(item.ingredientId));
+                    const unitCost = ing ? (parseFloat(ing.costPrice ?? ing.cost_per_unit ?? ing.cost_price ?? ing.cost ?? 0) || 0) : 0;
+                    return total + (unitCost * (parseFloat(item.quantity) || 0));
+                }, 0);
+            };
+
+            menuItems.forEach(item => {
+                const mainRecipeCost = calculateRecipeCost(item.recipe);
+                const mainDirectCost = parseFloat(item.buyingPrice || item.costPrice || 0) || 0;
+                const baseItemCost = mainRecipeCost > 0 ? mainRecipeCost : mainDirectCost;
+                
+                if (item.id) itemCostMap[String(item.id)] = baseItemCost;
+                if (item.name) itemCostMap[item.name.trim()] = baseItemCost;
+
+                if (item.variants) {
+                    item.variants.forEach(v => {
+                        const vRecipeCost = calculateRecipeCost(v.recipe);
+                        const vDirectCost = parseFloat(v.buyingPrice || v.costPrice || 0) || 0;
+                        let vFinalCost = vRecipeCost > 0 ? vRecipeCost : vDirectCost;
+                        
+                        // ✅ تصحيح الإيرور: نستخدم baseItemCost لو النوع ملوش تكلفة
+                        if (vFinalCost === 0) vFinalCost = baseItemCost;
+                        
+                        const variantKey = `${item.name.trim()}_${v.name.trim()}`;
+                        itemCostMap[variantKey] = vFinalCost;
+                    });
+                }
+            });
+
+            // 3. رادار التواريخ القوي
+            const parseToYMD = (val) => {
+                if (!val) return null;
+                let d;
+                try {
+                    if (val.toDate) d = val.toDate(); // Firestore
+                    else if (val.seconds) d = new Date(val.seconds * 1000); // Storage Serialized
+                    else d = new Date(val);
+                } catch(e) { return null; }
+                if (!d || isNaN(d.getTime())) return null;
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            const todayYMD = parseToYMD(new Date());
+            let start = '2000-01-01', end = '2099-12-31';
+
+            if (rangeType === 'today') { start = end = todayYMD; }
+            else if (rangeType === 'yesterday') {
+                const y = new Date(); y.setDate(y.getDate() - 1);
+                start = end = parseToYMD(y);
+            } else if (rangeType === 'this_week') {
+                const d = new Date(); d.setDate(d.getDate() - d.getDay() + (d.getDay()==0?-6:1));
+                start = parseToYMD(d); end = todayYMD;
+            } else if (rangeType === 'this_month') {
+                start = todayYMD.substring(0, 8) + '01'; end = todayYMD;
+            }
+
+            const isItemInRange = (item) => {
+                const dates = [item.businessDate, item.date, item.createdAt, item.timestamp];
+                for (let d of dates) {
+                    const ymd = parseToYMD(d);
+                    if (ymd && ymd >= start && ymd <= end) return true;
+                }
+                return false;
+            };
+
+            // 4. الفلترة والحسابات
+            const filteredOrders = allOrders.filter(o => isItemInRange(o));
+            const filteredExpenses = expenses.filter(e => isItemInRange(e));
+
+            let rev = 0, cash = 0, visa = 0, cogs = 0, disc = 0, tax = 0, serv = 0;
+
+            filteredOrders.forEach(order => {
+                const oTotal = parseFloat(order.total || 0);
+                const oDisc = parseFloat(order.discount || 0);
+                rev += (oTotal + oDisc); // Gross
+                disc += oDisc;
+                tax += parseFloat(order.tax || 0);
+                serv += parseFloat(order.serviceCharge || 0);
+
+                const pm = String(order.paymentMethod || '').toLowerCase();
+                if (pm.includes('visa') || pm.includes('card')) visa += (oTotal + oDisc);
+                else cash += (oTotal + oDisc);
+
+                // حساب الخامات (COGS) بدقة
+                if (order.items) {
+                    order.items.forEach(i => {
+                        const qty = parseFloat(i.quantity || 1);
+                        let unitCost = 0;
+                        
+                        // محاولة إيجاد التكلفة بأكثر من طريقة مرتبة
+                        const vKey = i.variant ? `${(i.name||'').trim()}_${(i.variant||'').trim()}` : null;
+                        
+                        if (vKey && itemCostMap[vKey]) unitCost = itemCostMap[vKey];
+                        else if (i.id && itemCostMap[String(i.id)]) unitCost = itemCostMap[String(i.id)];
+                        else if (i.name && itemCostMap[i.name.trim()]) unitCost = itemCostMap[i.name.trim()];
+                        else unitCost = parseFloat(i.cost || 0);
+
+                        cogs += (unitCost * qty);
+                    });
+                }
+            });
+
+            const totalExp = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount)||0), 0);
+            
+            // حساب صافي المبيعات بعد استبعاد الضريبة (المعادلة المحاسبية الصحيحة)
+            const netSales = (rev - disc - tax);
+            const grossProfit = netSales - cogs;
+            const netProfit = grossProfit - totalExp;
+            const margin = netSales > 0 ? (netProfit / netSales) * 100 : 0;
+
+            // 5. تحديث الواجهة
+            const set = (id, v, isCurrency = true) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = isCurrency ? Utils.formatCurrency(v) : v;
+            };
+
+            set('performanceOrdersCount', filteredOrders.length, false);
+            set('performanceCashRevenue', cash);
+            set('performanceVisaRevenue', visa);
+            set('performanceGrossRevenue', rev);
+            set('totalDiscounts', disc);
+            set('performanceTax', tax);
+            set('performanceService', serv);
+            set('performanceCOGS', cogs);
+            set('performanceTotalExpenses', totalExp);
+            set('totalProfit', grossProfit); // مجمل الربح (صافي المبيعات - تكلفة الخامات)
+            set('performanceNetRevenue', netProfit); // صافي الربح النهائي
+            if (document.getElementById('profitMarginCard')) {
+                document.getElementById('profitMarginCard').textContent = margin.toFixed(1) + '%';
+            }
+
+            console.log(`📊 Result: Orders=${filteredOrders.length}, COGS=${cogs.toFixed(2)}, Exp=${totalExp}`);
+            await renderAggregatorsReport(filteredOrders);
+        }
+
+                async function renderAggregatorsReport(filteredOrders) {
+            const section = document.getElementById('aggregatorsReportSection');
+            const container = document.getElementById('aggregatorsCardsContainer');
+            if (!section || !container) return;
+
+            try {
+                const aggregators = await window.DataManager.getAggregators();
+
+                if (!aggregators || aggregators.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.style.display = 'block';
+                container.innerHTML = '';
+
+                aggregators.forEach(agg => {
+                    const aggOrders = filteredOrders.filter(o => o.orderSource === agg.companyName && o.status !== 'cancelled');
+                    const orderCount = aggOrders.length;
+                    const grossSales = aggOrders.reduce((sum, o) => sum + (parseFloat(o.total) || parseFloat(o.orderTotal) || parseFloat(o.netTotal) || 0), 0);
+                    const totalCommission = aggOrders.reduce((sum, o) => sum + (parseFloat(o.expectedCommission) || 0), 0);
+                    const netReceivable = grossSales - totalCommission;
+
+                    let aggCOGS = 0;
+                    aggOrders.forEach(o => {
+                        let items = o.items || o.cartItems || [];
+                        if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { } }
+                        if (Array.isArray(items)) {
+                            items.forEach(i => { aggCOGS += (parseFloat(i.cost || i.costPrice || i.buyPrice || 0) * parseFloat(i.quantity || 1)); });
+                        }
+                    });
+                    const trueNetProfit = netReceivable - aggCOGS;
+                    const profitMargin = grossSales > 0 ? ((trueNetProfit / grossSales) * 100).toFixed(1) : 0;
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.cssText = 'border-top: 4px solid var(--color-text-dark); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;';
+                    card.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;margin-bottom:15px;font-weight:800;font-size:18px"><span>${agg.companyName}</span><span style="background:#f0f0f0;padding:4px 10px;border-radius:8px;font-size:12px">${orderCount} طلب</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:#666">إجمالي مبيعات المنصة:</span><strong style="color:#000">${Utils.formatCurrency(grossSales)}</strong></div>
+                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:#666">عمولة المنصة:</span><strong style="color:#e74c3c">- ${Utils.formatCurrency(totalCommission)}</strong></div>
+                        <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:10px;padding-top:10px;border-top:1px dashed #e8e8e8"><strong>صافي المبيعات:</strong><strong style="color:#3498db">${Utils.formatCurrency(netReceivable)}</strong></div>
+                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:10px;margin-bottom:15px"><span style="color:#666">تكلفة الخامات (COGS):</span><strong style="color:#e67e22">- ${Utils.formatCurrency(aggCOGS)}</strong></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:${trueNetProfit >= 0 ? '#e8f5e9' : '#ffebee'};border-radius:10px">
+                          <strong style="color:${trueNetProfit >= 0 ? '#27ae60' : '#e74c3c'}">المكسب الحقيقي:</strong>
+                          <div style="text-align:left"><strong style="display:block;color:${trueNetProfit >= 0 ? '#27ae60' : '#e74c3c'}">${Utils.formatCurrency(trueNetProfit)}</strong><span style="font-size:11px;font-weight:700;color:${trueNetProfit >= 0 ? '#27ae60' : '#e74c3c'}">هامش ربح: ${profitMargin}%</span></div>
+                        </div>`;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error rendering aggregators report:', error);
+                section.style.display = 'none';
+            }
+        }
+
+        // متغير عالمي لتخزين بيانات الشيفتات المحسوبة عشان نستخدمها في المودال
+        let _processedShiftsData = [];
+
+        // ==========================================
+        // 4. السجلات والمصاريف
+        // ==========================================
+        async function loadDailyLog() {
+            const tableBody = document.getElementById('dailyLogTableBody');
+            const dateFilterEl = document.getElementById('logDateFilter');
+            const dateFilter = dateFilterEl ? dateFilterEl.value : '';
+
+            if (!tableBody) {
+                console.error("Element 'dailyLogTableBody' not found.");
+                return;
+            }
+
+            // 1. Load all necessary data from localStorage
+            let logs = JSON.parse(localStorage.getItem('daily_log') || '[]');
+            let cashSessions = JSON.parse(localStorage.getItem('cashSessions') || '[]');
+            let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+
+            // 2. Merge cashSessions into the log array to include open shifts
+            let allShifts = [...logs];
+            const loggedSessionIds = new Set(logs.map(l => l.sessionId || l.id));
+            cashSessions.forEach(session => {
+                if (!loggedSessionIds.has(session.id)) {
+                    allShifts.push({ ...session, businessDate: session.date, sessionId: session.id });
+                }
+            });
+
+            // 3. Sort shifts (newest first)
+            allShifts.sort((a, b) => {
+                const timeA = new Date(a.closedAt || a.createdAt || 0).getTime();
+                const timeB = new Date(b.closedAt || b.createdAt || 0).getTime();
+                return timeB - timeA;
+            });
+
+            // 4. Filter by date if a filter is applied
+            if (dateFilter) {
+                allShifts = allShifts.filter(s => (s.businessDate || s.date) === dateFilter);
+            }
+            
+            // Clear the table and handle empty state
+            tableBody.innerHTML = '';
+            if (allShifts.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#999;">لا توجد سجلات للعرض</td></tr>`;
+                return;
+            }
+
+            // 5. Process data for each shift (The core logic change)
+            _processedShiftsData = allShifts.map(log => {
+                const sessionId = log.sessionId || log.id;
+
+                // If shift is closed and has the pre-calculated totals, use them.
+                if (log.status === 'closed' && typeof log.expectedAmount !== 'undefined') {
+                    const opening = parseFloat(log.openingAmount || 0);
+                    const expectedCash = parseFloat(log.expectedAmount);
+                    const actualCash = parseFloat(log.closingAmount);
+                    const diff = actualCash - expectedCash;
+
+                    return {
+                        log,
+                        businessDate: log.businessDate || log.date,
+                        diff,
+                        // Pass other values through for the modal
+                        opening: opening,
+                        cashSalesGross: parseFloat(log.cashSales || 0),
+                        cashDiscounts: parseFloat(log.totalDiscounts || 0),
+                        totalExpenses: parseFloat(log.totalExpenses || 0),
+                        expectedCash: expectedCash,
+                        actualCash: actualCash,
+                        visaSalesGross: parseFloat(log.visaSales || log.cardSales || 0),
+                        visaDiscounts: 0,
+                        expectedBank: parseFloat(log.visaSales || log.cardSales || 0)
+                    };
+                }
+
+                // Otherwise, calculate from scratch (for open shifts or old logs).
+                const dayOrders = orders.filter(o => (o.shift_id || o.shiftId) === sessionId && o.status !== 'cancelled');
+                const dayExpenses = expenses.filter(e => (e.shift_id || e.shiftId) === sessionId);
+
+                let cashSalesGross = 0, cashDiscounts = 0;
+                let visaSalesGross = 0, visaDiscounts = 0;
+
+                dayOrders.forEach(o => {
+                    const total = parseFloat(o.total || 0);
+                    const discount = parseFloat(o.discount || 0);
+                    const pm = String(o.paymentMethod || o.payment || '').toLowerCase();
+                    const gross = total + discount;
+
+                    if (pm.includes('visa') || pm.includes('card')) {
+                        visaSalesGross += gross;
+                        visaDiscounts += discount;
+                    } else {
+                        cashSalesGross += gross;
+                        cashDiscounts += discount;
+                    }
+                });
+
+                const totalExpenses = dayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+                const opening = parseFloat(log.openingAmount || 0);
+                const expectedCash = opening + cashSalesGross - cashDiscounts - totalExpenses;
+                const actualCash = parseFloat(log.closingAmount || 0);
+                const diff = log.status === 'closed' ? actualCash - expectedCash : 0;
+                const expectedBank = visaSalesGross - visaDiscounts;
+                
+                return {
+                    log, 
+                    businessDate: log.businessDate || log.date, 
+                    diff,
+                    opening, 
+                    cashSalesGross, 
+                    cashDiscounts, 
+                    totalExpenses, 
+                    expectedCash, 
+                    actualCash, 
+                    visaSalesGross, 
+                    visaDiscounts, 
+                    expectedBank
+                };
+            });
+
+            // 6. Render the HTML table from the processed data
+            const html = _processedShiftsData.map((data, index) => {
+                const { log, businessDate, diff } = data;
+
+                const openTime = (log.openedAt || log.createdAt) ? new Date(log.openedAt || log.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                const closeTime = log.closedAt ? new Date(log.closedAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : 'مستمر';
+                
+                let statusBadge = log.status === 'open' 
+                    ? `<span class="status-badge bg-open">مفتوح</span>` 
+                    : `<span class="status-badge bg-closed">مغلق</span>`;
+
+                let resultBadge = '<span style="color:#64748b">-</span>';
+                if (log.status !== 'open') {
+                    if (Math.abs(diff) < 0.005) {
+                        resultBadge = '<span style="color:#16a34a; font-weight:bold"><i class="fas fa-check"></i> مطابق</span>';
+                    } else if (diff < 0) {
+                        resultBadge = `<span style="color:#dc2626; font-weight:bold">عجز ${Utils.formatCurrency(Math.abs(diff))}</span>`;
+                    } else {
+                        resultBadge = `<span style="color:#2563eb; font-weight:bold">زيادة ${Utils.formatCurrency(diff)}</span>`;
+                    }
+                }
+
+                return `
+                <tr>
+                    <td style="font-weight:600">${businessDate}</td>
+                    <td>${log.openedBy || 'Admin'}</td>
+                    <td style="font-size:12px; color:#666">${openTime} - ${closeTime}</td>
+                    <td>${statusBadge}</td>
+                    <td>${resultBadge}</td>
+                    <td>
+                        <button class="btn-view-details" onclick="openShiftDetails(${index})">
+                            <i class="fas fa-eye"></i> التفاصيل
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tableBody.innerHTML = html;
+        }
+
+        // دالة فتح المودال وعرض الكارت التفصيلي
+        function openShiftDetails(index) {
+            const data = _processedShiftsData[index];
+            if (!data) return;
+
+            const { log, businessDate, opening, cashSalesGross, cashDiscounts, totalExpenses, expectedCash, actualCash, diff, visaSalesGross, visaDiscounts, expectedBank } = data;
+
+            const aggregatorSales = log.aggregatorSales || {};
+            let aggregatorSalesHTML = '';
+            let totalAggregatorRevenue = 0;
+
+            if (Object.keys(aggregatorSales).length > 0) {
+                aggregatorSalesHTML += `<div style="background:#fff7e6; border:1px solid #ffeacc; border-radius:8px; padding:15px; margin-top: 15px;">
+                    <h4 style="margin:0 0 10px 0; color:#d97706; font-size:14px; border-bottom:1px solid #fee8c5; padding-bottom:5px;">
+                        <i class="fas fa-motorcycle"></i> مستحقات شركات التوصيل
+                    </h4>
+                    <div class="calc-table">`;
+
+                for (const companyName in aggregatorSales) {
+                    const amount = aggregatorSales[companyName];
+                    if (amount > 0) {
+                        totalAggregatorRevenue += amount;
+                        aggregatorSalesHTML += `<div class="calc-row">
+                            <span class="calc-label" style="color:#92400e">مبيعات ${companyName}</span>
+                            <span class="calc-val" style="color:#92400e">${Utils.formatCurrency(amount)}</span>
+                        </div>`;
+                    }
+                }
+
+                aggregatorSalesHTML += `<div style="border-top:1px dashed #fcd34d; margin:8px 0;"></div>
+                    <div class="result-row" style="color:#78350f">
+                        <span>المتوقع من شركات التوصيل:</span>
+                        <span class="calc-val">${Utils.formatCurrency(totalAggregatorRevenue)}</span>
+                    </div>
+                </div></div>`;
+            }
+
+            const openTime = (log.openedAt || log.createdAt) ? new Date(log.openedAt || log.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+            const closeTime = log.closedAt ? new Date(log.closedAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : 'مستمر...';
+            
+            let diffColor, diffText, diffValueText;
+
+    if (log.status === 'closed') {
+        if (Math.abs(diff) < 0.005) {
+            diffColor = '#16a34a'; // green
+            diffText = 'مطابق ✅';
+            diffValueText = Utils.formatCurrency(diff); 
+        } else if (diff < 0) {
+            diffColor = '#dc2626'; // red
+            diffText = 'عجز ❌';
+            diffValueText = Utils.formatCurrency(Math.abs(diff));
+        } else {
+            diffColor = '#2563eb'; // blue
+            diffText = 'زيادة 🔵';
+            diffValueText = Utils.formatCurrency(diff);
+        }
+    }
+
+            const statusBadge = log.status === 'open' 
+                ? `<span class="status-badge bg-open">مفتوح الآن</span>` 
+                : `<span class="status-badge bg-closed">مغلق</span>`;
+
+            const cardHtml = `
+                <div class="audit-card" style="border:none; box-shadow:none; margin:0;">
+                    <div class="audit-header">
+                        <div class="audit-title">
+                            <i class="fas fa-calendar-alt"></i> ${businessDate} &nbsp; ${statusBadge}
+                        </div>
+                        <div class="audit-info" style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                            <div><i class="fas fa-user"></i> ${log.openedBy || 'Admin'}</div>
+                            <div style="font-size:12px; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:4px;">
+                                ${openTime} - ${closeTime}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="audit-body">
+                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:15px;">
+                            <h4 style="margin:0 0 10px 0; color:#334155; font-size:14px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                                <i class="fas fa-cash-register"></i> عهدة الكاشير (النقدية)
+                            </h4>
+                            <div class="calc-table">
+                                <div class="calc-row">
+                                    <span class="calc-label"><i class="fas fa-wallet" style="color:#64748b"></i> رصيد البداية</span>
+                                    <span class="calc-val val-neutral">${Utils.formatCurrency(opening)}</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label"><i class="fas fa-money-bill-wave" style="color:#16a34a"></i> مبيعات نقدية (إجمالي)</span>
+                                    <span class="calc-val val-plus">+${Utils.formatCurrency(cashSalesGross)}</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label"><i class="fas fa-percent" style="color:#f59e0b"></i> خصومات (على الكاش)</span>
+                                    <span class="calc-val val-minus">-${Utils.formatCurrency(cashDiscounts)}</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label"><i class="fas fa-receipt" style="color:#dc2626"></i> مصاريف خرجت</span>
+                                    <span class="calc-val val-minus">-${Utils.formatCurrency(totalExpenses)}</span>
+                                </div>
+                                
+                                <div style="border-top:1px dashed #cbd5e1; margin:8px 0;"></div>
+                                
+                                ${log.status === 'closed' ? `
+                                <div class="result-row">
+                                    <span>المفروض في الدرج:</span>
+                                    <span class="calc-val">${Utils.formatCurrency(expectedCash)}</span>
+                                </div>
+                                <div class="result-row">
+                                    <span>العد الفعلي (تسليم):</span>
+                                    <span class="calc-val" style="color:#000">${Utils.formatCurrency(actualCash)}</span>
+                                </div>
+                                <div class="final-diff" style="color: ${diffColor}; margin-top:5px; padding-top:5px; border-top:none;">
+                                    <span style="font-size:14px">النتيجة: ${diffText}</span>
+                                    <span class="calc-val" style="direction:ltr">${diffValueText}</span>
+                                </div>
+                                ` : ` 
+                                <div class="result-row">
+                                    <span>المتوقع حالياً في الدرج:</span>
+                                    <span class="calc-val">${Utils.formatCurrency(expectedCash)}</span>
+                                </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:15px;">
+                            <h4 style="margin:0 0 10px 0; color:#1e40af; font-size:14px; border-bottom:1px solid #dbeafe; padding-bottom:5px;">
+                                <i class="fas fa-university"></i> مستحقات البنك (الفيزا)
+                            </h4>
+                            
+                            <div class="calc-table">
+                                <div class="calc-row">
+                                    <span class="calc-label" style="color:#1e3a8a">إجمالي مبيعات الفيزا</span>
+                                    <span class="calc-val" style="color:#1e3a8a">${Utils.formatCurrency(visaSalesGross)}</span>
+                                </div>
+                                ${visaDiscounts > 0 ? `
+                                <div class="calc-row">
+                                    <span class="calc-label" style="color:#ef4444">خصومات (على الفيزا)</span>
+                                    <span class="calc-val" style="color:#ef4444">-${Utils.formatCurrency(visaDiscounts)}</span>
+                                </div>` : ''}
+                                <div style="border-top:1px dashed #93c5fd; margin:8px 0;"></div>
+                                <div class="result-row" style="color:#172554">
+                                    <span>المتوقع في حساب البنك:</span>
+                                    <span class="calc-val">${Utils.formatCurrency(expectedBank)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${aggregatorSalesHTML}
+                        
+                        ${log.notes ? `<div style="margin-top:15px; font-size:13px; color:#666; background:#fff; padding:8px; border:1px dashed #ccc;">📝 ${log.notes}</div>` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('auditModalBody').innerHTML = cardHtml;
+            document.getElementById('auditDetailModal').classList.add('active');
+        }
+
+        function closeAuditModal() {
+            document.getElementById('auditDetailModal').classList.remove('active');
+        }
+
+        // إغلاق المودال عند النقر خارجه
+        window.onclick = function(event) {
+            const modal = document.getElementById('auditDetailModal');
+            if (event.target == modal) {
+                closeAuditModal();
+            }
+        }
+
+        async function loadExpensesHistory() {
+            const regBody = document.getElementById('regularExpensesHistoryTable');
+            const empBody = document.getElementById('employeesExpensesHistoryTable');
+            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            expenses.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const regExp = [], empExp = [];
+            expenses.forEach(e => { 
+                if(e.type === 'employees' || String(e.description).includes('راتب') || String(e.description).includes('حضور') || e.source === 'payroll_daily' || String(e.id || '').startsWith('PAYROLL_')) empExp.push(e); 
+                else regExp.push(e); 
+            });
+            
+            const render = (arr) => arr.length ? arr.map(e => `<tr><td>${getLocalDateString(e.createdAt)}</td><td>${e.type}</td><td>${e.description}</td><td style="font-weight:bold;color:#c0392b">${Utils.formatCurrency(e.amount)}</td><td>${e.createdBy}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#999">لا توجد بيانات</td></tr>';
+            
+            if(regBody) regBody.innerHTML = render(regExp);
+            if(empBody) empBody.innerHTML = render(empExp);
+            document.getElementById('expensesHistoryTotalCard').textContent = Utils.formatCurrency(expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0));
+        }
+
+        async function loadTopProducts() {
+            const tbody = document.getElementById('topProductsTableBody');
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const stats = {};
+            orders.forEach(o => { if(o.status !== 'cancelled') (o.items||[]).forEach(i => stats[i.name||'Unknown'] = (stats[i.name||'Unknown']||0) + (parseFloat(i.quantity)||1)); });
+            const sorted = Object.entries(stats).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            tbody.innerHTML = sorted.length ? sorted.map((p, i) => `<tr><td>${i+1}</td><td>${p[0]}</td><td>عام</td><td style="color:green;font-weight:bold">${p[1]}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#999">لا توجد مبيعات</td></tr>';
+        }
+
+        // ==========================================
+        // 5. التشغيل
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            if(typeof Auth !== 'undefined') Auth.checkLogin();
+            function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'login.html'; }
+            loadPerformance();
+            setTimeout(loadExpensesHistory, 200);
+            setTimeout(loadDailyLog, 400);
+            setTimeout(loadTopProducts, 600);
+        });
+    </script>
+
+</body>
+</html>

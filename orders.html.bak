@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الطلبات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        /* Protective CSS: Hide sidebar items by default to prevent flickering */
+        .sidebar-item {
+            display: none !important;
+        }
+        
+        /* Show only allowed items for cashiers by default */
+        .sidebar-item[href*="index.html"],
+
+        .sidebar-item[href=""],
+        .sidebar-item[href="#"],
+        .sidebar-item[href*="orders.html"] {
+            display: flex !important;
+        }
+        
+        /* Override for admin/owner when detected */
+        body[data-user-role="owner"] .sidebar-item,
+        body[data-user-role="admin"] .sidebar-item {
+            display: flex !important;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .header-search input {
+            color: #000000;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .orders-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: var(--spacing-lg);
+        }
+        
+        .orders-list {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            max-height: calc(100vh - var(--header-height) - var(--spacing-lg) * 2);
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        
+        .orders-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .orders-list-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #000000;
+            margin: 0;
+        }
+        
+        .orders-count {
+            background: #f5f5f5;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #666666;
+            font-weight: 600;
+        }
+        
+        .order-item {
+            padding: var(--spacing-md);
+            border: 2px solid #e8e8e8;
+            border-radius: 16px;
+            margin-bottom: var(--spacing-md);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .order-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .order-item:hover {
+            border-color: #000000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateX(-6px);
+        }
+        
+        .order-item:hover::before {
+            background: #000000;
+        }
+        
+        .order-item.active {
+            border-color: #000000;
+            background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            transform: translateX(-6px);
+        }
+        
+        .order-item.active::before {
+            background: #000000;
+        }
+        
+        .order-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .order-item-id {
+            font-weight: 700;
+            color: #000000;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .order-item-id::before {
+            content: '📋';
+            font-size: 18px;
+        }
+        
+        .order-item-date {
+            font-size: 12px;
+            color: #666666;
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .order-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .order-item-total {
+            font-weight: 800;
+            color: #000000;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .order-item-total::before {
+            content: '💰';
+            font-size: 16px;
+        }
+        
+        .order-item-status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            background: #f0f0f0;
+            color: #666666;
+        }
+        
+        .order-item.active .order-item-status {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .order-details {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-xl);
+            border: 1px solid #e8e8e8;
+            max-height: calc(100vh - var(--header-height) - var(--spacing-lg) * 2);
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        
+        .order-details-header {
+            background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+            padding: var(--spacing-lg);
+            border-radius: 16px;
+            margin-bottom: var(--spacing-xl);
+            border: 1px solid #e8e8e8;
+        }
+        
+        .order-details-header h3 {
+            color: #000000;
+            font-weight: 800;
+            font-size: 24px;
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .order-details-header h3::before {
+            content: '🛒';
+            font-size: 28px;
+        }
+        
+        .order-details-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+        
+        .order-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666666;
+            background: #f5f5f5;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        
+        .order-details-items {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .order-details-items-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .order-details-items-title::before {
+            content: '📦';
+            font-size: 20px;
+        }
+        
+        .order-details-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            border: 1px solid #f0f0f0;
+            border-radius: 12px;
+            margin-bottom: var(--spacing-sm);
+            background: #fafafa;
+            transition: all 0.2s ease;
+        }
+        
+        .order-details-item:hover {
+            background: #f5f5f5;
+            border-color: #e0e0e0;
+            transform: translateX(-4px);
+        }
+        
+        .order-details-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .order-item-info {
+            flex: 1;
+        }
+        
+        .order-item-name {
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        
+        .order-item-variant {
+            font-size: 12px;
+            color: #666666;
+            background: #ffffff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        
+        .order-item-price {
+            font-weight: 700;
+            color: #000000;
+            font-size: 16px;
+        }
+        
+        .order-details-summary {
+            background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+            border: 1px solid #e8e8e8;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .summary-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .summary-title::before {
+            content: '🧾';
+            font-size: 20px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding: var(--spacing-xs) 0;
+            color: #666666;
+            font-size: 14px;
+        }
+        
+        .summary-row.total {
+            color: #000000;
+            font-weight: 800;
+            font-size: 20px;
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 2px solid #e8e8e8;
+            background: #ffffff;
+            padding: var(--spacing-md);
+            border-radius: 12px;
+            margin-left: calc(-1 * var(--spacing-lg));
+            margin-right: calc(-1 * var(--spacing-lg));
+            margin-bottom: calc(-1 * var(--spacing-lg));
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+        
+        .order-actions .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-primary:hover {
+            background: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: #999999;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            background: #ffffff;
+            padding: var(--spacing-sm);
+            border-radius: 16px;
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            border: 2px solid transparent;
+            background: transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666666;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .tab::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #000000;
+            transition: width 0.3s ease;
+        }
+        
+        .tab:hover {
+            color: #000000;
+            background: #f5f5f5;
+        }
+        
+        .tab.active {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tab.active::before {
+            width: 0;
+        }
+        
+        .input {
+            padding: 10px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-outline {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        
+        .btn-outline:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cccccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <a href="index.html" class="sidebar-item">
+            <i class="fas fa-home" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الرئيسية</span>
+        </a>
+        <a href="orders.html" class="sidebar-item active">
+            <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الطلبات</span>
+        </a>
+        <a href="reports.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">التقارير</span>
+        </a>
+        <a href="menu.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المطبخ</span>
+        </a>
+        <a href="ingredients.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المخزون</span>
+        </a>
+        <a href="customers.html" class="sidebar-item">
+            <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">العملاء</span>
+        </a>
+        <a href="employees.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-users" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموظفون</span>
+        </a>
+        <a href="suppliers.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-truck" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموردين</span>
+        </a>
+        <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">ادارة التسويق</span>
+        </a>
+        <a href="settings.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-cog" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الإعدادات</span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="header">
+        <h2 class="header-title">الطلبات</h2>
+        <div class="header-search">
+            <i class="fas fa-search header-search-icon"></i>
+            <input type="text" placeholder="ابحث عن الطلبات..." id="orderSearch">
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn" onclick="clearAllOrders()" title="حذف جميع الطلبات" data-restricted="owner" style="color: #e74c3c;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="header-action-btn" onclick="handleRefresh()" title="تحديث الصفحة">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="header-action-btn" onclick="showStockNotifications()" title="تنبيهات المطبخ">
+                <i class="fas fa-bell"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+            <div class="tabs">
+                <button class="tab active" data-tab="history">تاريخ الطلبات</button>
+                <button class="tab" data-tab="on-hold">الطلبات المعلقة</button>
+            </div>
+            <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                <input type="date" class="input" id="dateFilter" style="width: 200px;">
+            </div>
+        </div>
+        
+        <div class="orders-container">
+            <div class="order-details" id="orderDetails">
+                <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
+                    <div style="font-size: 64px; margin-bottom: var(--spacing-md);">📋</div>
+                    <h3 style="color: #000000; font-weight: 700; margin-bottom: var(--spacing-sm);">اختر طلباً لعرض التفاصيل</h3>
+                    <p style="color: #666666;">اختر طلباً من القائمة على اليمين لعرض تفاصيله</p>
+                </div>
+            </div>
+            
+            <div class="orders-list" id="ordersList">
+                <div class="orders-list-header">
+                    <h3 id="ordersListTitle">تاريخ الطلبات</h3>
+                    <span class="orders-count" id="ordersCount">0 طلب</span>
+                </div>
+                <div id="ordersListContent">
+                    <div class="empty-state">لا توجد طلبات</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase Integration -->
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/activation.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app_logic.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/enhancements.js"></script>
+    <script src="js/main.js"></script>
+    
+    <script>
+        // تهيئة Sync Manager
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SyncManager !== 'undefined' && typeof SyncManager.init === 'function') {
+                SyncManager.init();
+            }
+        });
+        
+        let currentTab = 'history';
+        let selectedOrder = null;
+        let searchTerm = '';
+        let dateFilter = '';
+        
+        // Check login
+        // Check login and apply permissions
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('orders.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initTabs();
+            initSearch();
+            initDateFilter();
+            loadOrders();
+            checkViewOrder();
+        });
+        
+        function checkViewOrder() {
+            const viewOrder = localStorage.getItem('viewOrder');
+            if (viewOrder) {
+                const order = JSON.parse(viewOrder);
+                // Switch to appropriate tab
+                if (order.status === 'on-hold') {
+                    document.querySelector('.tab[data-tab="on-hold"]').click();
+                } else {
+                    document.querySelector('.tab[data-tab="history"]').click();
+                }
+                
+                // Select the order after a short delay
+                setTimeout(() => {
+                    loadOrders();
+                    setTimeout(() => {
+                        const orderItems = document.querySelectorAll('.order-item');
+                        orderItems.forEach(item => {
+                            if (item.textContent.includes(order.id)) {
+                                item.click();
+                            }
+                        });
+                    }, 100);
+                }, 100);
+                
+                localStorage.removeItem('viewOrder');
+            }
+        }
+        
+        function initSearch() {
+            document.getElementById('orderSearch').addEventListener('input', (e) => {
+                searchTerm = e.target.value.toLowerCase();
+                loadOrders();
+            });
+        }
+        
+        function initDateFilter() {
+            document.getElementById('dateFilter').addEventListener('change', (e) => {
+                dateFilter = e.target.value;
+                loadOrders();
+            });
+        }
+        
+        function clearDateFilter() {
+            document.getElementById('dateFilter').value = '';
+            dateFilter = '';
+            loadOrders();
+        }
+        
+        function initTabs() {
+            document.querySelectorAll('.tabs .tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentTab = tab.dataset.tab;
+                    loadOrders();
+                });
+            });
+        }
+        
+        async function loadOrders() {
+            const ordersListContent = document.getElementById('ordersListContent');
+            const ordersListTitle = document.getElementById('ordersListTitle');
+            const ordersCount = document.getElementById('ordersCount');
+            
+            ordersListContent.innerHTML = '<div style="text-align: center; padding: var(--spacing-lg); color: #666666;">بيجهزلك الطلبات...</div>';
+            
+            let orders = [];
+            try {
+                if (currentTab === 'history') {
+                    orders = await DataManager.getOrders();
+                    orders.sort((a, b) => new Date(b.date || b.createdAt || b.timestamp || 0) - new Date(a.date || a.createdAt || a.timestamp || 0));
+                    ordersListTitle.textContent = 'تاريخ الطلبات';
+                } else if (currentTab === 'on-hold') {
+                    orders = await DataManager.getOrdersOnHold();
+                    orders.sort((a, b) => new Date(b.date || b.createdAt || b.timestamp || 0) - new Date(a.date || a.createdAt || a.timestamp || 0));
+                    ordersListTitle.textContent = 'الطلبات المعلقة';
+                }
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                ordersListContent.innerHTML = '<div style="text-align: center; padding: var(--spacing-lg); color: #e74c3c;">حدث خطأ أثناء تحميل الطلبات</div>';
+                return;
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                orders = orders.filter(order => {
+                    const orderId = order.id.toLowerCase();
+                    const table = (order.table || '').toString().toLowerCase();
+                    return orderId.includes(searchTerm) || table.includes(searchTerm);
+                });
+            }
+            
+            // Fix: Filter out ghost orders with 0 or undefined price
+            orders = orders.filter(order => {
+                const orderTotal = parseFloat(order.total) || 0;
+                const totals = Utils.calculateOrderTotal(order.items || []);
+                const calculatedTotal = order.total || totals.total;
+                return calculatedTotal > 0;
+            });
+            
+            // Apply date filter
+            if (dateFilter) {
+                orders = orders.filter(order => {
+                    const orderDate = new Date(order.date).toISOString().split('T')[0];
+                    return orderDate === dateFilter;
+                });
+            }
+            
+            ordersCount.textContent = `${orders.length} طلب`;
+            
+            if (orders.length === 0) {
+                ordersListContent.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
+                        <div style="font-size: 64px; margin-bottom: var(--spacing-md);">📭</div>
+                        <h3 style="color: #000000; font-weight: 700; margin-bottom: var(--spacing-sm);">لا توجد طلبات حتى الآن</h3>
+                        <p style="color: #666666;">ابدأ بإضافة طلبات من شاشة الكاشير لعرضها هنا</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // إزالة رسالة التحميل قبل عرض الطلبات
+            ordersListContent.innerHTML = '';
+            
+            orders.forEach((order, index) => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                orderItem.style.animationDelay = `${index * 0.05}s`;
+                const totals = Utils.calculateOrderTotal(order.items || []);
+                const orderTotal = order.total || totals.total;
+                const itemCount = (order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+                
+                let orderTypeBadge = '';
+                let orderTypeBgColor = '#f3e5f5';
+                let orderTypeColor = '#7b1fa2';
+                
+                if (order.orderType === 'delivery') {
+                    orderTypeBadge = '🚴 دليفري';
+                    orderTypeBgColor = '#e3f2fd';
+                    orderTypeColor = '#1976d2';
+                } else if (order.orderType === 'dinein') {
+                    orderTypeBadge = '🍽️ Dine In';
+                    orderTypeBgColor = '#fff3cd';
+                    orderTypeColor = '#856404';
+                } else {
+                    orderTypeBadge = '🛍️ تيك أواي';
+                }
+                
+                // تحديد طريقة الدفع
+                const paymentMethod = order.paymentMethod || 'cash';
+                let paymentBadge = '';
+                let paymentBgColor = '#27AE60';
+                let paymentColor = '#ffffff';
+                
+                // Fix: Case-insensitive payment method check
+                const pm = String(paymentMethod || '').toLowerCase().trim();
+                const isVisa = (pm === 'visa' || pm === 'card' || pm === 'credit' || pm === 'mastercard' || pm.includes('visa'));
+                
+                if (isVisa) {
+                    paymentBadge = '💳 فيزا';
+                    paymentBgColor = '#3498DB';
+                } else {
+                    paymentBadge = '💵 نقدي';
+                    paymentBgColor = '#27AE60';
+                }
+                
+                // Add aggregator badge if it exists
+                let aggregatorBadge = '';
+                if (order.orderSource && order.orderSource !== 'direct') {
+                    aggregatorBadge = `
+                        <div class="order-item-status" style="background: #e5e7eb; color: #1f2937;">
+                            <i class="fas fa-truck"></i> ${order.orderSource}
+                        </div>
+                    `;
+                }
+
+                // Add aggregator markup badge if it exists
+                let aggregatorMarkupBadge = '';
+                if (order.aggregatorMarkup && order.aggregatorMarkup > 0) {
+                    aggregatorMarkupBadge = `
+                        <div class="order-item-status" style="background: #d1fae5; color: #065f46;">
+                            +${Utils.formatCurrency(order.aggregatorMarkup)}
+                        </div>
+                    `;
+                }
+
+                orderItem.innerHTML = `
+                    <div class="order-item-header">
+                        <div class="order-item-id">${order.id}</div>
+                        <div class="order-item-date">${Utils.formatDate(order.date)}</div>
+                    </div>
+                    <div class="order-item-footer">
+                        <div class="order-item-total">${Utils.formatCurrency(orderTotal)}</div>
+                        <div style="display: flex; gap: var(--spacing-xs); align-items: center; flex-wrap: wrap;">
+                            <div class="order-item-status">${itemCount} منتج</div>
+                            <div class="order-item-status" style="background: ${orderTypeBgColor}; color: ${orderTypeColor};">
+                                ${orderTypeBadge}
+                            </div>
+                            ${aggregatorBadge}
+                            <div class="order-item-status" style="background: ${paymentBgColor}; color: ${paymentColor};">
+                                ${paymentBadge}
+                            </div>
+                            ${aggregatorMarkupBadge}
+                            ${order.discount && parseFloat(order.discount) > 0 ? `<div class="order-item-status" style="background: #ffeaa7; color: #d63031;">خصم: ${Utils.formatCurrency(order.discount)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                orderItem.addEventListener('click', () => {
+                    document.querySelectorAll('.order-item').forEach(item => item.classList.remove('active'));
+                    orderItem.classList.add('active');
+                    selectedOrder = order;
+                    showOrderDetails(order);
+                });
+                ordersListContent.appendChild(orderItem);
+            });
+        }
+        
+        function showOrderDetails(order) {
+            const orderDetails = document.getElementById('orderDetails');
+            const totals = Utils.calculateOrderTotal(order.items || []);
+            // Use order.total if exists (includes delivery fee), otherwise calculate
+            const orderTotal = order.total !== undefined ? order.total : (totals.total + (order.deliveryFee || 0));
+            
+            const itemCount = (order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+            
+            // تحديد طريقة الدفع
+            const paymentMethod = order.paymentMethod || 'cash';
+            const isVisa = paymentMethod === 'visa';
+            const paymentBadge = isVisa ? '💳 فيزا' : '💵 نقدي';
+            const paymentBgColor = isVisa ? '#3498DB' : '#27AE60';
+            const paymentIcon = isVisa ? 'fa-credit-card' : 'fa-money-bill-wave';
+            
+            orderDetails.innerHTML = `
+                <div class="order-details-header">
+                    <h3>${order.id}</h3>
+                    <div class="order-details-meta">
+                        <div class="order-meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>${Utils.formatDate(order.date)}</span>
+                        </div>
+                        <div class="order-meta-item">
+                            <i class="fas fa-box"></i>
+                            <span>${itemCount} منتج</span>
+                        </div>
+                        <div class="order-meta-item" style="background: ${order.orderType === 'delivery' ? '#e3f2fd' : order.orderType === 'dinein' ? '#fff3cd' : '#f3e5f5'}; color: ${order.orderType === 'delivery' ? '#1976d2' : order.orderType === 'dinein' ? '#856404' : '#7b1fa2'};">
+                            <i class="fas ${order.orderType === 'delivery' ? 'fa-motorcycle' : order.orderType === 'dinein' ? 'fa-utensils' : 'fa-shopping-bag'}"></i>
+                            <span>${order.orderType === 'delivery' ? 'دليفري' : order.orderType === 'dinein' ? 'Dine In - الصالة' : 'تيك أواي'}</span>
+                        </div>
+                        <div class="order-meta-item" style="background: ${paymentBgColor}; color: #ffffff;">
+                            <i class="fas ${paymentIcon}"></i>
+                            <span>${paymentBadge}</span>
+                        </div>
+                        ${order.tableNumber && order.orderType === 'dinein' ? `
+                            <div class="order-meta-item" style="background: #fff3cd; color: #856404;">
+                                <i class="fas fa-chair"></i>
+                                <span>طاولة: ${order.tableNumber}</span>
+                            </div>
+                        ` : ''}
+                        ${order.deliveryInfo ? `
+                            <div class="order-meta-item" style="background: #e8f5e9; color: #2e7d32; display: block; width: 100%; margin-top: var(--spacing-sm); padding: var(--spacing-md); border-radius: 12px;">
+                                <div><i class="fas fa-phone"></i> <strong>الهاتف:</strong> ${order.deliveryInfo.phone}</div>
+                                <div><i class="fas fa-map-marker-alt"></i> <strong>العنوان:</strong> ${order.deliveryInfo.address}</div>
+                            </div>
+                        ` : ''}
+                        ${order.note ? `
+                            <div class="order-meta-item" style="background: #fff3cd; color: #856404;">
+                                <i class="fas fa-sticky-note"></i>
+                                <span>${order.note}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="order-details-items">
+                    <div class="order-details-items-title">المنتجات</div>
+                    ${(order.items || []).map(item => `
+                        <div class="order-details-item">
+                            <div class="order-item-info">
+                                <div class="order-item-name">${item.quantity}x ${item.name}</div>
+                                ${item.variant ? `<div class="order-item-variant">${item.variant}</div>` : ''}
+                                ${item.discount > 0 ? `<div style="font-size: 12px; color: #e74c3c; margin-top: 4px;">خصم: ${Utils.formatCurrency(item.discount)}</div>` : ''}
+                            </div>
+                            <div class="order-item-price">${Utils.formatCurrency(item.price * item.quantity - (item.discount || 0))}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="order-details-summary">
+                    <div class="summary-title">ملخص الفاتورة</div>
+                    <div class="summary-row">
+                        <span>الإجمالي الفرعي</span>
+                        <span>${Utils.formatCurrency(order.subtotal)}</span>
+                    </div>
+                    ${order.aggregatorMarkup && parseFloat(order.aggregatorMarkup) > 0 ? `
+                        <div class="summary-row" style="background: #d1fae5; padding: 8px; border-radius: 8px; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #065f46;">زيادة أسعار ${order.orderSource}</span>
+                            <span style="color: #065f46; font-weight: 700;">+${Utils.formatCurrency(order.aggregatorMarkup)}</span>
+                        </div>
+                    ` : ''}
+                    ${order.discount && parseFloat(order.discount) > 0 ? `
+                        <div class="summary-row" style="background: #ffeaa7; padding: 8px; border-radius: 8px; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #d63031;">الخصم</span>
+                            <span style="color: #d63031; font-weight: 700;">-${Utils.formatCurrency(order.discount)}</span>
+                        </div>
+                    ` : ''}
+                    ${order.orderType === 'delivery' && order.deliveryFee ? `
+                        <div class="summary-row">
+                            <span>سعر التوصيل</span>
+                            <span>${Utils.formatCurrency(order.deliveryFee || 0)}</span>
+                        </div>
+                    ` : ''}
+                    <div class="summary-row total">
+                        <span>الإجمالي</span>
+                        <span>${Utils.formatCurrency(orderTotal)}</span>
+                    </div>
+                </div>
+                
+                <div class="order-actions">
+                    ${currentTab === 'on-hold' ? `
+                        <button class="btn btn-primary" onclick="resumeOrder('${order.id}')">
+                            <i class="fas fa-play" style="margin-left: 8px;"></i>
+                            استئناف الطلب
+                        </button>
+                        <button class="btn btn-secondary" onclick="removeOrder('${order.id}')" data-restricted="owner">
+                            <i class="fas fa-trash" style="margin-left: 8px;"></i>
+                            حذف الطلب
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-primary" onclick="printInvoice('${order.id}')" style="width: 100%;">
+                        <i class="fas fa-print" style="margin-left: 8px;"></i>
+                        طباعة الفاتورة
+                    </button>
+                </div>
+            `;
+        }
+        
+        async function resumeOrder(orderId) {
+            const orders = await DataManager.getOrdersOnHold();
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                localStorage.setItem('resumeOrder', JSON.stringify(order));
+                // إزالة الطلب من قائمة الطلبات المعلقة بعد الاستئناف
+                await DataManager.removeOrderOnHold(orderId);
+                Notification.success('جاري تحميل الطلب...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
+            }
+        }
+        
+        function removeOrder(orderId) {
+            if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+                DataManager.removeOrderOnHold(orderId);
+                Notification.success('تم حذف الطلب بنجاح');
+                loadOrders();
+                document.getElementById('orderDetails').innerHTML = '<div class="empty-state">اختر طلباً لعرض التفاصيل</div>';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        async function printInvoice(orderId) {
+            let order = null;
+            try {
+                if (currentTab === 'history') {
+                    const orders = await DataManager.getOrders();
+                    order = orders.find(o => o.id === orderId);
+                } else {
+                    const orders = await DataManager.getOrdersOnHold();
+                    order = orders.find(o => o.id === orderId);
+                }
+            } catch (error) {
+                console.error('Error finding order:', error);
+                Notification.error('حدث خطأ أثناء البحث عن الطلب');
+                return;
+            }
+            
+            if (order) {
+                Utils.printInvoice(order);
+            }
+        }
+        
+        // حذف جميع الطلبات
+        async function clearAllOrders() {
+            if (!confirm('⚠️ تحذير: هل أنت متأكد من حذف جميع الطلبات؟\n\nهذا الإجراء سيحذف:\n- جميع الطلبات المكتملة\n- جميع الطلبات المعلقة\n- تاريخ المبيعات\n\nهذا الإجراء لا يمكن التراجع عنه!')) {
+                return;
+            }
+            
+            // تأكيد إضافي
+            if (!confirm('هل أنت متأكد تماماً؟ سيتم حذف جميع البيانات بشكل نهائي!')) {
+                return;
+            }
+            
+            try {
+                // استخدام الدالة العامة من data.js إذا كانت متاحة
+                if (typeof window.clearAllOrders === 'function' && window.clearAllOrders !== clearAllOrders) {
+                    await window.clearAllOrders(true); // مسح من Firebase أيضاً
+                    // تحديث القائمة بدون إعادة تحميل الصفحة
+                    setTimeout(() => {
+                        loadOrders();
+                    }, 500);
+                    return;
+                }
+                
+                // Fallback: مسح محلي فقط
+                console.log('بدء حذف جميع الطلبات...');
+                
+                // حذف من localStorage - الطلبات والمبيعات فقط (بدون المساس بالشيفت النقدي أو بيانات المستخدم)
+                localStorage.removeItem('orders');
+                localStorage.removeItem('ordersOnHold');
+                localStorage.removeItem('salesHistory');
+                localStorage.removeItem('resumeOrder');
+                // لا نمسح: cashSessions, isLoggedIn, username, userType, currentUser, userRole
+                
+                // إعادة تهيئة كقوائم فارغة
+                localStorage.setItem('orders', JSON.stringify([]));
+                localStorage.setItem('ordersOnHold', JSON.stringify([]));
+                localStorage.setItem('salesHistory', JSON.stringify([]));
+                
+                // تعطيل دمج Firebase لمدة 30 دقيقة
+                localStorage.setItem('_ordersCleared', Date.now().toString());
+                
+                console.log('✅ تم حذف البيانات من localStorage');
+                
+                Notification.success('✅ تم حذف جميع الطلبات بنجاح');
+                
+                // تحديث القائمة بدون إعادة تحميل الصفحة (لمنع logout)
+                setTimeout(() => {
+                    loadOrders();
+                }, 300);
+            } catch (error) {
+                console.error('Error clearing orders:', error);
+                Notification.error('حدث خطأ أثناء حذف الطلبات: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

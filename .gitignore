@@ -1,0 +1,9 @@
+node_modules
+.wwebjs_auth/
+.wwebjs_cache/
+dist/
+.DS_Store
+node_modules/
+*.exe
+*.exe.blockmap
+serviceAccountKey.json

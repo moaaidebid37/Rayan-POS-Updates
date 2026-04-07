@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة العملاء - Solo System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { font-family: 'Poppins', 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #fafafa; margin: 0; padding: 0; }
+        .sidebar-item { display: flex !important; } 
+        
+        /* 🎨 CSS تصميم صفحة العملاء (شامل الكروت والصفوف) */
+        .stats-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: #fff; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .card-content h4 { margin: 0; font-size: 14px; color: #666; font-weight: 600; }
+        .card-content p { margin: 8px 0 0; font-size: 24px; font-weight: 800; color: #000; display: flex; align-items: baseline; gap: 5px; }
+        .card-content p span { font-size: 14px; font-weight: 600; color: #999; }
+        .card-icon { width: 48px; height: 48px; border-radius: 12px; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #000; }
+        .vip-icon { color: #f1c40f; background: rgba(241, 196, 15, 0.1); }
+
+        .search-filter-bar { background: #fff; padding: 15px; border-radius: 16px; border: 1px solid #e8e8e8; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .filter-pills { display: flex; gap: 10px; }
+        .filter-pills button { background: #fafafa; border: 1px solid #ddd; padding: 8px 16px; border-radius: 20px; font-family: 'Cairo'; font-weight: 600; cursor: pointer; color: #666; transition: 0.2s; }
+        .filter-pills button.active { background: #000; color: #fff; border-color: #000; }
+
+        .customers-list { display: flex; flex-direction: column; gap: 15px; }
+        .customer-row { background: #fff; border-radius: 16px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.3s; }
+        .customer-row:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        .customer-avatar { width: 45px; height: 45px; background: #27AE60; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; flex-shrink: 0; }
+        
+        .customer-details { flex: 1; margin: 0 20px; }
+        .name-phone h3 { margin: 0; font-size: 16px; color: #000; font-weight: 700; }
+        .name-phone p { margin: 4px 0 0; font-size: 13px; color: #666; }
+        .address span { font-size: 13px; color: #999; }
+        
+        .customer-ltv { display: flex; gap: 25px; text-align: center; }
+        .ltv-item p { margin: 0; font-size: 16px; font-weight: 800; color: #000; }
+        .ltv-item span { font-size: 12px; color: #999; font-weight: 600; }
+        
+        .customer-status { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 120px; margin: 0 20px; }
+        .loyalty-badge { padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .loyalty-badge.gold { background: rgba(241, 196, 15, 0.15); color: #d4ac0d; }
+        .loyalty-badge.silver { background: rgba(189, 195, 199, 0.2); color: #7f8c8d; }
+        .loyalty-badge.bronze { background: rgba(205, 127, 50, 0.2); color: #cd7f32; }
+        .loyalty-badge.vip { background: rgba(155, 89, 182, 0.2); color: #9b59b6; }
+        .loyalty-badge.regular { background: #f5f5f5; color: #666; }
+        .last-order { font-size: 11px; color: #999; }
+
+        .fast-action-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; color: #333; }
+        .fast-action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .fast-action-btn.whatsapp { color: #25D366; border-color: #25D366; }
+        .fast-action-btn.whatsapp:hover { background: #25D366; color: #fff; border-color: #25D366; }
+        
+        .fast-action-btn.delete-btn { color: #e74c3c; border-color: #e74c3c; }
+        .fast-action-btn.delete-btn:hover { background: #e74c3c; color: #fff; }
+                    /* ========================================= */ 
+         /* 🌟 تصميم شبكة الكروت والصفحات (النسخة الميني المصغرة) 🌟 */ 
+         /* ========================================= */ 
+         
+         /* شبكة الكروت (عدد أكبر في الصف الواحد) */ 
+         #customersContainer { 
+             display: grid !important; 
+             grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important; /* صغرنا الكارت لـ 210px */ 
+             gap: 12px !important; 
+             margin-top: 15px !important; 
+         } 
+         
+         /* تصميم الكارت المصغر */ 
+         .customer-card { 
+             background: #fff; 
+             border-radius: 10px; /* لفة أخف */ 
+             padding: 12px; /* مسافات داخلية أقل */ 
+             box-shadow: 0 2px 5px rgba(0,0,0,0.04); 
+             border: 1px solid #eee; 
+             transition: transform 0.2s, box-shadow 0.2s; 
+             display: flex; 
+             flex-direction: column; 
+         } 
+         .customer-card:hover { 
+             transform: translateY(-3px); 
+             box-shadow: 0 6px 12px rgba(0,0,0,0.08); 
+         } 
+         .card-header { 
+             display: flex; 
+             align-items: center; 
+             gap: 10px; 
+             margin-bottom: 10px; 
+             border-bottom: 1px solid #f9f9f9; 
+             padding-bottom: 10px; 
+         } 
+         .customer-avatar { 
+             width: 36px; height: 36px; /* صورة أصغر */ 
+             background: #000; color: #fff; 
+             border-radius: 50%; 
+             display: flex; align-items: center; justify-content: center; 
+             font-size: 14px; font-weight: bold; flex-shrink: 0; 
+         } 
+         .card-name-tier h3 { margin: 0 0 3px 0; font-size: 14px; color: #222; font-weight: 700; } 
+         .loyalty-badge { font-size: 10px; padding: 3px 6px; border-radius: 20px; font-weight: 600; display: inline-block;} 
+         .loyalty-badge.gold { background: #fff3cd; color: #856404; } 
+         .loyalty-badge.silver { background: #e2e3e5; color: #383d41; } 
+         .loyalty-badge.vip { background: #d4edda; color: #155724; } 
+         .loyalty-badge.regular { background: #f0f0f0; color: #555; } 
+         
+         .card-body { flex-grow: 1; } 
+         .card-body p { margin: 4px 0; font-size: 12px; color: #555; display: flex; align-items: center; gap: 6px; } 
+         .card-body i { width: 14px; text-align: center; color: #aaa; } 
+         
+         .card-stats { 
+             display: flex; justify-content: space-around; 
+             background: #f8f9fa; padding: 8px; border-radius: 8px; margin: 10px 0; 
+         } 
+         .stat-item { text-align: center; } 
+         .stat-item span { display: block; font-size: 10px; color: #777; margin-bottom: 2px; } 
+         .stat-item strong { font-size: 13px; color: #000; font-weight: 800; } 
+         
+         .card-actions { display: flex; gap: 6px; margin-top: auto; } 
+         .action-btn { 
+             flex: 1; padding: 6px; border: none; border-radius: 6px; 
+             background: #f0f0f0; color: #444; cursor: pointer; transition: 0.2s; font-size: 13px; 
+         } 
+         .action-btn:hover { background: #e4e4e4; } 
+         .action-btn.delete { color: #dc3545; background: #fff0f0; } 
+         .action-btn.delete:hover { background: #ffe0e0; } 
+ 
+         /* شريط التقليب والصفحات */ 
+         .pagination-controls { 
+             display: flex; justify-content: center; align-items: center; gap: 15px; 
+             margin-top: 25px; padding: 12px; background: #fff; 
+             border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+         } 
+         .page-btn { 
+             padding: 6px 16px; background: #000; color: #fff; 
+             border: none; border-radius: 6px; cursor: pointer; 
+             font-family: 'Cairo'; font-weight: 600; transition: 0.2s; font-size: 13px; 
+         } 
+         .page-btn:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; } 
+         .page-btn:not(:disabled):hover { background: #333; } 
+         #pageInfo { font-weight: bold; font-size: 14px; color: #000; } 
+     </style>
+</head>
+<body>
+    <nav class="sidebar"></nav>
+
+    <header class="header">
+        <div style="display: flex; align-items: center; gap: 20px;">
+             <img src="images/logo.png" class="header-logo" alt="Solo POS">
+             <h2 class="header-title">إدارة العملاء</h2>
+        </div>
+        <div class="header-search">
+            <i class="fas fa-search header-search-icon"></i>
+            <input type="text" placeholder="ابحث بالاسم، أو رقم الهاتف..." id="headerSearch">
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="main-container">
+             <div class="stats-dashboard">
+                 <div class="stat-card">
+                     <div class="card-content">
+                         <h4>إجمالي العملاء</h4>
+                         <p><span id="statTotalCust">0</span> <span>عميل</span></p>
+                     </div>
+                     <div class="card-icon"><i class="fas fa-users"></i></div>
+                 </div>
+                 <div class="stat-card">
+                     <div class="card-content">
+                         <h4>عملاء نشطين</h4>
+                         <p><span id="statActiveCust">0</span> <span>عميل</span></p>
+                     </div>
+                      <div class="card-icon"><i class="fas fa-user-clock"></i></div>
+                 </div>
+                 <div class="stat-card">
+                     <div class="card-content">
+                         <h4>كبار العملاء</h4>
+                         <p><span id="statVipCust">0</span> <span>عميل</span></p>
+                     </div>
+                      <div class="card-icon vip-icon"><i class="fas fa-crown"></i></div>
+                 </div>
+                 <div class="stat-card">
+                     <div class="card-content">
+                         <h4>إجمالي مبيعات الدليفري</h4>
+                         <p><span id="statTotalSales">0</span> <span>ج.م</span></p>
+                     </div>
+                      <div class="card-icon"><i class="fas fa-motorcycle"></i></div>
+                 </div>
+             </div>
+
+            <div class="search-filter-bar" style="justify-content: flex-end;">
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="openLoyaltySettings()" style="background: #f39c12; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;" title="إعدادات نظام النقاط للمالك">
+                        <i class="fas fa-cog"></i> إعدادات الولاء
+                    </button>
+                    
+                    <button onclick="exportCustomersToExcel()" style="background: #27AE60; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-file-excel"></i> إكسيل
+                    </button>
+                    
+                    <button onclick="openCustomerForm('add')" style="background: #000; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-plus"></i> إضافة عميل جديد
+                    </button>
+                </div>
+            </div>
+
+            <div class="customers-list" id="customersContainer">
+                <div class="empty-state" style="text-align: center; padding: 40px; color: #999; background: #fff; border-radius: 16px; border: 1px solid #eee;">جاري تحميل العملاء...</div>
+            </div>
+
+            <div id="paginationControls" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 15px; margin-top: 25px;"> 
+                 <button id="nextPageBtn" class="page-btn">الصفحة التالية <i class="fas fa-chevron-left" style="margin-right: 5px;"></i></button> 
+                 <span id="pageInfo">صفحة 1 من 1</span> 
+                 <button id="prevPageBtn" class="page-btn"><i class="fas fa-chevron-right" style="margin-left: 5px;"></i> الصفحة السابقة</button> 
+            </div>
+            
+        </div>
+    </main>
+
+        <div id="customerFormModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: #fff; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 id="formModalTitle" style="margin: 0; font-size: 20px; font-weight: 800; color: #000;">إضافة عميل جديد</h3>
+                <button onclick="document.getElementById('customerFormModal').style.display='none'" style="background: none; border: none; font-size: 28px; color: #999; cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="customerForm" onsubmit="handleCustomerSubmit(event)">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #333;">اسم العميل <span style="color: red;">*</span></label>
+                    <input type="text" id="custName" placeholder="مثال: محمد علي" required style="width: 100%; padding: 12px 15px; border: 1px solid #e8e8e8; border-radius: 12px; font-family: 'Cairo'; outline: none;">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #333;">رقم الهاتف <span style="color: red;">*</span></label>
+                    <input type="tel" id="custPhone" placeholder="مثال: 01012345678" required style="width: 100%; padding: 12px 15px; border: 1px solid #e8e8e8; border-radius: 12px; font-family: 'Cairo'; outline: none;">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #333;">العنوان بالكامل</label>
+                    <textarea id="custAddress" placeholder="الشارع، العمارة، الدور، الشقة..." rows="2" style="width: 100%; padding: 12px 15px; border: 1px solid #e8e8e8; border-radius: 12px; font-family: 'Cairo'; outline: none; resize: vertical;"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #333;">رصيد النقاط الحالي</label>
+                    <div style="width: 100%; padding: 12px 15px; background: #f9f9f9; border: 1px solid #eee; border-radius: 12px; font-family: 'Cairo'; color: #555; font-weight: bold;">
+                        <i class="fas fa-star" style="color: #f39c12; margin-left: 5px;"></i> <span id="custPointsDisplay">0</span> نقطة
+                    </div>
+                    <input type="hidden" id="custPoints" value="0">
+                    <input type="hidden" id="custTier" value="regular">
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button type="button" onclick="document.getElementById('customerFormModal').style.display='none'" style="flex: 1; padding: 14px; background: #fafafa; color: #333; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; cursor: pointer;">إلغاء</button>
+                    <button type="submit" style="flex: 2; padding: 14px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">حفظ بيانات العميل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="loyaltySettingsModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #333;">إعدادات نظام النقاط</h3>
+                <button onclick="document.getElementById('loyaltySettingsModal').style.display='none'" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #999;"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="loyaltySettingsForm" onsubmit="saveLoyaltySettings(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">كم جنيه = نقطة واحدة؟</label>
+                    <input type="number" id="loyaltyEgpPerPoint" value="10" min="1" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">نقاط المستوى الفضي (Silver)</label>
+                    <input type="number" id="loyaltySilver" value="100" min="1" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">نقاط المستوى الذهبي (Gold)</label>
+                    <input type="number" id="loyaltyGold" value="500" min="1" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">نقاط مستوى الـ VIP</label>
+                    <input type="number" id="loyaltyVip" value="1000" min="1" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" style="flex: 1; background: #27ae60; color: #fff; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">حفظ الإعدادات</button>
+                    <button type="button" onclick="document.getElementById('loyaltySettingsModal').style.display='none'" style="flex: 1; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="customerProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: #fff; width: 90%; max-width: 450px; border-radius: 20px; padding: 0; overflow: hidden;">
+            <div style="background: #000; padding: 25px 20px; color: #fff; position: relative;">
+                <button onclick="document.getElementById('customerProfileModal').style.display='none'" style="position: absolute; left: 20px; top: 20px; background: none; border: none; font-size: 24px; color: #fff; cursor: pointer;">&times;</button>
+                <h3 id="profileName" style="margin: 0 0 5px; font-size: 22px; font-weight: 800;">اسم العميل</h3>
+                <span id="profileBadge" style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">البادج</span>
+            </div>
+            <div style="padding: 20px;">
+                <h4 style="margin: 0 0 15px; color: #333; font-size: 16px;"><i class="fas fa-history" style="color: #27ae60;"></i> تفاصيل آخر طلب</h4>
+                <div style="background: #fafafa; border: 1px solid #eee; border-radius: 12px; padding: 15px;">
+                    <div class="order-history-item" style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600; font-size: 14px;">لا توجد طلبات سابقة</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firestore_service.js"></script>
+    
+    <script>
+        function openCustomerForm(type, name = '', phone = '', address = '', tier = 'regular', points = 0) {
+            const modal = document.getElementById('customerFormModal');
+            const title = document.getElementById('formModalTitle');
+            const phoneInput = document.getElementById('custPhone');
+            if (type === 'add') {
+                title.textContent = 'إضافة عميل جديد';
+                document.getElementById('customerForm').reset();
+                phoneInput.readOnly = false;
+                phoneInput.style.background = '#fff';
+            } else if (type === 'edit') {
+                title.textContent = 'تعديل بيانات العميل';
+                document.getElementById('custName').value = name;
+                phoneInput.value = phone;
+                phoneInput.readOnly = true;
+                phoneInput.style.background = '#f4f4f4'; // A visual cue that it's readonly
+                document.getElementById('custAddress').value = address;
+                document.getElementById('custTier').value = tier;
+                document.getElementById('custPoints').value = points;
+                document.getElementById('custPointsDisplay').textContent = points;
+
+            }
+            modal.style.display = 'flex';
+        }
+        function openLoyaltySettings() { document.getElementById('loyaltySettingsModal').style.display = 'flex'; }
+
+        function openWhatsApp(phone) {
+            if (!phone) {
+                alert('لا يوجد رقم هاتف لهذا العميل.');
+                return;
+            }
+            // Clean the phone number
+            let cleanedPhone = phone.replace(/[\s-()]/g, '');
+
+            // Add country code for Egypt if missing
+            if (cleanedPhone.startsWith('0')) {
+                cleanedPhone = '2' + cleanedPhone;
+            } else if (!cleanedPhone.startsWith('20')) {
+                cleanedPhone = '20' + cleanedPhone;
+            }
+            
+            const whatsappUrl = `https://wa.me/${cleanedPhone}`;
+            
+            // Use Electron's shell to open external links
+            if (typeof require !== 'undefined') {
+                const { shell } = require('electron');
+                shell.openExternal(whatsappUrl);
+            } else {
+                window.open(whatsappUrl, '_blank');
+            }
+        }
+
+        function openCustomerProfile(name, badge) {
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileBadge').textContent = badge;
+            document.getElementById('customerProfileModal').style.display = 'flex';
+        }
+        window.logout = function() { window.location.href = 'login.html'; };
+
+        // 🚀 دالة الحذف المحدثة (مع إصلاح إيرور الإشعارات) 
+        async function deleteCustomerHandler(phone, name) { 
+            if (!confirm(`هل أنت متأكد أنك تريد حذف العميل \"${name}\". لا يمكن التراجع عن هذا الإجراء.`)) { 
+                return; 
+            } 
+
+            try { 
+                if (window.FirestoreService && window.FirestoreService.deleteCustomer) { 
+                    // 1. مسح العميل من قاعدة البيانات والمحرك الصاروخي 
+                    await window.FirestoreService.deleteCustomer(phone); 
+                    
+                    // 2. تحديث الشاشة فوراً 
+                    if (typeof loadCustomersWithCache === 'function') { 
+                        await loadCustomersWithCache(); 
+                    } else if (typeof renderCustomersList === 'function') { 
+                        await renderCustomersList(); 
+                    } 
+                    
+                    // 3. إظهار رسالة النجاح (بطريقة آمنة جداً 🛡️) 
+                    if (typeof Notification !== 'undefined' && typeof Notification.success === 'function') { 
+                        Notification.success(`تم حذف العميل \"${name}\" بنجاح.`); 
+                    } else { 
+                        alert(`تم حذف العميل \"${name}\" بنجاح.`); 
+                    } 
+                } else { 
+                    alert('خطأ: خدمة قاعدة البيانات غير متاحة.'); 
+                } 
+            } catch (error) { 
+                console.error("Error deleting customer:", error); 
+                alert('حدث خطأ أثناء محاولة حذف العميل.'); 
+            } 
+        }
+    </script>
+    
+    <script src="js/customers_logic.js"></script>
+    <script> 
+         // ========================================== 
+         // 🚀 سكريبت المزامنة السحري (لنسخ الأرقام أوفلاين للتسويق) 
+         // ========================================== 
+         window.addEventListener('load', () => { 
+             setTimeout(async () => { 
+                 if (window.FirestoreService && window.FirestoreService.getAllCustomers) { 
+                     try { 
+                         const allCust = await window.FirestoreService.getAllCustomers(); 
+                         if (allCust && allCust.length > 0) { 
+                             localStorage.setItem('customers', JSON.stringify(allCust)); 
+                             console.log('✅ تم حفظ نسخة أوفلاين من العملاء بنجاح لتعمل مع التسويق!'); 
+                         } 
+                     } catch(e) { 
+                         console.error('خطأ في أخذ النسخة الأوفلاين:', e); 
+                     } 
+                 } 
+             }, 3000); // بنستنى 3 ثواني عشان الداتا تكون حملت 
+         }); 
+     </script>
+
+    <script src="saas/sidebar.js"></script>
+    <script src="saas/onboarding-ui.js"></script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+
+</body>
+</html>

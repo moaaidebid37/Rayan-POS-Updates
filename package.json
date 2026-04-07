@@ -1,0 +1,68 @@
+{
+  "name": "solo-system-pos",
+  "version": "1.0.16",
+  "description": "Solo System - Complete Point of Sale (POS) system built with HTML, CSS, and JavaScript.",
+  "main": "app.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:all": "electron-builder --win --mac",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "electron-updater": "^6.3.9",
+    "express": "^5.2.1",
+    "firebase-admin": "^11.11.1",
+    "form-data": "^4.0.5",
+    "openai": "^6.33.0",
+    "protobufjs": "^7.5.4",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "whatsapp-web.js": "^1.34.6"
+  },
+  "devDependencies": {
+    "electron": "^22.3.27",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "productName": "Solo POS",
+    "files": [
+      "**/*",
+      "!.claude/**",
+      "!.git/**",
+      "!dist/**",
+      "!**/.wwebjs_auth/**",
+      "!**/SingletonSocket",
+      "!**/*.map"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "moaaidebid37",
+        "repo": "Solo-POS-Releases"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "artifactName": "Solo-POS-Setup-${arch}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Solo POS",
+      "uninstallDisplayName": "Solo POS",
+      "menuCategory": "Solo POS"
+    },
+    "appId": "com.solopos.app"
+  }
+}

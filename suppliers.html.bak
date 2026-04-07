@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الموردين</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-lg);
+            height: 80px;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: var(--spacing-lg);
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+            font-size: 24px;
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+        }
+        
+        .header-search i {
+            color: #999999;
+            font-size: 14px;
+        }
+        
+        .header-search input {
+            border: none;
+            background: transparent;
+            outline: none;
+            color: #000000;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .suppliers-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+        
+        .suppliers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .suppliers-header h2 {
+            color: #000000;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .suppliers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .supplier-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .supplier-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .supplier-profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .supplier-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-left: var(--spacing-md);
+            flex-shrink: 0;
+        }
+        
+        .supplier-info {
+            flex: 1;
+        }
+        
+        .supplier-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 4px;
+        }
+        
+        .supplier-company {
+            font-size: 14px;
+            color: #666666;
+        }
+        
+        .supplier-details {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .supplier-detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            color: #000000;
+        }
+        
+        .supplier-detail-item i {
+            width: 20px;
+            margin-left: var(--spacing-sm);
+            color: #666666;
+        }
+        
+        .supplier-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid #e8e8e8;
+        }
+        
+        .btn-call {
+            flex: 1;
+            padding: 10px;
+            background: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .btn-call:hover {
+            background: #333333;
+            transform: scale(1.05);
+        }
+        
+        .btn-edit {
+            padding: 10px 16px;
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-edit:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .btn-delete {
+            padding: 10px 16px;
+            background: #ffebee;
+            color: #e74c3c;
+            border: 1px solid #ffcdd2;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-delete:hover {
+            background: #ffcdd2;
+            border-color: #e74c3c;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: #999999;
+            font-size: 16px;
+            grid-column: 1/-1;
+        }
+        
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e8e8e8;
+            max-width: 500px;
+        }
+        
+        .modal-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .modal-close {
+            color: #999999;
+        }
+        
+        .modal-close:hover {
+            color: #000000;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+        }
+
+        /* كود إجبار الخانات على الكتابة والضغط */
+        .modal-content input,
+        .modal-content select,
+        .modal-content textarea {
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -webkit-app-region: no-drag !important;
+            position: relative !important;
+            z-index: 9999 !important;
+        }
+        .form-group {
+            position: relative;
+            z-index: 9998;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+        <a href="index.html" class="sidebar-item">
+            <i class="fas fa-home" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الرئيسية</span>
+        </a>
+        <a href="orders.html" class="sidebar-item">
+            <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الطلبات</span>
+        </a>
+        <a href="reports.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">التقارير</span>
+        </a>
+        <a href="menu.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المطبخ</span>
+        </a>
+        <a href="ingredients.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المخزون</span>
+        </a>
+        <a href="customers.html" class="sidebar-item">
+            <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">العملاء</span>
+        </a>
+        <a href="employees.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-users" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموظفون</span>
+        </a>
+        <a href="suppliers.html" class="sidebar-item active" data-restricted="owner">
+            <i class="fas fa-truck" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموردين</span>
+        </a>
+        <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">ادارة التسويق</span>
+        </a>
+        <a href="settings.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-cog" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الإعدادات</span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+        <div class="main-wrapper">
+            <header class="header">
+                <div class="header-content">
+                    <h2 class="header-title">الموردين</h2>
+                    <div class="header-actions">
+                        <div class="header-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="supplierSearch" placeholder="ابحث عن مورد...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddSupplierModal()">
+                            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                            إضافة مورد
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="suppliers-container">
+                    <div class="suppliers-grid" id="suppliersGrid">
+                        <div class="empty-state">لا يوجد موردين</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div class="modal" id="supplierModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="supplierModalTitle">إضافة مورد جديد</h3>
+                <button class="modal-close" onclick="closeSupplierModal()">×</button>
+            </div>
+            <form id="supplierForm" onsubmit="handleSupplierSubmit(event)">
+                <div class="form-group">
+                    <label class="label">اسم المورد *</label>
+                    <input type="text" class="input" id="supplierName" placeholder="أدخل اسم المورد" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">رقم الهاتف (اختياري)</label>
+                    <input type="tel" class="input" id="supplierPhone" placeholder="أدخل رقم الهاتف">
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">بيبيع إيه (اختياري)</label>
+                    <input type="text" class="input" id="supplierProducts" placeholder="مثال: مكرونة، فراخ، خضار...">
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()" style="flex: 1;">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Firebase and Core Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+
+    <script>
+        // تهيئة Sync Manager
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SyncManager !== 'undefined' && typeof SyncManager.init === 'function') {
+                SyncManager.init();
+            }
+        });
+        
+        let suppliers = [];
+        let editingSupplierId = null;
+        
+        // Check login and apply permissions
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('suppliers.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Load suppliers
+        async function loadSuppliers() {
+            try {
+                suppliers = await DataManager.getSuppliers();
+                renderSuppliers();
+            } catch (error) {
+                console.error('Error loading suppliers:', error);
+                suppliers = [];
+                renderSuppliers();
+            }
+        }
+        
+        // Render suppliers
+        function renderSuppliers() {
+            const grid = document.getElementById('suppliersGrid');
+            if (!grid) return;
+            
+            if (suppliers.length === 0) {
+                grid.innerHTML = '<div class="empty-state">لا يوجد موردين<br><small style="color: #999999; font-size: 14px;">اضغط على "إضافة مورد" لإضافة مورد جديد</small></div>';
+                return;
+            }
+            
+            grid.innerHTML = suppliers.map(supplier => {
+                const initials = supplier.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                
+                return `
+                    <div class="supplier-card" data-supplier-id="${supplier.id}">
+                        <div class="supplier-profile">
+                            <div class="supplier-avatar">${initials}</div>
+                            <div class="supplier-info">
+                                <div class="supplier-name">${supplier.name}</div>
+                            </div>
+                        </div>
+                        <div class="supplier-details">
+                            <div class="supplier-detail-item">
+                                <i class="fas fa-phone"></i>
+                                <span>${supplier.phone}</span>
+                            </div>
+                            <div class="supplier-detail-item">
+                                <i class="fas fa-box"></i>
+                                <span>${supplier.products || 'غير محدد'}</span>
+                            </div>
+                        </div>
+                        <div class="supplier-actions">
+                            <button class="btn-call" onclick="callSupplier('${supplier.phone}')">
+                                <i class="fas fa-phone"></i>
+                                اتصال
+                            </button>
+                            <button class="btn-edit" onclick="editSupplier('${supplier.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteSupplier('${supplier.id}')" data-restricted="owner">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Open Add Supplier Modal
+        function openAddSupplierModal() {
+            editingSupplierId = null;
+            document.getElementById('supplierModalTitle').textContent = 'إضافة مورد جديد';
+            document.getElementById('supplierForm').reset();
+            document.getElementById('supplierModal').classList.add('active');
+        }
+        
+        // Close Supplier Modal
+        function closeSupplierModal() {
+            document.getElementById('supplierModal').classList.remove('active');
+            editingSupplierId = null;
+            document.getElementById('supplierForm').reset();
+        }
+        
+        // Edit Supplier
+        function editSupplier(id) {
+            const supplier = suppliers.find(s => s.id === id);
+            if (!supplier) return;
+            
+            editingSupplierId = id;
+            document.getElementById('supplierModalTitle').textContent = 'تعديل مورد';
+            document.getElementById('supplierName').value = supplier.name || '';
+            document.getElementById('supplierPhone').value = supplier.phone || '';
+            document.getElementById('supplierProducts').value = supplier.products || '';
+            document.getElementById('supplierModal').classList.add('active');
+        }
+        
+        // Delete Supplier
+        async function deleteSupplier(id) {
+            try {
+                if (typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function' && !Auth.canDelete()) {
+                    if (typeof Notification !== 'undefined') Notification.error('الحذف مسموح لصاحب المحل فقط');
+                    else alert('الحذف مسموح لصاحب المحل فقط');
+                    return;
+                }
+            } catch (_) {}
+
+            if (!confirm('هل أنت متأكد من حذف هذا المورد؟')) return;
+
+            try {
+                // Step 1: Tell DataManager to handle the deletion
+                await DataManager.removeSupplier(id);
+
+                // Step 2: Immediately remove the supplier card from the UI
+                const supplierCard = document.querySelector(`.supplier-card[data-supplier-id="${id}"]`);
+                if (supplierCard) {
+                    supplierCard.classList.add('fade-out-and-remove');
+                    setTimeout(() => supplierCard.remove(), 500); // Wait for animation
+                }
+
+                if (typeof Notification !== 'undefined') {
+                    Notification.success('تم حذف المورد بنجاح');
+                }
+
+            } catch (error) {
+                console.error('Error during supplier deletion process:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حذف المورد');
+                }
+            }
+        }
+        
+        // Call Supplier
+        function callSupplier(phone) {
+            window.location.href = `tel:${phone}`;
+        }
+        
+        // Handle Supplier Form Submit
+        async function handleSupplierSubmit(event) {
+            event.preventDefault();
+            
+            const supplier = {
+                id: editingSupplierId,
+                name: document.getElementById('supplierName').value.trim(),
+                phone: document.getElementById('supplierPhone').value.trim(),
+                products: document.getElementById('supplierProducts').value.trim(),
+                createdAt: editingSupplierId ? suppliers.find(s => s.id === editingSupplierId)?.createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            try {
+                await DataManager.saveSupplier(supplier);
+                await loadSuppliers();
+                closeSupplierModal();
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success(editingSupplierId ? 'تم تحديث المورد بنجاح' : 'تم إضافة المورد بنجاح');
+                }
+            } catch (error) {
+                console.error('Error saving supplier:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حفظ المورد');
+                }
+            }
+        }
+        
+        // Search Suppliers
+        function initSearch() {
+            const searchInput = document.getElementById('supplierSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const cards = document.querySelectorAll('.supplier-card');
+                    
+                    cards.forEach(card => {
+                        const name = card.querySelector('.supplier-name').textContent.toLowerCase();
+                        const phone = card.querySelectorAll('.supplier-detail-item span')[0]?.textContent.toLowerCase() || '';
+                        const products = card.querySelectorAll('.supplier-detail-item span')[1]?.textContent.toLowerCase() || '';
+                        
+                        if (name.includes(searchTerm) || phone.includes(searchTerm) || products.includes(searchTerm)) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSuppliers();
+            initSearch();
+        });
+    </script>
+</body>
+</html>

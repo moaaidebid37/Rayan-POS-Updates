@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الموظفون</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-lg);
+            height: 80px;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: var(--spacing-lg);
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+            font-size: 24px;
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+        }
+        
+        .header-search i {
+            color: #999999;
+            font-size: 14px;
+        }
+        
+        .header-search input {
+            border: none;
+            background: transparent;
+            outline: none;
+            color: #000000;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .employees-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+        
+        .employees-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .employees-header h2 {
+            color: #000000;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .employee-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .employee-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .employee-profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .employee-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-left: var(--spacing-md);
+            flex-shrink: 0;
+        }
+        
+        .employee-info {
+            flex: 1;
+        }
+        
+        .employee-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 4px;
+        }
+        
+        .employee-role {
+            font-size: 14px;
+            color: #666666;
+        }
+        
+        .employee-details {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .employee-detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            color: #000000;
+        }
+        
+        .employee-detail-item i {
+            width: 20px;
+            margin-left: var(--spacing-sm);
+            color: #666666;
+        }
+        
+        .employee-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .btn-call, .btn-edit, .btn-delete {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .btn-call {
+            background: #27AE60;
+            color: #ffffff;
+        }
+
+        .btn-call:hover {
+            background: #229954;
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+            color: #ffffff;
+        }
+
+        .btn-whatsapp:hover {
+            background: #1ebe5d;
+        }
+        
+        .btn-edit {
+            background: #3498DB;
+            color: #ffffff;
+        }
+        
+        .btn-edit:hover {
+            background: #2980B9;
+        }
+        
+        .btn-delete {
+            background: #E74C3C;
+            color: #ffffff;
+        }
+        
+        .btn-delete:hover {
+            background: #C0392B;
+        }
+        
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: #999999;
+            font-size: 16px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-xl);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .modal-title {
+            color: #000000;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: #f5f5f5;
+            color: #000000;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input, .select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .input:focus, .select:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+        }
+
+        /* كود إجبار الخانات على الكتابة والضغط */
+        .modal-content input,
+        .modal-content select,
+        .modal-content textarea {
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -webkit-app-region: no-drag !important;
+            position: relative !important;
+            z-index: 9999 !important;
+        }
+        .form-group {
+            position: relative;
+            z-index: 9998;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar"></nav>
+
+        <div class="main-wrapper">
+            <header class="header">
+                <div class="header-content">
+                    <img src="images/logo.png" class="header-logo" alt="Solo POS">
+             <h2 class="header-title">الموظفون</h2>
+                    <div class="header-actions">
+                        <div class="header-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="employeeSearch" placeholder="ابحث عن موظف...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddEmployeeModal()">
+                            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                            إضافة موظف
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="employees-container">
+                    <div class="employees-grid" id="employeesGrid">
+                        <div class="empty-state">لا يوجد موظفين</div>
+                    </div>
+                    
+                    <!-- Employee Performance Section -->
+                    <div class="card" style="margin-top: var(--spacing-lg);">
+                        <h3 style="color: #000000; font-weight: 700; margin-bottom: var(--spacing-lg); font-size: 20px;">👥 أداء الموظفين</h3>
+                        <div id="employeePerformance" style="display: grid; gap: var(--spacing-md);">
+                            <div style="text-align: center; padding: var(--spacing-md); color: #999999;">جاري التحميل...</div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Summary (Business Month) -->
+                    <div class="card" style="margin-top: var(--spacing-lg);">
+                        <h3 style="color: #000000; font-weight: 700; margin-bottom: var(--spacing-lg); font-size: 20px;">🗓️ حضور الموظفين (هذا الشهر)</h3>
+                        <div style="color:#666666; font-size: 13px; margin-bottom: var(--spacing-md);">
+                            اليوم التجاري الحالي: <strong id="attendanceMonthBusinessDate" style="color:#000000;">-</strong>
+                        </div>
+                        <div id="attendanceSummary" style="display: grid; gap: var(--spacing-md);">
+                            <div style="text-align: center; padding: var(--spacing-md); color: #999999;">جاري التحميل...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Attendance Details Modal -->
+    <div class="modal" id="attendanceDetailsModal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="attendanceDetailsTitle">تفاصيل الحضور</h3>
+                <button class="modal-close" onclick="closeAttendanceDetails()">×</button>
+            </div>
+            <div style="padding: var(--spacing-lg);">
+                <div id="attendanceDetailsBody" style="display:grid; gap: 10px;">
+                    <div style="text-align:center; color:#999999; padding: var(--spacing-lg);">جاري التحميل...</div>
+                </div>
+                <div style="display:flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAttendanceDetails()">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Employee Modal -->
+    <div class="modal" id="employeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="employeeModalTitle">إضافة موظف جديد</h3>
+                <button class="modal-close" onclick="closeEmployeeModal()">×</button>
+            </div>
+            <form id="employeeForm" onsubmit="handleEmployeeSubmit(event)">
+                <div class="form-group">
+                    <label class="label">اسم الموظف *</label>
+                    <input type="text" class="input" id="employeeName" placeholder="أدخل اسم الموظف" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">رقم الهاتف (اختياري)</label>
+                    <input type="tel" class="input" id="employeePhone" placeholder="أدخل رقم الهاتف">
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">المنصب *</label>
+                    <select class="select" id="employeeRole" required>
+                        <option value="">اختر المنصب</option>
+                        <option value="كاشير">كاشير</option>
+                        <option value="طباخ">طباخ</option>
+                        <option value="نادل">نادل</option>
+                        <option value="مدير">مدير</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="label">الراتب الشهري (ج.م) *</label>
+                    <input type="number" class="input" id="employeeSalary" min="0" step="0.01" placeholder="مثال: 3000" required>
+                </div>
+
+
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()" style="flex: 1;">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Firebase and Core Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SyncManager !== 'undefined' && typeof SyncManager.init === 'function') {
+                SyncManager.init();
+            }
+        });
+        
+        let employees = [];
+        let editingEmployeeId = null;
+
+        function _onRoleChange() {
+          // PIN and page permissions are managed in User Management (Settings → إدارة المستخدمين)
+        }
+        
+        // Check login and apply permissions
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('employees.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Load employees
+        async function loadEmployees() {
+            try {
+                // Offline-first: DataManager يرجع localStorage فوراً ويسنك Firebase في الخلفية
+                if (typeof DataManager !== 'undefined' && DataManager.getEmployees) {
+                    const data = await DataManager.getEmployees();
+                    employees = data || [];
+                } else {
+                    // Fallback: localStorage مباشرة
+                    try {
+                        const stored = localStorage.getItem('employees');
+                        employees = stored ? JSON.parse(stored) : [];
+                    } catch (e) {
+                        employees = [];
+                    }
+                }
+
+                renderEmployees();
+                await loadEmployeePerformance();
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                employees = [];
+                renderEmployees();
+                await loadEmployeePerformance();
+            }
+        }
+        
+        // Render employees
+        function renderEmployees() {
+            const grid = document.getElementById('employeesGrid');
+            if (!grid) return;
+            
+            if (employees.length === 0) {
+                grid.innerHTML = '<div class="empty-state">لا يوجد موظفين<br><small style="color: #999999; font-size: 14px;">اضغط على "إضافة موظف" لإضافة موظف جديد</small></div>';
+                return;
+            }
+            
+            grid.innerHTML = employees.map(employee => {
+                const initials = employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                
+                return `
+                    <div class="employee-card" data-employee-id="${employee.id}">
+                        <div class="employee-profile">
+                            <div class="employee-avatar">${initials}</div>
+                            <div class="employee-info">
+                                <div class="employee-name">${employee.name}</div>
+                                <div class="employee-role">${employee.role || 'غير محدد'}</div>
+                            </div>
+                        </div>
+                        <div class="employee-details">
+                            <div class="employee-detail-item">
+                                <i class="fas fa-phone"></i>
+                                <span>${employee.phone}</span>
+                            </div>
+                            <div class="employee-detail-item">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>الراتب الشهري: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(parseFloat(employee.salary) || 0) : ((parseFloat(employee.salary) || 0) + ' ج.م')}</span>
+                            </div>
+                        </div>
+                        <div class="employee-actions">
+                            <button class="btn-call" onclick="callEmployee('${employee.phone}')">
+                                <i class="fas fa-phone"></i>
+                                اتصال
+                            </button>
+                            <button class="btn-whatsapp" onclick="openWhatsApp('${employee.phone}')">
+                                <i class="fab fa-whatsapp"></i>
+                                واتساب
+                            </button>
+                            <button class="btn-edit" onclick="editEmployee('${employee.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteEmployee('${employee.id}')" data-restricted="owner">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // ربط تغيير الدور بإظهار/إخفاء الحقول
+        document.getElementById('employeeRole').addEventListener('change', _onRoleChange);
+
+        // Open Add Employee Modal
+        function openAddEmployeeModal() {
+            editingEmployeeId = null;
+            document.getElementById('employeeModalTitle').textContent = 'إضافة موظف جديد';
+            document.getElementById('employeeForm').reset();
+            document.getElementById('employeeModal').classList.add('active');
+        }
+        
+        // Close Employee Modal
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').classList.remove('active');
+            editingEmployeeId = null;
+            document.getElementById('employeeForm').reset();
+        }
+        
+        // Edit Employee
+        function editEmployee(id) {
+            const employee = employees.find(e => e.id === id);
+            if (!employee) return;
+
+            editingEmployeeId = id;
+            document.getElementById('employeeModalTitle').textContent = 'تعديل موظف';
+            document.getElementById('employeeName').value = employee.name || '';
+            document.getElementById('employeePhone').value = employee.phone || '';
+            document.getElementById('employeeRole').value = employee.role || '';
+            const salaryInput = document.getElementById('employeeSalary');
+            if (salaryInput) salaryInput.value = employee.salary !== undefined ? employee.salary : '';
+
+
+            document.getElementById('employeeModal').classList.add('active');
+        }
+        
+        // Delete Employee
+        async function deleteEmployee(id) {
+            try {
+                if (typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function' && !Auth.canDelete()) {
+                    if (typeof Notification !== 'undefined') Notification.error('الحذف مسموح لصاحب المحل فقط');
+                    else alert('الحذف مسموح لصاحب المحل فقط');
+                    return;
+                }
+            } catch (_) {}
+
+            if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
+
+            try {
+                // Step 1: Tell DataManager to handle the deletion (local and remote via sync)
+                await DataManager.removeEmployee(id);
+
+                // Step 2: Immediately remove the employee card from the UI
+                const employeeCard = document.querySelector(`.employee-card[data-employee-id="${id}"]`);
+                if (employeeCard) {
+                    employeeCard.classList.add('fade-out-and-remove');
+                    setTimeout(() => employeeCard.remove(), 500); // Wait for animation
+                }
+
+                if (typeof Notification !== 'undefined') {
+                    Notification.success('تم حذف الموظف بنجاح');
+                }
+
+                // Reload performance stats as it depends on employees list
+                await loadEmployeePerformance();
+
+            } catch (error) {
+                console.error('Error during employee deletion process:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حذف الموظف');
+                }
+            }
+        }
+        
+        // Call Employee
+        function callEmployee(phone) {
+            window.location.href = `tel:${phone}`;
+        }
+
+        // WhatsApp Employee
+        function openWhatsApp(phone) {
+            const cleaned = phone.replace(/\D/g, '');
+            const intl = cleaned.startsWith('0') ? '2' + cleaned : cleaned;
+            window.open(`https://wa.me/${intl}`, '_blank');
+        }
+        
+        // Handle Employee Form Submit
+        async function handleEmployeeSubmit(event) {
+            event.preventDefault();
+
+            const role = document.getElementById('employeeRole').value;
+
+            const employee = {
+                id: editingEmployeeId || 'EMP' + Date.now(),
+                name: document.getElementById('employeeName').value.trim(),
+                phone: document.getElementById('employeePhone').value.trim(),
+                role,
+                salary: parseFloat(document.getElementById('employeeSalary').value) || 0,
+                createdAt: editingEmployeeId ? employees.find(e => e.id === editingEmployeeId)?.createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            try {
+                const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                employee._localId = localId;
+                employee._synced = false;
+                
+                if (editingEmployeeId) {
+                    const index = employees.findIndex(e => e.id === editingEmployeeId);
+                    if (index !== -1) {
+                        employees[index] = employee;
+                    }
+                } else {
+                    employees.push(employee);
+                }
+                
+                localStorage.setItem('employees', JSON.stringify(employees));
+
+                // إضافة للمزامنة مع Firebase
+                if (typeof window !== 'undefined' && window.SyncManager) {
+                    window.SyncManager.addToSyncQueue('employees', editingEmployeeId ? 'update' : 'add', employee, localId);
+                }
+
+
+                await loadEmployees();
+                closeEmployeeModal();
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success(editingEmployeeId ? 'تم تحديث الموظف بنجاح' : 'تم إضافة الموظف بنجاح');
+                }
+            } catch (error) {
+                console.error('Error saving employee:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حفظ الموظف');
+                }
+            }
+        }
+        
+        // Search Employees
+        function initSearch() {
+            const searchInput = document.getElementById('employeeSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const cards = document.querySelectorAll('.employee-card');
+                    
+                    cards.forEach(card => {
+                        const name = card.querySelector('.employee-name').textContent.toLowerCase();
+                        const role = card.querySelector('.employee-role').textContent.toLowerCase();
+                        const phone = card.querySelectorAll('.employee-detail-item span')[0]?.textContent.toLowerCase() || '';
+                        
+                        if (name.includes(searchTerm) || role.includes(searchTerm) || phone.includes(searchTerm)) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Employee Performance (from orders)
+        async function loadEmployeePerformance() {
+            const container = document.getElementById('employeePerformance');
+            if (!container) return;
+            
+            container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">جاري تحميل أداء الموظفين...</div>';
+            
+            try {
+                let orders = [];
+                try {
+                    orders = await (typeof DataManager !== 'undefined' && DataManager.getOrders ? DataManager.getOrders() : Promise.resolve([])) || [];
+                } catch (e) {
+                    console.warn('getOrders failed in loadEmployeePerformance:', e);
+                }
+                if (!orders.length) {
+                    container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">لا توجد طلبات حتى الآن</div>';
+                    return;
+                }
+                
+                const empList = Array.isArray(employees) ? employees : [];
+                const stats = {};
+                orders.forEach(order => {
+                    const cashier = order.cashier || order.createdBy || 'غير معروف';
+                    if (!stats[cashier]) {
+                        stats[cashier] = { orders: 0, revenue: 0 };
+                    }
+                    stats[cashier].orders++;
+                    stats[cashier].revenue += (parseFloat(order.total) || 0);
+                });
+                
+                // ربط الأداء ببيانات الموظفين (للراتب وصافي الربح)
+                const employeesByName = {};
+                empList.forEach(emp => {
+                    employeesByName[emp.name] = emp;
+                });
+                
+                const items = Object.entries(stats)
+                    .map(([name, data]) => {
+                        const salary = parseFloat(employeesByName[name]?.salary) || 0;
+                        const avgOrder = data.orders > 0 ? data.revenue / data.orders : 0;
+                        const netAfterSalary = data.revenue - salary;
+                        return {
+                            name,
+                            orders: data.orders,
+                            revenue: data.revenue,
+                            avgOrder,
+                            salary,
+                            netAfterSalary
+                        };
+                    })
+                    .sort((a, b) => b.revenue - a.revenue);
+                
+                if (!items.length) {
+                    container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">لا توجد بيانات</div>';
+                    return;
+                }
+                
+                container.innerHTML = items.map((emp, index) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); background: #fafafa; border-radius: 16px; border: 1px solid #e8e8e8;">
+                        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${index === 0 ? '#27AE60' : '#3498DB'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">
+                                ${emp.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: #000000; font-size: 16px; margin-bottom: 4px;">${emp.name}</div>
+                                <div style="display: flex; gap: var(--spacing-md); color: #666666; font-size: 13px;">
+                                    <span>${emp.orders} طلب</span>
+                                    <span>•</span>
+                                    <span>متوسط الطلب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.avgOrder) : emp.avgOrder.toFixed(2) + ' ج.م'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: left; min-width: 200px;">
+                            <div style="font-weight: 700; color: #27AE60; font-size: 16px;">إيرادات: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.revenue) : emp.revenue.toFixed(2) + ' ج.م'}</div>
+                            <div style="font-size: 13px; color: #666666;">الراتب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.salary) : emp.salary.toFixed(2) + ' ج.م'}</div>
+                            <div style="font-size: 13px; font-weight: 700; color: ${emp.netAfterSalary >= 0 ? '#27AE60' : '#E74C3C'};">
+                                صافي بعد الراتب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.netAfterSalary) : emp.netAfterSalary.toFixed(2) + ' ج.م'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading employee performance:', error);
+                container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #e74c3c;">حدث خطأ أثناء تحميل أداء الموظفين</div>';
+            }
+        }
+
+        // ===========================
+        // Attendance Summary (Business Month)
+        // ===========================
+        function getBusinessDateSafe() {
+            try {
+                if (typeof DataManager !== 'undefined' && typeof DataManager.getBusinessDate === 'function') {
+                    return DataManager.getBusinessDate();
+                }
+            } catch (_) { /* ignore */ }
+            try {
+                return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            } catch (_) {
+                const d = new Date();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${mm}-${dd}`;
+            }
+        }
+
+        function monthRangeFromBusinessDate(businessDate) {
+            const d = new Date(`${businessDate}T00:00:00`);
+            const start = new Date(d.getFullYear(), d.getMonth(), 1);
+            const end = new Date(d.getFullYear(), d.getMonth() + 1, 0); // last day
+            const fmt = (x) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(x);
+            return { startStr: fmt(start), endStr: fmt(end) };
+        }
+
+        function normalizeStatus(s) {
+            const v = String(s || '').toLowerCase();
+            if (v === 'present') return 'present';
+            if (v === 'vacation') return 'vacation';
+            return 'absent';
+        }
+
+        async function loadAttendanceSummary() {
+            const businessDate = getBusinessDateSafe();
+            const dateEl = document.getElementById('attendanceMonthBusinessDate');
+            if (dateEl) dateEl.textContent = businessDate;
+
+            const container = document.getElementById('attendanceSummary');
+            if (!container) return;
+
+            const { startStr, endStr } = monthRangeFromBusinessDate(businessDate);
+
+            let records = [];
+            // Prefer Firebase
+            if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
+                try {
+                    if (typeof window.FirestoreService.getAttendanceByRange === 'function') {
+                        records = await window.FirestoreService.getAttendanceByRange(startStr, endStr);
+                    }
+                } catch (e) {
+                    console.warn('Error loading attendance from Firebase:', e);
+                }
+            }
+            // Fallback localStorage
+            if (!Array.isArray(records) || records.length === 0) {
+                try {
+                    const local = JSON.parse(localStorage.getItem('attendance') || '[]');
+                    records = local.filter(r => String(r.businessDate) >= startStr && String(r.businessDate) <= endStr);
+                } catch (_) {
+                    records = [];
+                }
+            }
+
+            if (!employees || employees.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#999999; padding: var(--spacing-md);">لا يوجد موظفين</div>';
+                return;
+            }
+
+            const byEmp = new Map();
+            records.forEach(r => {
+                const empId = String(r.employeeId ?? '');
+                if (!empId) return;
+                if (!byEmp.has(empId)) byEmp.set(empId, []);
+                byEmp.get(empId).push({ ...r, status: normalizeStatus(r.status) });
+            });
+
+            container.innerHTML = employees.map(emp => {
+                const empId = String(emp.id ?? '');
+                const list = byEmp.get(empId) || [];
+                const present = list.filter(x => x.status === 'present').length;
+                const absent = list.filter(x => x.status === 'absent').length;
+                const vacation = list.filter(x => x.status === 'vacation').length;
+
+                return `
+                    <div style="border:1px solid #e8e8e8; border-radius: 14px; padding: 14px; background:#ffffff; display:flex; justify-content:space-between; align-items:center; gap: 12px;">
+                        <div>
+                            <div style="font-weight:800; color:#000000; font-size: 15px;">${emp.name}</div>
+                            <div style="margin-top: 6px; display:flex; gap: 8px; flex-wrap: wrap; font-size: 12px;">
+                                <span style="padding:6px 10px; border-radius: 10px; background:#e8f5e9; color:#27AE60; font-weight:800;">حضور: ${present}</span>
+                                <span style="padding:6px 10px; border-radius: 10px; background:#ffebee; color:#E74C3C; font-weight:800;">غياب: ${absent}</span>
+                                <span style="padding:6px 10px; border-radius: 10px; background:#e3f2fd; color:#2980B9; font-weight:800;">إجازة: ${vacation}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" type="button" style="padding: 10px 14px;" onclick="openAttendanceDetails('${encodeURIComponent(empId)}','${encodeURIComponent(emp.name || '')}','${startStr}','${endStr}')">
+                                التفاصيل
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.openAttendanceDetails = async function(empIdEnc, empNameEnc, startStr, endStr) {
+            const empId = decodeURIComponent(empIdEnc || '');
+            const empName = decodeURIComponent(empNameEnc || '') || 'الموظف';
+            const titleEl = document.getElementById('attendanceDetailsTitle');
+            const bodyEl = document.getElementById('attendanceDetailsBody');
+            const modal = document.getElementById('attendanceDetailsModal');
+            if (titleEl) titleEl.textContent = `تفاصيل الحضور: ${empName}`;
+            if (!bodyEl || !modal) return;
+
+            bodyEl.innerHTML = '<div style="text-align:center; color:#999999; padding: var(--spacing-lg);">جاري التحميل...</div>';
+
+            let records = [];
+            if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
+                try {
+                    if (typeof window.FirestoreService.getAttendanceByRange === 'function') {
+                        const all = await window.FirestoreService.getAttendanceByRange(startStr, endStr);
+                        records = Array.isArray(all) ? all.filter(r => String(r.employeeId) === String(empId)) : [];
+                    }
+                } catch (e) {
+                    console.warn('Error loading attendance details from Firebase:', e);
+                }
+            }
+            if (!records.length) {
+                try {
+                    const local = JSON.parse(localStorage.getItem('attendance') || '[]');
+                    records = local.filter(r =>
+                        String(r.employeeId) === String(empId) &&
+                        String(r.businessDate) >= String(startStr) &&
+                        String(r.businessDate) <= String(endStr)
+                    );
+                } catch (_) {
+                    records = [];
+                }
+            }
+
+            const statusLabel = (s) => s === 'present' ? 'حاضر' : (s === 'vacation' ? 'إجازة' : 'غائب');
+            const statusColor = (s) => s === 'present' ? '#27AE60' : (s === 'vacation' ? '#2980B9' : '#E74C3C');
+            const byDate = new Map(records.map(r => [String(r.businessDate), normalizeStatus(r.status)]));
+
+            // Build full month days list
+            const start = new Date(`${startStr}T00:00:00`);
+            const end = new Date(`${endStr}T00:00:00`);
+            const days = [];
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const ds = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+                days.push(ds);
+            }
+
+            bodyEl.innerHTML = days.map(ds => {
+                const st = byDate.get(ds) || 'absent';
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 12px; border:1px solid #e8e8e8; border-radius: 12px; background:#ffffff;">
+                        <div style="font-weight:800; color:#000000;">${ds}</div>
+                        <div style="font-weight:900; color:${statusColor(st)};">${statusLabel(st)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            modal.classList.add('active');
+        };
+
+        window.closeAttendanceDetails = function() {
+            const modal = document.getElementById('attendanceDetailsModal');
+            if (modal) modal.classList.remove('active');
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadEmployees(); // تحميل فوري من localStorage
+            initSearch();
+            await loadAttendanceSummary();
+        });
+
+        // بعد ما SaaS يخلص (Firebase Auth جاهز + _saasUid متسجل) → حدّث البيانات من Firebase
+        window.addEventListener('saas-ready', async () => {
+            if (employees.length === 0) {
+                // امسح الكاش عشان تجبر DataManager يروح Firebase
+                localStorage.removeItem('employees');
+                await loadEmployees();
+                await loadAttendanceSummary();
+            }
+        });
+    </script>
+
+    <script src="saas/sidebar.js"></script>
+    <script src="saas/onboarding-ui.js"></script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+
+</body>
+</html>

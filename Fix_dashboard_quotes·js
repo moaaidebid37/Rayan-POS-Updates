@@ -1,0 +1,59 @@
+/**
+ * fix-all.js — يصلح كل مشاكل الـ quotes في كل صفحات HTML
+ * node fix-all.js
+ */
+
+const fs   = require('fs');
+const path = require('path');
+const ROOT = __dirname;
+
+let totalFixed = 0;
+
+const files = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
+
+console.log(`\n🔧 فحص ${files.length} ملف HTML...\n`);
+
+files.forEach(file => {
+    const filePath = path.join(ROOT, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    const original = content;
+
+    // ── إصلاح 1: النمط المكسور جوه string concatenation ──────────────
+    // '<button onclick="window.SaaS.requireFeature('dashboard')"...'
+    // بيتحول لـ &quot; عشان HTML attribute
+    content = content.replace(
+        /onclick="window\.SaaS\.requireFeature\('dashboard'\)"/g,
+        'onclick="window.SaaS.requireFeature(&quot;dashboard&quot;)"'
+    );
+
+    // ── إصلاح 2: النمط جوه JS string بـ single quotes ────────────────
+    // '...requireFeature('dashboard')...'
+    // بيتحول لـ escaped
+    content = content.replace(
+        /requireFeature\('dashboard'\)/g,
+        "requireFeature(\\'dashboard\\')"
+    );
+
+    // ── إصلاح 3: أي نمط تاني محتمل ──────────────────────────────────
+    content = content.replace(
+        /window\.SaaS\.requireFeature\('([^']+)'\)/g,
+        "window.SaaS.requireFeature(\\'$1\\')"
+    );
+
+    if (content !== original) {
+        // نسخة احتياطية
+        fs.writeFileSync(filePath + '.bak2', original);
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log(`  ✅ Fixed: ${file}`);
+        totalFixed++;
+    } else {
+        // فحص إضافي — لو مفيش saas-ready مش هيبان
+        if (content.includes('saas-ready')) {
+            console.log(`  ✓  OK: ${file}`);
+        }
+    }
+});
+
+console.log(`\n${'─'.repeat(40)}`);
+console.log(`✅ تم إصلاح ${totalFixed} ملف`);
+console.log(`💾 نسخ احتياطية محفوظة بـ .bak2\n`);

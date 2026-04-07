@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth() && (
+        // أدمن مسجّل في collection الـ admins
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        ||
+        // أدمن بانل بيعمل anonymous sign-in من الجهاز المحلي
+        request.auth.token.firebase.sign_in_provider == 'anonymous'
+      );
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // ── Admins ───────────────────────────────────────────────
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── Users ────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+
+    // ── Subscriptions ────────────────────────────────────────
+    match /subscriptions/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      // العميل يقدر يعمل trial بس
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.plan == 'trial';
+      // العميل يقدر يحدّث lastVerified و hardwareIds بس
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastVerified', 'hardwareIds']);
+      // باقي التغييرات للـ Admin بس
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── بيانات المطعم — كل المجموعات تحت uid المستخدم ───────
+    match /restaurants/{uid}/{document=**} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+
+    // ── OTP مؤقتة — الأدمن يقرأ، الكتابة من Admin SDK بس ───
+    match /pending_otps/{docId} {
+      allow read, delete: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── المجموعات المباشرة (النظام القديم) ───────────────────
+    match /orders/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /menuItems/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /expenses/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /customers/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /employees/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /suppliers/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /ingredients/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /notifications/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /settings/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /tables/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /categories/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /reports/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ── أي collection تانية للمستخدم المسجّل ────────────────
+    match /{collection}/{docId} {
+      allow read, write: if isAuth();
+    }
+  }
+}

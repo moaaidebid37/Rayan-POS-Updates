@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المخزون</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .ingredient-card {
+            background: #ffffff;
+            border: 2px solid #e8e8e8;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 220px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        .ingredient-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+            border-color: #000000;
+        }
+        
+        .ingredient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .ingredient-name {
+            font-weight: 700;
+            color: #000000;
+            font-size: 20px;
+            flex: 1;
+            padding-right: var(--spacing-sm);
+            line-height: 1.4;
+        }
+        
+        .stock-badge {
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+        
+        .ingredient-info {
+            flex: 1;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .ingredient-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .ingredient-info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .ingredient-info-label {
+            font-size: 13px;
+            color: #666666;
+            font-weight: 500;
+        }
+        
+        .ingredient-info-value {
+            font-size: 14px;
+            color: #000000;
+            font-weight: 600;
+        }
+        
+        .ingredient-unit {
+            font-size: 13px;
+            color: #666666;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .ingredient-stock {
+            color: #000000;
+            font-weight: 700;
+            font-size: 28px;
+            margin-top: var(--spacing-xs);
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e8e8e8;
+        }
+        
+        .ingredient-stock-label {
+            font-size: 12px;
+            color: #666666;
+            font-weight: 500;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        
+        .stock-low {
+            background: linear-gradient(135deg, #F39C12 0%, #E67E22 100%);
+        }
+        
+        .stock-critical {
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
+        }
+        
+        .stock-good {
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-primary:hover {
+            background: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            color: #000000;
+        }
+        
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .ingredient-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .ingredient-actions .btn {
+            flex: 1;
+            font-size: 13px;
+            padding: 10px 16px;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <a href="index.html" class="sidebar-item">
+            <i class="fas fa-home" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الرئيسية</span>
+        </a>
+        <a href="orders.html" class="sidebar-item">
+            <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الطلبات</span>
+        </a>
+        <a href="reports.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">التقارير</span>
+        </a>
+        <a href="menu.html" class="sidebar-item">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المطبخ</span>
+        </a>
+        <a href="ingredients.html" class="sidebar-item active">
+            <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">المخزون</span>
+        </a>
+        <a href="customers.html" class="sidebar-item">
+            <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">العملاء</span>
+        </a>
+        <a href="employees.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-users" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموظفون</span>
+        </a>
+        <a href="suppliers.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-truck" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الموردين</span>
+        </a>
+        <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">ادارة التسويق</span>
+        </a>
+        <a href="settings.html" class="sidebar-item" data-restricted="owner">
+            <i class="fas fa-cog" style="margin-left: 12px;"></i>
+            <span class="sidebar-item-label">الإعدادات</span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="header">
+        <h2 class="header-title">المخزون</h2>
+        <div class="header-search">
+            <i class="fas fa-search header-search-icon"></i>
+            <input type="text" placeholder="ابحث عن المخزون..." id="ingredientsSearch">
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn" onclick="handleRefresh()" title="تحديث الصفحة">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-primary btn-sm" data-modal="addIngredientModal" style="padding: 10px 20px; margin-right: var(--spacing-sm);">
+                <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                إضافة مخزون
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="card">
+            <div class="ingredients-grid" id="ingredientsGrid"></div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Ingredient Modal -->
+    <div class="modal" id="addIngredientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">إضافة مخزون جديد</h3>
+                <button class="modal-close" onclick="closeIngredientModal()">×</button>
+            </div>
+            <form id="ingredientForm">
+                <div class="form-group">
+                    <label class="label">اسم المخزون *</label>
+                    <input type="text" class="input" id="ingredientName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">الوحدة *</label>
+                    <select class="input" id="ingredientUnit" required>
+                        <option value="">اختر الوحدة</option>
+                        <option value="g">جرام (g)</option>
+                        <option value="ml">مليلتر (ml)</option>
+                        <option value="pcs">قطعة (pcs)</option>
+                        <option value="kg">كيلوجرام (kg)</option>
+                        <option value="L">لتر (L)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">الكمية الحالية (في المخزن) *</label>
+                    <input type="number" class="input" id="ingredientStock" step="0.01" min="0" value="0" required>
+                </div>
+
+                <div class="form-group" style="background: #fffdf5; padding: 10px; border-radius: 8px; border: 1px solid #f1c40f; margin-bottom: 10px;">
+                    <label class="label" style="color: #856404;">⚠️ حد التنبيه الأصفر (تحذير)</label>
+                    <input type="number" class="input" id="ingredientWarningThreshold" step="0.01" min="0" value="0" required style="border-color: #f1c40f;">
+                    <small style="color: #856404; font-size: 11px; display: block; margin-top: 4px;">عندما تصل الكمية لهذا الرقم، سيظهر الجرس باللون **الأصفر**.</small>
+                </div>
+                
+                <div class="form-group" style="background: #fff5f5; padding: 10px; border-radius: 8px; border: 1px solid #e74c3c;">
+                    <label class="label" style="color: #c0392b;">🚨 حد التنبيه الأحمر (خطر)</label>
+                    <input type="number" class="input" id="ingredientMinThreshold" step="0.01" min="0" value="0" required style="border-color: #e74c3c;">
+                    <small style="color: #c0392b; font-size: 11px; display: block; margin-top: 4px;">عندما تصل الكمية لهذا الرقم، سيظهر الجرس باللون **الأحمر**.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">سعر العبوة / الشيكارة بالكامل (ج.م) *</label>
+                    <input type="number" class="input" id="ingredientBuyingPrice" min="0" step="0.01" placeholder="مثال: 25" required>
+                    <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">اكتب المبلغ اللي دفعته في العبوة كلها (مثال: 25 جنيه تمن كيس الدقيق)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">وزن أو حجم العبوة (بنفس الوحدة المختارة) *</label>
+                    <input type="number" class="input" id="ingredientBuyingQuantity" min="0.01" step="0.01" placeholder="مثال: 1000" required>
+                    <small style="color: #666666; font-size: 12px; margin-top: 4px; display: block;">لو الوحدة جرام واشتريت كيلو، اكتب 1000. لو الوحدة مل واشتريت لتر، اكتب 1000</small>
+                </div>
+                
+                <div class="form-group" id="calculatedCostPriceGroup" style="background: #e8f5e9; padding: 14px; border-radius: 8px; border: 2px solid #27AE60; display: none;">
+                    <label class="label" style="color: #000000; font-weight: 600; margin-bottom: 8px;">تلقائياً: تكلفة الجرام/القطعة الواحدة</label>
+                    <div style="font-size: 20px; font-weight: 700; color: #27AE60; margin-top: 8px; padding: 8px; background: #ffffff; border-radius: 6px; text-align: center;" id="calculatedCostPrice">-</div>
+                    <small style="color: #666666; font-size: 12px; margin-top: 8px; display: block;">سيتم استخدام هذا السعر تلقائياً في حساب تكلفة المخزون (COGS)</small>
+                </div>
+                
+                <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeIngredientModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/firestore_service.js"></script>
+<script src="js/sync_manager.js"></script>
+<script src="js/data.js"></script>
+<script src="js/activation.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app_logic.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/enhancements.js"></script>
+<script src="js/main.js"></script>
+
+    <script>
+        // Check login
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('ingredients.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        let ingredients = [];
+        let editingIngredient = null;
+        
+        function mapIngredientFromFirebase(raw) {
+            const src = raw || {};
+            const stock = Number(src.stock ?? src.current_stock ?? src.quantity ?? 0) || 0;
+            const costPrice = Number(src.costPrice ?? src.cost_per_unit ?? src.cost_price ?? 0) || 0;
+            const buyingPrice = Number(src.buyingPrice ?? src.buying_price ?? 0) || 0;
+            const buyingQuantity = Number(src.buyingQuantity ?? src.buying_quantity ?? 0) || 0;
+            const minThreshold = Number(src.min_threshold ?? src.minThreshold ?? 0) || 0;
+            
+            return {
+                ...src,
+                stock,
+                quantity: Number(src.quantity ?? stock) || stock, // compatibility
+                costPrice,
+                buyingPrice,
+                buyingQuantity,
+                // Threshold (existing Firestore field)
+                min_threshold: minThreshold,
+                minThreshold
+            };
+        }
+        
+        // دمج المخزون من Firebase + localStorage: نعتمد أقل كمية (الخصم المحلي لا يُفقد)
+        function mergeIngredientsWithLocal(firebaseList, localList) {
+            const byId = new Map();
+            const stockOf = (ing) => Number(ing.stock ?? ing.current_stock ?? ing.quantity ?? 0) || 0;
+            (localList || []).forEach((ing) => {
+                const id = String(ing.id ?? '');
+                if (!id) return;
+                const mapped = mapIngredientFromFirebase(ing);
+                byId.set(id, { ...mapped, stock: stockOf(mapped), quantity: stockOf(mapped), current_stock: stockOf(mapped) });
+            });
+            (firebaseList || []).forEach((ing) => {
+                const id = String(ing.id ?? '');
+                if (!id) return;
+                const mapped = mapIngredientFromFirebase(ing);
+                const fbStock = stockOf(mapped);
+                const existing = byId.get(id);
+                if (existing) {
+                    const localStock = Number(existing.stock ?? existing.quantity ?? 0) || 0;
+                    const minStock = Math.min(fbStock, localStock);
+                    existing.stock = minStock;
+                    existing.quantity = minStock;
+                    existing.current_stock = minStock;
+                    Object.assign(existing, { name: mapped.name, unit: mapped.unit, costPrice: mapped.costPrice, buyingPrice: mapped.buyingPrice, buyingQuantity: mapped.buyingQuantity, minThreshold: mapped.minThreshold, min_threshold: mapped.min_threshold });
+                } else {
+                    byId.set(id, { ...mapped, stock: fbStock, quantity: fbStock, current_stock: fbStock });
+                }
+            });
+            return Array.from(byId.values());
+        }
+
+        // Load ingredients: merge Firebase + localStorage so local deductions are never lost
+        (async () => {
+            let firebaseIngredients = [];
+            let localIngredients = [];
+            if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
+                try {
+                    firebaseIngredients = await window.FirestoreService.getAllIngredients() || [];
+                } catch (error) {
+                    console.warn('Error loading ingredients from Firebase, using local:', error);
+                }
+            }
+            if (localStorage.getItem('ingredients')) {
+                try {
+                    localIngredients = JSON.parse(localStorage.getItem('ingredients')) || [];
+                } catch (e) {
+                    localIngredients = [];
+                }
+            }
+            if (firebaseIngredients.length > 0 || localIngredients.length > 0) {
+                ingredients = mergeIngredientsWithLocal(firebaseIngredients, localIngredients);
+                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+            }
+            if (ingredients.length === 0) {
+                const hasFirebaseApi = typeof window !== 'undefined' &&
+                    window.FirestoreService &&
+                    typeof window.FirestoreService.getAllIngredients === 'function';
+                if (!hasFirebaseApi) {
+                    populateDefaultIngredients();
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeIngredientsPage);
+            } else {
+                initializeIngredientsPage();
+            }
+        })();
+        
+        function initializeIngredientsPage() {
+            renderIngredients();
+            initIngredientForm();
+            initSearch();
+            initModal();
+            
+            // Delegate edit/delete clicks (works with string/number IDs)
+            const grid = document.getElementById('ingredientsGrid');
+            if (grid && !grid.dataset.actionsBound) {
+                grid.dataset.actionsBound = '1';
+                grid.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-action][data-id]');
+                    if (!btn) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const action = btn.getAttribute('data-action');
+                    const id = decodeURIComponent(btn.getAttribute('data-id') || '');
+                    if (!id) return;
+                    if (action === 'edit') {
+                        editIngredient(id);
+                    } else if (action === 'delete') {
+                        deleteIngredient(id);
+                    }
+                });
+            }
+            
+            // تهيئة SyncManager
+            if (typeof SyncManager !== 'undefined' && typeof SyncManager.init === 'function') {
+                SyncManager.init();
+            }
+        }
+        
+        // دالة لإضافة المخزون الأساسية
+        function populateDefaultIngredients() {
+            // التحقق من أن أول تشغيل تم - لا نضيف مخزون افتراضي بعد أول تشغيل
+            if (localStorage.getItem('first_run_completed')) {
+                return;
+            }
+            
+            // التحقق من وجود مخزون مسبقاً - إذا كان هناك مخزون، لا تُضاف المخزون الأساسية
+            if (ingredients.length > 0) {
+                return;
+            }
+            
+            const defaultIngredients = [
+                // 1. Frozen Meats (اللحوم المجمدة)
+                {
+                    id: 1,
+                    name: 'كبدة مجمدة',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 2200,
+                    buyingQuantity: 10000,
+                    costPrice: 0.22 // 2200 EGP / 10000g = 0.22/g
+                },
+                {
+                    id: 2,
+                    name: 'لحم مفروم مجمد',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 3200,
+                    buyingQuantity: 10000,
+                    costPrice: 0.32 // 3200 EGP / 10000g = 0.32/g
+                },
+                {
+                    id: 3,
+                    name: 'سجق شرقي',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 260,
+                    buyingQuantity: 1000,
+                    costPrice: 0.26 // 260 EGP / 1000g = 0.26/g
+                },
+                {
+                    id: 4,
+                    name: 'دجاج كامل',
+                    unit: 'pcs',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 1300,
+                    buyingQuantity: 10,
+                    costPrice: 130 // 1300 EGP / 10 pcs = 130/pc
+                },
+                {
+                    id: 5,
+                    name: 'لية ضاني',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 400,
+                    buyingQuantity: 1000,
+                    costPrice: 0.4 // 400 EGP / 1000g = 0.4/g
+                },
+                
+                // 2. Dry Goods & Carbs (النواشف)
+                {
+                    id: 6,
+                    name: 'مكرونة قلم',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 300,
+                    buyingQuantity: 10000,
+                    costPrice: 0.03 // 300 EGP / 10000g = 0.03/g
+                },
+                {
+                    id: 7,
+                    name: 'مكرونة خواتم',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 300,
+                    buyingQuantity: 10000,
+                    costPrice: 0.03 // 300 EGP / 10000g = 0.03/g
+                },
+                {
+                    id: 8,
+                    name: 'أرز بسمتي',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 700,
+                    buyingQuantity: 10000,
+                    costPrice: 0.07 // 700 EGP / 10000g = 0.07/g
+                },
+                {
+                    id: 9,
+                    name: 'لسان عصفور',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 30,
+                    buyingQuantity: 1000,
+                    costPrice: 0.03 // 30 EGP / 1000g = 0.03/g
+                },
+                {
+                    id: 10,
+                    name: 'دقيق',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 250,
+                    buyingQuantity: 10000,
+                    costPrice: 0.025 // 250 EGP / 10000g = 0.025/g
+                },
+                
+                // 3. Bread & Wraps (العيش)
+                {
+                    id: 11,
+                    name: 'عيش بلدي',
+                    unit: 'pcs',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 200,
+                    buyingQuantity: 100,
+                    costPrice: 2.0 // 200 EGP / 100 pcs = 2.0/pc
+                },
+                {
+                    id: 12,
+                    name: 'عيش فينو',
+                    unit: 'pcs',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 150,
+                    buyingQuantity: 100,
+                    costPrice: 1.5 // 150 EGP / 100 pcs = 1.5/pc
+                },
+                
+                // 4. Vegetables & Sauces (الخضار والصلصة)
+                {
+                    id: 13,
+                    name: 'طماطم',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 400,
+                    buyingQuantity: 20000,
+                    costPrice: 0.02 // 400 EGP / 20000g = 0.02/g
+                },
+                {
+                    id: 14,
+                    name: 'بصل',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 250,
+                    buyingQuantity: 10000,
+                    costPrice: 0.025 // 250 EGP / 10000g = 0.025/g
+                },
+                {
+                    id: 15,
+                    name: 'فلفل رومي/حامي',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 200,
+                    buyingQuantity: 10000,
+                    costPrice: 0.02 // 200 EGP / 10000g = 0.02/g
+                },
+                {
+                    id: 16,
+                    name: 'ثوم',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 50,
+                    buyingQuantity: 1000,
+                    costPrice: 0.05 // 50 EGP / 1000g = 0.05/g
+                },
+                {
+                    id: 17,
+                    name: 'معجون طحينة',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 900,
+                    buyingQuantity: 5000,
+                    costPrice: 0.18 // 900 EGP / 5000g = 0.18/g
+                },
+                {
+                    id: 18,
+                    name: 'زيت خليط',
+                    unit: 'ml',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 900,
+                    buyingQuantity: 18000,
+                    costPrice: 0.05 // 900 EGP / 18000ml = 0.05/ml
+                },
+                {
+                    id: 19,
+                    name: 'جبنة موتزريلا',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 280,
+                    buyingQuantity: 1000,
+                    costPrice: 0.28 // 280 EGP / 1000g = 0.28/g
+                },
+                
+                // 5. Disposables (تغليف وشوي)
+                {
+                    id: 20,
+                    name: 'علبة كشري/مكرونة',
+                    unit: 'pcs',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 250,
+                    buyingQuantity: 100,
+                    costPrice: 2.5 // 250 EGP / 100 pcs = 2.5/pc
+                },
+                {
+                    id: 21,
+                    name: 'فحم',
+                    unit: 'g',
+                    stock: 0,
+                    quantity: 0,
+                    buyingPrice: 400,
+                    buyingQuantity: 10000,
+                    costPrice: 0.04 // 400 EGP / 10000g = 0.04/g
+                }
+            ];
+            
+            // إضافة المخزون الجديدة فقط (تجنب التكرار)
+            let addedCount = 0;
+            let existingNames = ingredients.map(ing => ing.name.toLowerCase());
+            
+            defaultIngredients.forEach(newIngredient => {
+                // التحقق من عدم وجود مخزون بنفس الاسم
+                if (!existingNames.includes(newIngredient.name.toLowerCase())) {
+                    // إيجاد أكبر ID موجود وإضافة 1
+                    const maxId = ingredients.length > 0 ? Math.max(...ingredients.map(i => i.id)) : 0;
+                    newIngredient.id = maxId + 1;
+                    ingredients.push(newIngredient);
+                    addedCount++;
+                }
+            });
+            
+            // حفظ المخزون المحدثة
+            localStorage.setItem('ingredients', JSON.stringify(ingredients));
+            
+            if (addedCount > 0) {
+                // تحديث العرض بدون إشعار عند التحميل الأولي
+                renderIngredients();
+            }
+        }
+        
+        // دالة لإعادة إضافة المخزون الأساسية يدوياً (يمكن استدعاؤها من console)
+        window.populateDefaultIngredients = populateDefaultIngredients;
+        
+        function renderIngredients() {
+            const grid = document.getElementById('ingredientsGrid');
+            grid.innerHTML = '';
+
+            // Smart display formatting (visual only):
+            // - Integers show without decimals (100 -> "100")
+            // - Decimals show up to 2 decimals without trailing zeros (9.75 -> "9.75", 99.4 -> "99.4")
+            function formatSmart2(n) {
+                const num = Number(n);
+                if (!Number.isFinite(num)) return '0';
+                return String(parseFloat(num.toFixed(2)));
+            }
+            
+            if (ingredients.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: var(--spacing-2xl); color: #999999;">لا يوجد مخزون</div>';
+                return;
+            }
+            
+            ingredients.forEach((ingredient, index) => {
+                const card = document.createElement('div');
+                card.className = 'ingredient-card';
+                card.style.animationDelay = `${index * 0.05}s`;
+                
+                const stock = Number(ingredient.stock ?? ingredient.current_stock ?? 0) || 0;
+                const stockDisplay = formatSmart2(stock);
+                // Threshold-based alert (green/red only)
+                const threshold = Number(ingredient.min_threshold ?? ingredient.minThreshold ?? 0) || 0;
+
+                // Visual-only status: color the card border (green/red only)
+                const statusBorderColor = stock <= threshold ? '#E74C3C' : '#27AE60';
+                card.style.borderColor = statusBorderColor;
+                
+                const costPrice = parseFloat(ingredient.costPrice ?? ingredient.cost_per_unit) || 0;
+                const costPriceDisplay = costPrice > 0 ? costPrice.toFixed(2) : 'غير محدد';
+                
+                card.innerHTML = `
+                    <div class="ingredient-header">
+                        <div class="ingredient-name">${ingredient.name}</div>
+                    </div>
+                    <div class="ingredient-info">
+                        <div class="ingredient-info-row">
+                            <span class="ingredient-info-label">الوحدة:</span>
+                            <span class="ingredient-info-value">${ingredient.unit}</span>
+                        </div>
+                        <div class="ingredient-info-row">
+                            <span class="ingredient-info-label">تكلفة الوحدة:</span>
+                            <span class="ingredient-info-value">${costPriceDisplay} ج.م</span>
+                        </div>
+                        <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 2px solid #e8e8e8;">
+                            <div class="ingredient-stock-label">الكمية الحالية</div>
+                            <div class="ingredient-stock">
+                                <div style="font-size: 32px; font-weight: 800; color: #000000; line-height: 1;">${stockDisplay}</div>
+                                <div style="font-size: 14px; color: #666666; font-weight: 500; margin-top: 4px;">${ingredient.unit}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ingredient-actions">
+                        <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${encodeURIComponent(String(ingredient.id ?? ''))}">
+                            <i class="fas fa-edit" style="margin-left: 6px;"></i>
+                            تعديل
+                        </button>
+                        <button class="btn btn-secondary btn-sm" data-action="delete" data-id="${encodeURIComponent(String(ingredient.id ?? ''))}" data-restricted="owner">
+                            <i class="fas fa-trash" style="margin-left: 6px;"></i>
+                            حذف
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function initIngredientForm() {
+            // حساب سعر الشراء لكل وحدة تلقائياً
+            const buyingPriceInput = document.getElementById('ingredientBuyingPrice');
+            const buyingQuantityInput = document.getElementById('ingredientBuyingQuantity');
+            const calculatedCostPriceEl = document.getElementById('calculatedCostPrice');
+            const calculatedCostPriceGroup = document.getElementById('calculatedCostPriceGroup');
+            
+            function calculateCostPrice() {
+                const buyingPrice = parseFloat(buyingPriceInput.value) || 0;
+                const buyingQuantity = parseFloat(buyingQuantityInput.value) || 0;
+                
+                if (buyingPrice > 0 && buyingQuantity > 0) {
+                    const costPrice = buyingPrice / buyingQuantity;
+                    calculatedCostPriceEl.textContent = costPrice.toFixed(2) + ' ج.م';
+                    calculatedCostPriceGroup.style.display = 'block';
+                } else {
+                    calculatedCostPriceGroup.style.display = 'none';
+                }
+            }
+            
+            buyingPriceInput.addEventListener('input', calculateCostPrice);
+            buyingQuantityInput.addEventListener('input', calculateCostPrice);
+            
+            document.getElementById('ingredientForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const buyingPrice = parseFloat(document.getElementById('ingredientBuyingPrice').value) || 0;
+                const buyingQuantity = parseFloat(document.getElementById('ingredientBuyingQuantity').value) || 0;
+                const warningThreshold = parseFloat(document.getElementById('ingredientWarningThreshold').value) || 0; // الأصفر
+                const criticalStockLimit = parseFloat(document.getElementById('ingredientMinThreshold').value) || 0; // الأحمر
+                
+                // حساب costPrice لكل وحدة
+                let costPrice = 0;
+                if (buyingPrice > 0 && buyingQuantity > 0) {
+                    costPrice = buyingPrice / buyingQuantity;
+                }
+                
+                // Use stable ID for offline-first sync (Firestore doc id)
+                const localId = editingIngredient
+                    ? null
+                    : `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const stableId = editingIngredient ? editingIngredient.id : localId;
+                
+                const ingredientData = {
+                    id: stableId,
+                    name: document.getElementById('ingredientName').value,
+                    unit: document.getElementById('ingredientUnit').value,
+                    stock: parseFloat(document.getElementById('ingredientStock').value) || 0,
+                    warningThreshold: warningThreshold, // الأصفر
+                    criticalStockLimit: criticalStockLimit, // الأحمر
+                    // للحفاظ على التوافق مع الفايربيز القديم:
+                    minThreshold: criticalStockLimit,
+                    min_threshold: criticalStockLimit,
+                    quantity: parseFloat(document.getElementById('ingredientStock').value) || 0,
+                    buyingPrice: buyingPrice,
+                    buyingQuantity: buyingQuantity,
+                    costPrice: costPrice,
+                    current_stock: parseFloat(document.getElementById('ingredientStock').value) || 0,
+                    cost_per_unit: costPrice
+                };
+                
+                if (localId) {
+                    ingredientData._localId = localId;
+                    ingredientData._synced = false;
+                }
+                
+                if (editingIngredient) {
+                    const index = ingredients.findIndex(i => i.id === editingIngredient.id);
+                    if (index !== -1) {
+                        ingredients[index] = ingredientData;
+                    }
+                } else {
+                    ingredients.push(ingredientData);
+                }
+                
+                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                
+                // إضافة للمزامنة مع Firebase
+                if (typeof window !== 'undefined' && window.SyncManager) {
+                    const syncId = window.SyncManager.addToSyncQueue('ingredients', editingIngredient ? 'update' : 'add', ingredientData, localId);
+                    if (syncId && !editingIngredient) {
+                        // Update the local item with the sync ID
+                        const itemInLocalStorage = ingredients.find(i => i._localId === localId);
+                        if (itemInLocalStorage) {
+                            itemInLocalStorage.id = syncId;
+                            localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                        }
+                    }
+                }
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success(editingIngredient ? 'تم تحديث المخزون بنجاح' : 'تم إضافة المخزون بنجاح');
+                }
+                
+                closeIngredientModal();
+                renderIngredients();
+            });
+        }
+        
+        function editIngredient(id) {
+            const ingredient = ingredients.find(i => String(i.id) === String(id));
+            if (ingredient) {
+                editingIngredient = ingredient;
+                document.getElementById('modalTitle').textContent = 'تعديل مخزون';
+                document.getElementById('ingredientName').value = ingredient.name;
+                document.getElementById('ingredientUnit').value = ingredient.unit;
+                document.getElementById('ingredientStock').value = ingredient.stock || 0;
+                document.getElementById('ingredientWarningThreshold').value = ingredient.warningThreshold || 0; // الأصفر
+                document.getElementById('ingredientMinThreshold').value = ingredient.criticalStockLimit || ingredient.minThreshold || 0; // الأحمر
+                
+                // استخدام القيم المحفوظة مباشرة
+                const buyingPrice = parseFloat(ingredient.buyingPrice) || 0;
+                const buyingQuantity = parseFloat(ingredient.buyingQuantity) || 0;
+                const costPrice = parseFloat(ingredient.costPrice) || 0;
+                
+                if (buyingPrice > 0 && buyingQuantity > 0) {
+                    document.getElementById('ingredientBuyingPrice').value = buyingPrice;
+                    document.getElementById('ingredientBuyingQuantity').value = buyingQuantity;
+                    
+                    const calculatedCostPriceEl = document.getElementById('calculatedCostPrice');
+                    const calculatedCostPriceGroup = document.getElementById('calculatedCostPriceGroup');
+                    calculatedCostPriceEl.textContent = costPrice.toFixed(2) + ' ج.م';
+                    calculatedCostPriceGroup.style.display = 'block';
+                } else {
+                    document.getElementById('ingredientBuyingPrice').value = '';
+                    document.getElementById('ingredientBuyingQuantity').value = '';
+                    document.getElementById('calculatedCostPriceGroup').style.display = 'none';
+                }
+                
+                document.getElementById('addIngredientModal').classList.add('active');
+            }
+        }
+        
+        async function deleteIngredient(id) {
+            // الحذف مسموح لصاحب المحل/المدير فقط
+            try {
+                if (typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function' && !Auth.canDelete()) {
+                    if (typeof Notification !== 'undefined') {
+                        Notification.error('الحذف مسموح لصاحب المحل فقط');
+                    } else {
+                        alert('الحذف مسموح لصاحب المحل فقط');
+                    }
+                    return;
+                }
+            } catch (_) { /* ignore */ }
+
+            if (confirm('هل أنت متأكد من حذف هذا المخزون؟')) {
+                try {
+                    // Step 1: Delete from Firebase
+                    if (typeof window.FirestoreService !== 'undefined' && typeof window.FirestoreService.deleteIngredient === 'function') {
+                        await window.FirestoreService.deleteIngredient(id);
+                    }
+
+                    // Step 2: Delete from local array and localStorage
+                    ingredients = ingredients.filter(i => String(i.id) !== String(id));
+                    localStorage.setItem('ingredients', JSON.stringify(ingredients));
+
+                    if (typeof Notification !== 'undefined') {
+                        Notification.success('تم حذف المخزون بنجاح من قاعدة البيانات والمخزون المحلي.');
+                    }
+                    renderIngredients();
+
+                } catch (error) {
+                    console.error('Error deleting ingredient:', error);
+                    if (typeof Notification !== 'undefined') {
+                        Notification.error('حدث خطأ أثناء الحذف من قاعدة البيانات.');
+                    }
+                }
+            }
+        }
+        
+        function closeIngredientModal() {
+            document.getElementById('addIngredientModal').classList.remove('active');
+            document.getElementById('ingredientForm').reset();
+            document.getElementById('calculatedCostPriceGroup').style.display = 'none';
+            editingIngredient = null;
+            document.getElementById('modalTitle').textContent = 'إضافة مخزون جديد';
+        }
+        
+        function initSearch() {
+            document.getElementById('ingredientsSearch').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const cards = document.querySelectorAll('.ingredient-card');
+                
+                cards.forEach(card => {
+                    const name = card.querySelector('.ingredient-name').textContent.toLowerCase();
+                    if (name.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        function initModal() {
+            document.querySelector('[data-modal="addIngredientModal"]').addEventListener('click', () => {
+                editingIngredient = null;
+                document.getElementById('modalTitle').textContent = 'إضافة مخزون جديد';
+                document.getElementById('ingredientForm').reset();
+                document.getElementById('addIngredientModal').classList.add('active');
+            });
+        }
+        
+        window.handleRefresh = function() {
+            window.location.reload();
+        };
+    </script>
+    
+</body>
+</html>

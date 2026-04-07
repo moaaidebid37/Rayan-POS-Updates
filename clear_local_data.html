@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حذف البيانات المحلية - Solo POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        
+        .warning strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .data-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .data-item {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .data-item:last-child {
+            border-bottom: none;
+        }
+        
+        .count {
+            background: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #155724;
+            display: none;
+        }
+        
+        .success.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ حذف البيانات المحلية</h1>
+        <p style="color: #666; margin-bottom: 20px;">هذه الصفحة تحذف جميع البيانات المخزنة محلياً في المتصفح (localStorage)</p>
+        
+        <div class="warning">
+            <strong>⚠️ تحذير مهم:</strong>
+            <ul style="margin-top: 10px; padding-right: 20px;">
+                <li>سيتم حذف جميع البيانات المحلية نهائياً</li>
+                <li>البيانات في Firebase لن تتأثر</li>
+                <li>بعد الحذف، سيتم تحميل البيانات من Firebase عند فتح النظام</li>
+                <li>تأكد من أن Firebase يحتوي على البيانات الصحيحة قبل الحذف</li>
+            </ul>
+        </div>
+        
+        <div class="data-list" id="dataList">
+            <div class="data-item">
+                <span>جاري فحص البيانات...</span>
+            </div>
+        </div>
+        
+        <div class="success" id="successMessage">
+            ✅ تم حذف جميع البيانات المحلية بنجاح!
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-secondary" onclick="refreshData()">🔄 تحديث القائمة</button>
+            <button class="btn-danger" onclick="clearAllData()">🗑️ حذف كل البيانات</button>
+        </div>
+    </div>
+    
+    <script>
+        const dataKeys = [
+            'orders',
+            'ordersOnHold',
+            'salesHistory',
+            'suppliers',
+            'cashSessions',
+            'expenses',
+            'expensesHistory',
+            'menuItems',
+            'categories',
+            'ingredients',
+            'employees',
+            'users',
+            'settings',
+            'isLoggedIn',
+            'username',
+            'userEmail',
+            'userRole',
+            'userType',
+            'userId'
+        ];
+        
+        function refreshData() {
+            const dataList = document.getElementById('dataList');
+            dataList.innerHTML = '';
+            
+            let totalItems = 0;
+            
+            dataKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                let count = 0;
+                
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) {
+                            count = parsed.length;
+                        } else if (typeof parsed === 'object') {
+                            count = Object.keys(parsed).length;
+                        } else {
+                            count = 1;
+                        }
+                    } catch (e) {
+                        count = data.length > 0 ? 1 : 0;
+                    }
+                }
+                
+                if (count > 0 || data) {
+                    totalItems += count;
+                    const item = document.createElement('div');
+                    item.className = 'data-item';
+                    item.innerHTML = `
+                        <span>${key}</span>
+                        <span class="count">${count > 0 ? count : 'موجود'}</span>
+                    `;
+                    dataList.appendChild(item);
+                }
+            });
+            
+            if (totalItems === 0 && !localStorage.length) {
+                dataList.innerHTML = '<div class="data-item"><span>لا توجد بيانات محلية</span></div>';
+            }
+        }
+        
+        function clearAllData() {
+            if (!confirm('⚠️ هل أنت متأكد من حذف جميع البيانات المحلية؟\n\nهذه العملية لا يمكن التراجع عنها!')) {
+                return;
+            }
+            
+            if (!confirm('⚠️ تحذير أخير:\n\nسيتم حذف جميع البيانات المحلية نهائياً!\n\nهل تريد المتابعة؟')) {
+                return;
+            }
+            
+            // Clear all specified keys
+            dataKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // Clear all remaining localStorage items
+            const remainingKeys = Object.keys(localStorage);
+            remainingKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // Show success message
+            document.getElementById('successMessage').classList.add('show');
+            
+            // Refresh data list
+            setTimeout(() => {
+                refreshData();
+            }, 500);
+            
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+                document.getElementById('successMessage').classList.remove('show');
+            }, 5000);
+        }
+        
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', refreshData);
+    </script>
+
+        <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="saas/sidebar.js"></script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // SaaS Feature Gates — إخفاء الصفحات حسب الباقة
+    // ═══════════════════════════════════════════════════════
+    window.addEventListener('saas-ready', function () {
+
+        // ── الصفحات المقفولة على Basic فأكثر ──────────────
+        if (!window.SaaS.canUse('reports')) {
+            document.querySelector('a[href="reports.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+        if (!window.SaaS.canUse('customers')) {
+            document.querySelector('a[href="customers.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+
+        // ── الصفحات المقفولة على Pro فقط ───────────────────
+        if (!window.SaaS.canUse('whatsapp')) { // 'whatsapp' is a Pro feature
+            document.querySelector('a[href="marketing.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+        
+        // ── Badge ──────────────────────────────────────────
+        const plan = window.SaaS.getPlan();
+        const planLabel = window.SaaS.getPlanLabel();
+        const endDate = window.SaaS.getEndDate();
+
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && !document.getElementById('saas-plan-badge')) {
+            const badge = document.createElement('div');
+            badge.id = 'saas-plan-badge';
+
+            const colors = { trial: '#4a9eff', basic: '#d4af37', pro: '#9b59b6', mega: '#e74c3c' };
+            const color  = colors[plan] || '#d4af37';
+
+            const daysLeft = endDate
+                ? Math.max(0, Math.ceil((new Date(endDate) - new Date()) / 86400000))
+                : null;
+
+            badge.style.cssText = 'margin: 12px; padding: 12px 14px; background: ' + color + '15; border: 1px solid ' + color + '44; border-radius: 10px; font-size: 12px; text-align: center;';
+            
+            let badgeHTML = '<div style="color:' + color + '; font-weight:700; margin-bottom:4px;">' + (plan === 'mega' ? '🚀' : plan === 'pro' ? '👑' : plan === 'basic' ? '⭐' : '🕐') + ' ' + planLabel + '</div>';
+
+            if (daysLeft !== null) {
+                badgeHTML += '<div style="color:#888; font-size:11px;">' + daysLeft + ' يوم متبقي</div>';
+            }
+
+            if (plan !== 'mega') {
+                badgeHTML += '<button onclick="window.SaaS.requireFeature(\'dashboard\')" style="margin-top:8px; width:100%; padding:6px; background:' + color + '; border:none; border-radius:6px; color:#000; font-size:11px; font-weight:700; cursor:pointer;">ترقية الباقة ↑</button>';
+            }
+
+            badge.innerHTML = badgeHTML;
+            sidebar.appendChild(badge);
+        }
+
+    });
+    </script>
+
+</body>
+</html>

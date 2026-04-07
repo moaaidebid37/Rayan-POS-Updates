@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Google Sign In</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#f5f0e8;
+      display:flex; align-items:center; justify-content:center;
+      height:100vh;
+      font-family:'Cairo',sans-serif;
+    }
+    .box {
+      background:#fff; border-radius:20px;
+      padding:40px 36px; text-align:center;
+      box-shadow:0 20px 60px rgba(0,0,0,.1);
+      width:320px;
+    }
+    .logo {
+      width:56px; height:56px; background:#111;
+      border-radius:16px; display:flex;
+      align-items:center; justify-content:center;
+      margin:0 auto 20px;
+    }
+    h2 { font-size:20px; color:#111; margin-bottom:6px; }
+    p  { font-size:13px; color:#aaa; margin-bottom:28px; }
+    #msg { font-size:13px; color:#e74c3c; margin-top:14px; min-height:18px; }
+    .spinner {
+      width:24px; height:24px; border:2px solid #eee;
+      border-top-color:#111; border-radius:50%;
+      animation:spin .7s linear infinite;
+      margin:0 auto;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 48 48">
+      <path fill="#fff" d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z"/>
+    </svg>
+  </div>
+  <h2>Solo POS</h2>
+  <p>جاري تسجيل الدخول بـ Google</p>
+  <div class="spinner"></div>
+  <div id="msg"></div>
+</div>
+
+<script>
+  // نفس الـ config
+  const config = {
+    apiKey: "AIzaSyDWe2J977weGfhHes6loJmHG0j6w3-LN8w",
+    authDomain: "solo-pos-saas.firebaseapp.com",
+    projectId: "solo-pos-saas",
+    storageBucket: "solo-pos-saas.firebasestorage.app",
+    messagingSenderId: "606753556276",
+    appId: "1:606753556276:web:02e269a4a36e93a3708761"
+  };
+
+  if (!firebase.apps.length) firebase.initializeApp(config);
+
+  const { ipcRenderer } = require('electron');
+
+  async function doGoogleAuth() {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('email');
+      provider.addScope('profile');
+
+      const result = await firebase.auth().signInWithPopup(provider);
+      const idToken = await result.user.getIdToken();
+
+      // أرسل الـ token للنافذة الرئيسية
+      ipcRenderer.send('google-auth-success', {
+        idToken,
+        uid:         result.user.uid,
+        email:       result.user.email,
+        displayName: result.user.displayName,
+        photoURL:    result.user.photoURL,
+      });
+
+    } catch (err) {
+      document.getElementById('msg').textContent = 'فشل تسجيل الدخول: ' + (err.message || err.code);
+      ipcRenderer.send('google-auth-error', err.code || 'unknown');
+    }
+  }
+
+  // شغّل مباشرة
+  doGoogleAuth();
+</script>
+</body>
+</html>

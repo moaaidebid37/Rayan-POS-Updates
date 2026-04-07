@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الطاولات</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tables-container {
+            background: var(--color-white);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+        }
+        
+        .tables-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .tables-filters {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .table-card {
+            position: relative;
+            background: var(--color-white);
+            border: 2px solid var(--color-separator);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .table-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .table-card.vacant {
+            border-color: var(--color-vacant);
+        }
+        
+        .table-card.occupied {
+            border-color: var(--color-occupied);
+        }
+        
+        .table-card.on-hold {
+            border-color: var(--color-on-hold);
+        }
+        
+        .table-card.disabled {
+            border-color: var(--color-disabled);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .table-status-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+        }
+        
+        .table-status-line.vacant {
+            background: var(--color-vacant);
+        }
+        
+        .table-status-line.occupied {
+            background: var(--color-occupied);
+        }
+        
+        .table-status-line.on-hold {
+            background: var(--color-on-hold);
+        }
+        
+        .table-status-line.disabled {
+            background: var(--color-disabled);
+        }
+        
+        .table-number {
+            font-size: var(--font-size-h4);
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .table-order-id {
+            font-size: var(--font-size-p3);
+            color: var(--color-text-faded);
+            margin-top: var(--spacing-xs);
+        }
+        
+        .table-capacity {
+            font-size: var(--font-size-p3);
+            color: var(--color-text-faded);
+        }
+        
+        .table-legend {
+            display: flex;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-separator);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.vacant {
+            background: var(--color-vacant);
+        }
+        
+        .legend-dot.occupied {
+            background: var(--color-occupied);
+        }
+        
+        .legend-dot.on-hold {
+            background: var(--color-on-hold);
+        }
+        
+        .table-info {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            left: calc(var(--sidebar-width) + var(--spacing-lg));
+            right: var(--spacing-lg);
+            background: var(--color-white);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            z-index: 100;
+        }
+        
+        .table-info.active {
+            display: block;
+        }
+        
+        .table-info-details {
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-separator);
+        }
+        
+        .table-info-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-sm);
+            font-size: var(--font-size-p3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar"></nav>
+
+    <!-- Header -->
+    <header class="header">
+        <h2 class="header-title">الطاولات</h2>
+        <div class="header-search">
+            <span class="header-search-icon">🔍</span>
+            <input type="text" placeholder="Search products...">
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn">🔄</button>
+            <button class="header-action-btn">📶</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="tables-container">
+            <div class="tables-header">
+                <h3>Tables Management</h3>
+                <p style="color: var(--color-text-faded);">Tables visible are for 4-6 guests occupancy. <a href="#" style="color: var(--color-accent);">Show all tables</a></p>
+            </div>
+            
+            <div class="tables-filters">
+                <button class="tab active" data-filter="all">All Tables</button>
+                <button class="tab" data-filter="vacant">Vacant</button>
+                <button class="tab" data-filter="occupied">Occupied</button>
+                <button class="tab" data-filter="on-hold">On Hold</button>
+                <button class="tab" data-filter="disabled">Disabled</button>
+            </div>
+            
+            <div class="tables-grid" id="tablesGrid"></div>
+            
+            <div class="table-legend">
+                <div class="legend-item">
+                    <div class="legend-dot occupied"></div>
+                    <span>Occupied</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot on-hold"></div>
+                    <span>Order on hold</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot vacant"></div>
+                    <span>Vacant</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-info" id="tableInfo">
+            <div class="flex-between">
+                <div style="flex: 1;">
+                    <h4 id="tableInfoTitle">Table T42</h4>
+                    <p style="color: var(--color-text-faded);" id="tableInfoOrder">Order #05874</p>
+                    <div class="table-info-details" id="tableInfoDetails"></div>
+                </div>
+                <div style="margin-right: var(--spacing-lg);">
+                    <button class="btn btn-primary" id="selectTableBtn">Select & Place Order</button>
+                    ${selectedTable && selectedTable.status === 'occupied' ? `
+                        <button class="btn btn-secondary" style="margin-top: var(--spacing-sm); width: 100%;" id="viewOrderBtn">View Order</button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+
+
+    <script>
+        let currentFilter = 'all';
+        let selectedTable = null;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initFilters();
+            renderTables();
+        });
+        
+        function initFilters() {
+            document.querySelectorAll('.tables-filters .tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tables-filters .tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    renderTables();
+                });
+            });
+        }
+        
+        function renderTables() {
+            const tablesGrid = document.getElementById('tablesGrid');
+            tablesGrid.innerHTML = '';
+            
+            let filteredTables = tablesData;
+            if (currentFilter !== 'all') {
+                filteredTables = tablesData.filter(t => t.status === currentFilter);
+            }
+            
+            filteredTables.forEach(table => {
+                const tableCard = document.createElement('div');
+                tableCard.className = `table-card ${table.status}`;
+                tableCard.innerHTML = `
+                    <div class="table-number">${table.number}</div>
+                    ${table.orderId ? `<div class="table-order-id">${table.orderId}</div>` : ''}
+                    <div class="table-capacity">${table.capacity} guests</div>
+                    <div class="table-status-line ${table.status}"></div>
+                `;
+                
+                if (table.status !== 'disabled') {
+                    tableCard.addEventListener('click', () => {
+                        selectedTable = table;
+                        showTableInfo(table);
+                    });
+                }
+                
+                tablesGrid.appendChild(tableCard);
+            });
+        }
+        
+        function showTableInfo(table) {
+            const tableInfo = document.getElementById('tableInfo');
+            const tableInfoTitle = document.getElementById('tableInfoTitle');
+            const tableInfoOrder = document.getElementById('tableInfoOrder');
+            const tableInfoDetails = document.getElementById('tableInfoDetails');
+            const selectTableBtn = document.getElementById('selectTableBtn');
+            
+            tableInfoTitle.textContent = `Table ${table.number}`;
+            
+            let orderInfo = 'No active order';
+            let orderAmount = '';
+            let order = null;
+            
+            if (table.orderId) {
+                const orders = DataManager.getOrders().concat(DataManager.getOrdersOnHold());
+                order = orders.find(o => o.id === table.orderId);
+                if (order) {
+                    orderInfo = `Order ${table.orderId}`;
+                    const totals = Utils.calculateOrderTotal(order.items);
+                    orderAmount = Utils.formatCurrency(totals.total);
+                    
+                    // Show order details
+                    tableInfoDetails.innerHTML = `
+                        <div class="table-info-detail-row">
+                            <span>Capacity:</span>
+                            <span><strong>${table.capacity} guests</strong></span>
+                        </div>
+                        <div class="table-info-detail-row">
+                            <span>Status:</span>
+                            <span class="badge ${Utils.getTableStatusBadge(table.status)}">${Utils.getTableStatusText(table.status)}</span>
+                        </div>
+                        <div class="table-info-detail-row">
+                            <span>Order Total:</span>
+                            <span><strong>${orderAmount}</strong></span>
+                        </div>
+                        ${order.type ? `
+                            <div class="table-info-detail-row">
+                                <span>Type:</span>
+                                <span>${order.type}</span>
+                            </div>
+                        ` : ''}
+                        ${order.note ? `
+                            <div class="table-info-detail-row">
+                                <span>Note:</span>
+                                <span style="color: var(--color-text-faded);">${order.note}</span>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    // Update button
+                    if (table.status === 'occupied') {
+                        selectTableBtn.textContent = 'View/Edit Order';
+                        selectTableBtn.onclick = () => {
+                            localStorage.setItem('viewOrder', JSON.stringify(order));
+                            window.location.href = 'orders.html';
+                        };
+                    } else {
+                        selectTableBtn.textContent = 'Select & Place Order';
+                        selectTableBtn.onclick = () => {
+                            if (selectedTable) {
+                                localStorage.setItem('selectedTable', JSON.stringify(selectedTable));
+                                window.location.href = 'cashier.html';
+                            }
+                        };
+                    }
+                }
+            } else {
+                tableInfoDetails.innerHTML = `
+                    <div class="table-info-detail-row">
+                        <span>Capacity:</span>
+                        <span><strong>${table.capacity} guests</strong></span>
+                    </div>
+                    <div class="table-info-detail-row">
+                        <span>Status:</span>
+                        <span class="badge ${Utils.getTableStatusBadge(table.status)}">${Utils.getTableStatusText(table.status)}</span>
+                    </div>
+                `;
+                selectTableBtn.textContent = 'Select & Place Order';
+                selectTableBtn.onclick = () => {
+                    if (selectedTable) {
+                        localStorage.setItem('selectedTable', JSON.stringify(selectedTable));
+                        window.location.href = 'cashier.html';
+                    }
+                };
+            }
+            
+            tableInfoOrder.innerHTML = orderInfo + (orderAmount ? `<br><strong style="color: var(--color-accent);">${orderAmount}</strong>` : '');
+            tableInfo.classList.add('active');
+        }
+        
+        // Button click handler is now set dynamically in showTableInfo function
+        
+        // Hide table info when clicking outside
+        document.addEventListener('click', (e) => {
+            const tableInfo = document.getElementById('tableInfo');
+            if (!tableInfo.contains(e.target) && !e.target.closest('.table-card')) {
+                tableInfo.classList.remove('active');
+            }
+        });
+    </script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="saas/sidebar.js"></script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+
+</body>
+</html>

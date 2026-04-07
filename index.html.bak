@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرئيسية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        /* Protective CSS: Hide sidebar items by default to prevent flickering */
+        .sidebar-item {
+            display: none !important;
+        }
+        
+        /* Show only allowed items for cashiers by default */
+        .sidebar-item[href*="index.html"],
+        .sidebar-item[onclick*="logout"],  /* 👈 ضيف السطر ده ضروري */
+        .sidebar-item[href=""],
+        .sidebar-item[href="#"] {
+            display: flex !important;
+        }
+        
+        /* Override for admin/owner when detected */
+        body[data-user-role="owner"] .sidebar-item,
+        body[data-user-role="admin"] .sidebar-item {
+            display: flex !important;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .header-search input {
+            color: #000000;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        /* Dashboard Cards */
+ .dashboard-cards { 
+     display: grid; 
+     /* السطر ده هيخلي الكروت تنزل سطر جديد لو الشاشة ضيقة بدل ما تتعصر */ 
+     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+     gap: var(--spacing-lg); 
+     margin-bottom: var(--spacing-lg); 
+ }
+
+.dashboard-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid #e8e8e8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+        
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        
+        .dashboard-card-title {
+    color: #666666;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.dashboard-card-value {
+    color: #000000;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+        
+        .dashboard-card-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27AE60;
+        }
+        
+        .badge-danger {
+            background: rgba(231, 76, 60, 0.1);
+            color: #E74C3C;
+        }
+        
+        .badge-info {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498DB;
+        }
+        
+        /* Cashier Section */
+        .cashier-section {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: var(--spacing-lg);
+        }
+        
+        .menu-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            min-height: 400px;
+            display: block !important;
+            visibility: visible !important;
+        }
+        
+        .category-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            overflow-x: auto;
+            padding-bottom: var(--spacing-sm);
+        }
+        
+        .category-tab {
+            padding: 10px 20px;
+            border: 1px solid #e8e8e8;
+            background: #fafafa;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 500;
+            color: #000000;
+            transition: all 0.3s ease;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        
+        .category-tab:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .category-tab.active {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: var(--spacing-md);
+            min-height: 200px;
+        }
+        
+        .category-tabs {
+            min-height: 50px;
+        }
+        
+        .menu-item-btn {
+            background: #ffffff;
+            border: 2px solid #e8e8e8;
+            border-radius: 16px;
+            padding: 24px 18px;
+            min-height: 140px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .menu-item-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.05);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .menu-item-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .menu-item-btn:hover {
+            border-color: #000000;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .menu-item-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #000000;
+            line-height: 1.5;
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+        
+        .menu-item-stock-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+        
+        .menu-item-stock-quantity {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .menu-item-btn {
+            position: relative;
+        }
+        
+        /* Cart Section */
+        .cart-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+
+        }
+        
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #e8e8e8;
+            flex-shrink: 0;
+        }
+        
+        .cart-header h3 {
+            color: #000000;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .cart-items {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            margin-bottom: var(--spacing-sm);
+            min-height: 150px;
+            max-height: 350px;
+        }
+        
+        .cart-item {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid #e8e8e8;
+            margin-bottom: var(--spacing-md);
+            background: #fafafa;
+            border-radius: 12px;
+        }
+        
+        .cart-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .cart-item-name {
+            font-weight: 600;
+            color: #000000;
+            flex: 1;
+            font-size: 16px;
+            line-height: 1.5;
+            padding-right: var(--spacing-sm);
+        }
+        
+        .cart-item-price {
+            color: #000000;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .cart-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-sm);
+        }
+        
+        .cart-item-quantity {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .quantity-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #e8e8e8;
+            background: #fafafa;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .quantity-btn:hover {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+        
+        .quantity-value {
+            font-weight: 700;
+            color: #000000;
+            min-width: 40px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .cart-item-remove {
+            background: none;
+            border: none;
+            color: #999999;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 6px;
+            transition: all 0.3s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+        }
+        
+        .cart-item-remove:hover {
+            background: #ffebee;
+            color: #e74c3c;
+        }
+        
+        .cart-item-remove:hover {
+            color: #000000;
+            transform: rotate(90deg);
+        }
+        
+        .order-type-selection,
+        .table-number-input,
+        .discount-input,
+        .delivery-fee-input {
+            flex-shrink: 0;
+        }
+        
+        .cart-summary {
+            padding: var(--spacing-sm);
+            background: #fafafa;
+            border-radius: 12px;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-sm);
+            color: #666666;
+            font-size: 14px;
+        }
+        
+        .summary-row.total {
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid #e8e8e8;
+            color: #000000;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .cart-buttons {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-primary:hover {
+            background: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: #999999;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cccccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999999;
+        }
+        
+        /* Modal Styles Override */
+        .modal {
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-title {
+            color: #000000;
+        }
+        
+        .modal-close {
+            color: #999999;
+        }
+        
+        .modal-close:hover {
+            color: #000000;
+        }
+        
+        #variantOptions .btn.active {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+/* From Uiverse.io by mobinkakei */ 
+ .loader { 
+   position: relative; 
+   width: 108px; 
+   display: flex; 
+   justify-content: space-between; 
+ } 
+ .loader::after, 
+ .loader::before { 
+   content: ""; 
+   display: inline-block; 
+   width: 48px; 
+   height: 48px; 
+   background-color: #fff; 
+   background-image: radial-gradient(circle 14px, #0d161b 100%, transparent 0); 
+   background-repeat: no-repeat; 
+   border-radius: 50%; 
+   animation: eyeMove 10s infinite, blink 10s infinite; 
+ } 
+ @keyframes eyeMove { 
+   0%, 
+   10% { 
+     background-position: 0px 0px; 
+   } 
+   13%, 
+   40% { 
+     background-position: -15px 0px; 
+   } 
+   43%, 
+   70% { 
+     background-position: 15px 0px; 
+   } 
+   73%, 
+   90% { 
+     background-position: 0px 15px; 
+   } 
+   93%, 
+   100% { 
+     background-position: 0px 0px; 
+   } 
+ } 
+ @keyframes blink { 
+   0%, 
+   10%, 
+   12%, 
+   20%, 
+   22%, 
+   40%, 
+   42%, 
+   60%, 
+   62%, 
+   70%, 
+   72%, 
+   90%, 
+   92%, 
+   98%, 
+   100% { 
+     height: 48px; 
+   } 
+   11%, 
+   21%, 
+   41%, 
+   61%, 
+   71%, 
+   91%, 
+   99% { 
+     height: 18px; 
+  } 
+} 
+/* كلاس الزرار لما يكون شغال ومنور */ 
+.active-points-btn { 
+    background: #fff !important; 
+    border: 2px solid #f39c12 !important; 
+    color: #f39c12 !important; 
+    cursor: pointer !important; 
+} 
+      /* 🚀 التخطيط النهائي والماستر (طول وعرض ثابتين بدون عصر) */ 
+ 
+ /* 1. الحاوية الأساسية (واخدة طول الشاشة بالظبط) */ 
+ .cashier-section { 
+     display: flex !important; 
+     gap: 20px !important; 
+     align-items: stretch !important; 
+     height: calc(100vh - 110px) !important; /* طول الشاشة ناقص الهيدر */ 
+ } 
+ 
+ /* 2. العمود الأيسر (الكروت + المنيو) */ 
+ .left-column { 
+     flex: 1 !important; /* ياخد باقي مساحة الشاشة */ 
+     min-width: 0 !important; /* يمنع المنيو إنه يزق السلة */ 
+     display: flex !important; 
+     flex-direction: column !important; 
+     gap: 15px !important; 
+     height: 100% !important; 
+ } 
+ 
+ /* 3. السلة (عرض ثابت مستحيل يتعصر + طول 100%) */ 
+ .cart-section { 
+     width: 400px !important; /* عرض السلة (لو عايزها أعرض خليها 420) */ 
+     min-width: 400px !important; 
+     max-width: 400px !important; 
+     flex-shrink: 0 !important; /* 🪄 السحر اللي بيمنع العصر */ 
+     height: 100% !important; 
+     display: flex !important; 
+     flex-direction: column !important; 
+ } 
+ 
+ /* 4. تظبيط سكرول المنيو */ 
+ .menu-section { 
+     flex: 1 !important; 
+     min-height: 0 !important; /* عشان السكرول يشتغل جواها بس */ 
+     overflow-y: auto !important; 
+     margin: 0 !important; 
+ } 
+ 
+ /* 5. تظبيط سكرول المنتجات جوه السلة */ 
+ .cart-items { 
+     flex: 1 !important; 
+     min-height: 0 !important; /* عشان المنتجات متزقش زراير الدفع لتحت */ 
+     overflow-y: auto !important; 
+ }
+.active-points-btn:hover { 
+    background: #f39c12 !important; 
+    color: #fff !important; 
+} 
+ /* 🚀 تصغير زراير السلة السفلية لتوفير مساحة أكبر للمنتجات */ 
+ 
+ /* 1. زراير نوع الطلب (تيك أواي، صالة، دليفري) */ 
+ .btn-order-type { 
+     padding: 6px 8px !important; 
+     font-size: 12px !important; 
+ } 
+ #orderTypeSelection { 
+     margin-bottom: 8px !important; 
+ } 
+ 
+ /* 2. زرار تعديل السعر / خصم */ 
+ .cart-section .btn[onclick="openPriceAdjustmentModal()"] { 
+     padding: 8px !important; 
+     font-size: 13px !important; 
+     margin-top: 5px !important; 
+     margin-bottom: 5px !important; 
+ } 
+ 
+ /* 3. الإجمالي والملخص (تقليل المسافات) */ 
+ .cart-summary { 
+     padding: 8px 10px !important; 
+     margin-bottom: 8px !important; 
+ } 
+ .summary-row.total { 
+     margin-top: 8px !important; 
+     padding-top: 8px !important; 
+     font-size: 16px !important; 
+ } 
+ 
+ /* 4. زراير إتمام وتعليق الطلب اللي تحت خالص */ 
+ .cart-buttons { 
+     gap: 10px !important; 
+ } 
+ .cart-buttons .btn { 
+     padding: 10px !important; 
+     font-size: 14px !important; 
+ } 
+ 
+ /* 5. ترييحة لمنتجات السلة نفسها عشان يبان عدد أكبر */ 
+ .cart-item { 
+     padding: 12px 10px !important; 
+     gap: 8px !important; 
+     margin-bottom: 8px !important; 
+ } 
+ .cart-item-name { 
+     font-size: 14px !important; 
+ } 
+ .quantity-btn { 
+     width: 32px !important; 
+     height: 32px !important; 
+ }
+
+.menu-section {
+    display: flex !important;
+    flex-direction: row;
+    gap: var(--spacing-md);
+    overflow: hidden !important;
+}
+
+.menu-grid {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+.category-tabs {
+    display: flex;
+    flex-direction: column;
+    width: 150px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-left: 1px solid #e8e8e8;
+    padding-left: var(--spacing-md);
+    gap: var(--spacing-sm);
+}
+
+.category-tab {
+    width: 100%;
+}
+</style>
+</head>
+<body>
+    <nav class="sidebar">
+            <a href="index.html" class="sidebar-item active">
+                <i class="fas fa-home" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">الرئيسية</span>
+            </a>
+            <a href="orders.html" class="sidebar-item">
+                <i class="fas fa-clipboard-list" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">الطلبات</span>
+            </a>
+            <a href="reports.html" class="sidebar-item" data-restricted="owner">
+                <i class="fas fa-chart-line" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">التقارير</span>
+            </a>
+            <a href="menu.html" class="sidebar-item">
+                <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">المطبخ</span>
+            </a>
+            <a href="ingredients.html" class="sidebar-item">
+                <i class="fas fa-boxes" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">المخزون</span>
+            </a>
+            <a href="customers.html" class="sidebar-item">
+                <i class="fas fa-address-book" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">العملاء</span>
+            </a>
+            <a href="employees.html" class="sidebar-item" data-restricted="owner">
+                <i class="fas fa-users" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">الموظفون</span>
+            </a>
+            <a href="suppliers.html" class="sidebar-item" data-restricted="owner">
+                <i class="fas fa-truck" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">الموردين</span>
+            </a>
+            <a href="marketing.html" class="sidebar-item" data-restricted="owner">
+                <i class="fas fa-bullhorn" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">ادارة التسويق</span>
+            </a>
+            <a href="settings.html" class="sidebar-item" data-restricted="owner">
+                <i class="fas fa-cog" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">الاعدادات</span>
+            </a>
+        <div class="sidebar-profile">
+            <div class="sidebar-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt" style="margin-left: 12px;"></i>
+                <span class="sidebar-item-label">تسجيل الخروج</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div style="display: flex; align-items: center; gap: 20px;">
+             <h2 class="header-title">الرئيسية</h2>
+             <span class="loader"></span>
+            </div>
+        <div class="header-search">
+            <i class="fas fa-search header-search-icon"></i>
+            <input type="text" placeholder="ابحث عن المنتجات..." id="menuSearch">
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn" onclick="openCloseCashDrawerModal()" title="إغلاق اليوم" id="closeDayBtn" style="display: none;">
+                <i class="fas fa-lock"></i>
+            </button>
+            <button class="header-action-btn" id="attendanceBtn" onclick="openAttendanceModal()" title="تسجيل حضور الموظفين">
+                <i class="fas fa-user-check"></i>
+            </button>
+            <button class="header-action-btn" id="refreshBtn" onclick="handleRefresh()" title="تحديث الصفحة">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="header-action-btn" id="stockNotificationBtn" onclick="showStockNotifications()" title="تنبيهات المخزون">
+                <i class="fas fa-bell"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="cashier-section">
+            <div class="left-column">
+            <div class="menu-section">
+                <div class="category-tabs" id="categoryTabs"></div>
+                <div class="menu-grid" id="menuGrid"></div>
+            </div>
+            <div class="dashboard-cards" style="margin-top: 0;">
+                <div class="dashboard-card">
+                    <div class="dashboard-card-title">طلبات اليوم</div>
+                    <div class="dashboard-card-value" id="todayOrders">0</div>
+                    <span class="dashboard-card-badge badge-info" id="todayOrdersBadge">0%</span>
+                </div>
+                <div class="dashboard-card">
+                    <div class="dashboard-card-title">إجمالي الإيرادات</div>
+                    <div class="dashboard-card-value" id="totalRevenue">ج.م 0</div>
+                    <span class="dashboard-card-badge badge-success" id="totalRevenueBadge">0%</span>
+                </div>
+                <div class="dashboard-card" style="position: relative;">
+                    <div class="dashboard-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>مصاريف اليوم</span>
+                        <button id="addExpenseBtn" style="background: #e74c3c; color: #ffffff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;" title="إضافة مصروف">
+                            <i class="fas fa-plus" style="margin-left: 4px;"></i>
+                            إضافة
+                        </button>
+                    </div>
+                    <div class="dashboard-card-value" id="todayExpenses">ج.م 0</div>
+                    <span class="dashboard-card-badge badge-info" id="todayExpensesBadge">0%</span>
+                </div>
+                <div class="dashboard-card">
+                    <div class="dashboard-card-title">صافي الكاش</div>
+                    <div class="dashboard-card-value" id="netRevenue">ج.م 0</div>
+                    <span class="dashboard-card-badge badge-success" id="netRevenueBadge">0%</span>
+                </div>
+            </div>
+        </div>
+            <div class="cart-section">
+                <div class="cart-header">
+                    <h3>سلة الطلبات</h3>
+                </div>
+                <div id="cartCustomerSection" style="margin-bottom: 15px;">
+                    <div id="searchCustomerState" style="display: flex; gap: 8px; position: relative; z-index: 50;"> 
+                         <div style="position: relative; flex: 1;"> 
+                             <i class="fas fa-search" style="position: absolute; right: 10px; top: 10px; color: #999; font-size: 14px; pointer-events: none;"></i> 
+                             <input type="tel" id="quickPhoneSearch" placeholder="ابحث برقم هاتف العميل..." style="width: 100%; padding: 8px 30px 8px 10px; border: 1px solid #e8e8e8; border-radius: 8px; font-family: 'Cairo'; font-size: 13px; outline: none;" onkeypress="if(event.key === 'Enter' && typeof searchQuickCustomer === 'function') searchQuickCustomer()"> 
+                         </div> 
+                         
+                         <button type="button" id="forceAddCustomerBtn" style="background: #000; color: #fff; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"> 
+                             <i class="fas fa-user-plus" style="pointer-events: none;"></i> 
+                         </button> 
+                     </div>
+                    <div id="activeCustomerState" style="display: none; background: #fff; border: 1px solid #f39c12; padding: 10px 12px; border-radius: 8px; border-right: 4px solid #f39c12; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-user-circle" style="color: #666; font-size: 22px;"></i>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span id="cartCustName" style="font-weight: bold; font-size: 14px; color: #000;">اسم العميل</span>
+                                    <span id="cartCustTier" style="background: rgba(241, 196, 15, 0.2); color: #d4ac0d; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">🥇 ذهبي</span>
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-top: 2px;">
+                                    <i class="fas fa-star" style="color: #f39c12;"></i> <span id="cartCustPoints">150 نقطة</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="clearCartCustomer()" style="background: none; border: none; color: #e74c3c; font-size: 16px; cursor: pointer;" title="إلغاء اختيار العميل"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="cart-items" id="cartItems">
+                    <div class="empty-state">السلة فارغة</div>
+                </div>
+                <div class="order-type-selection" id="orderTypeSelection" style="display: none; margin-bottom: var(--spacing-sm);">
+                    <div style="margin-bottom: 6px; font-weight: 600; color: #000000; font-size: 13px;">نوع الطلب:</div>
+                    <div id="orderTypeContainer" style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs);">
+                        <button class="btn-order-type active" data-type="takeaway" id="takeawayBtn" style="flex: 1; padding: 10px; border: 1px solid var(--color-text-dark); background: var(--color-text-dark); color: var(--color-white); border-radius: var(--border-radius-lg); cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--shadow-sm);">
+                            <i class="fas fa-shopping-bag" style="margin-left: 4px; font-size: 12px;"></i>
+                            تيك أواي
+                        </button>
+                        <button class="btn-order-type" data-type="dinein" id="dineinBtn" style="flex: 1; padding: 10px; border: 1px solid var(--color-separator); background: var(--color-white); color: var(--color-text-dark); border-radius: var(--border-radius-lg); cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--shadow-sm);">
+                            <i class="fas fa-utensils" style="margin-left: 4px; font-size: 12px;"></i>
+                            Dine In - الصالة
+                        </button>
+                        <button class="btn-order-type" data-type="delivery" id="deliveryBtn" style="flex: 1; padding: 10px; border: 1px solid var(--color-separator); background: var(--color-white); color: var(--color-text-dark); border-radius: var(--border-radius-lg); cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--shadow-sm);">
+                            <i class="fas fa-motorcycle" style="margin-left: 4px; font-size: 12px;"></i>
+                            دليفري
+                        </button>
+                    </div>
+                    <div id="aggregatorBtnsContainer" style="display: flex; flex-direction: column; gap: var(--spacing-xs); margin-top: var(--spacing-xs);"></div>
+                </div>
+                <div class="table-number-input" id="tableNumberInput" style="display: none; margin-bottom: var(--spacing-sm);">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #000000; font-size: 13px;">رقم الطاولة</label>
+                    <input type="number" id="tableNumber" min="1" step="1" value="" placeholder="أدخل رقم الطاولة" style="width: 100%; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 10px; background: #ffffff; color: #000000; font-size: 13px;">
+                </div>
+                <div style="margin-top: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                    <button type="button" onclick="openPriceAdjustmentModal()" class="btn" style="width: 100%; background: #f8f9fa; border: 2px dashed #000000; color: #000000; font-weight: 700; padding: 12px; border-radius: 12px; display: flex; justify-content: center; gap: 8px; align-items: center; transition: all 0.3s ease;">
+                        <i class="fas fa-balance-scale"></i> تعديل السعر / خصم
+                    </button>
+                </div>
+                <div class="delivery-fee-input" id="deliveryFeeInput" style="display: none; margin-bottom: var(--spacing-sm);">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #000000; font-size: 13px;">سعر التوصيل (ج.م)</label>
+                    <input type="number" id="deliveryFee" min="0" step="0.01" value="0" placeholder="0.00" style="width: 100%; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 10px; background: #ffffff; color: #000000; font-size: 13px;" oninput="updateCart()">
+                </div>
+                <div class="cart-summary" id="cartSummary" style="display: none;">
+                    <div class="summary-row" id="deliveryFeeRow" style="display: none;">
+                        <span>سعر التوصيل</span>
+                        <span id="deliveryFeeDisplay">0.00 ج.م</span>
+                    </div>
+                    <div class="summary-row" id="aggregatorMarkupRow" style="display: none;">
+                        <span id="aggregatorMarkupLabel">زيادة التوصيل</span>
+                        <span id="aggregatorMarkupDisplay" style="color: #27ae60; font-weight: 700;">+0.00 ج.م</span>
+                    </div>
+                    <div class="summary-row" id="surchargeRow" style="display: none;">
+                        <span style="color: #27ae60; font-weight: 600;">رسوم إضافية</span>
+                        <span id="surchargeDisplay" style="color: #27ae60; font-weight: 700;">+0.00 ج.م</span>
+                    </div>
+                    <div class="summary-row" id="discountRow" style="display: none;">
+                        <span style="color: #e74c3c; font-weight: 600;">الخصم</span>
+                        <span id="discount" style="color: #e74c3c; font-weight: 700;">-0.00 ج.م</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>الإجمالي</span>
+                        <span id="total">0.00 ج.م</span>
+                    </div>
+                </div>
+                <div class="cart-buttons">
+                    <button class="btn btn-secondary" id="holdCartBtn" onclick="setTimeout(clearCartCustomer, 500)">⏸ تعليق الطلب</button>
+                    <button class="btn btn-primary" id="proceedBtn" type="button">✓ إتمام الطلب</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="variantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="variantModalTitle">اختر الحجم</h3>
+                <button class="modal-close" onclick="document.getElementById('variantModal').classList.remove('active')">×</button>
+            </div>
+            <div id="variantOptions" style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg);"></div>
+            <div style="margin-top: var(--spacing-lg);">
+                <button class="btn btn-primary" style="width: 100%;" id="addVariantBtn">إضافة</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="deliveryInfoModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">معلومات التوصيل</h3>
+                <button class="modal-close" onclick="closeDeliveryModal()">×</button>
+            </div>
+            <form id="deliveryForm" onsubmit="handleDeliverySubmit(event)">
+                <div style="margin-bottom: 15px;"> 
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;">اسم العميل</label> 
+                    <input type="text" id="deliveryName" placeholder="أدخل اسم العميل" class="input" style="width: 100%; padding: 12px; border: 1px solid #e8e8e8; border-radius: 12px; outline: none;"> 
+                </div>
+                <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+                    <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">رقم الهاتف</label>
+                    <input type="tel" class="input" id="deliveryPhone" placeholder="أدخل رقم الهاتف" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 14px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+                    <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">العنوان</label>
+                    <textarea class="input" id="deliveryAddress" placeholder="أدخل العنوان الكامل" required rows="3" style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeliveryModal()" style="flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; background: #fafafa; color: #000000; border: 1px solid #e8e8e8;">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; background: #000000; color: #ffffff;">تأكيد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal" id="openCashDrawerModal">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <div class="modal-header">
+                <h3 class="modal-title">فتح الدرج النقدي</h3>
+                <button class="modal-close" onclick="closeOpenCashDrawerModal()">×</button>
+            </div>
+            <form id="openCashDrawerForm" onsubmit="handleOpenCashDrawer(event)" style="padding: var(--spacing-lg);">
+                <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+                    <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">المبلغ الموجود في الدرج (ج.م) *</label>
+                    <input type="number" class="input" id="openingAmount" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 16px; font-weight: 700; text-align: center;">
+                </div>
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; background: #000000; color: #ffffff;">فتح الدرج</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal" id="closeCashDrawerModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">إغلاق الدرج النقدي</h3>
+                <button class="modal-close" onclick="closeCloseCashDrawerModal()">×</button>
+            </div>
+            <div style="padding: var(--spacing-lg);">
+                <div style="background: #fafafa; padding: var(--spacing-lg); border-radius: 12px; margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                        <span style="color: #666666; font-size: 14px;">المبلغ الابتدائي:</span>
+                        <strong style="color: #000000; font-size: 14px;" id="closeOpeningAmount">0.00 ج.م</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;"> 
+                        <span style="color: #666666; font-size: 14px;">إجمالي مبيعات النقد:</span> 
+                        <strong style="color: #000000; font-size: 14px;" id="closeCashSales">0.00 ج.م</strong> 
+                    </div> 
+                     <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;"> 
+                         <span style="color: #666666; font-size: 14px;">إجمالي الخصومات الممنوحة:</span> 
+                         <strong style="color: #e74c3c; font-size: 14px;" id="closeTotalDiscounts">0.00 ج.م</strong> 
+                     </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                        <span style="color: #666666; font-size: 14px;">إجمالي المصاريف النقدية:</span>
+                        <strong style="color: #e74c3c; font-size: 14px;" id="closeTotalExpenses">0.00 ج.م</strong>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 2px solid #e8e8e8;">
+                        <span style="color: #000000; font-weight: 700; font-size: 16px;">المبلغ المتوقع في الدرج:</span>
+                        <strong style="color: #000000; font-weight: 800; font-size: 18px;" id="closeExpectedAmount">0.00 ج.م</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                        <span style="color: #666666; font-size: 14px;">إجمالي مبيعات الفيزا:</span>
+                        <strong style="color: #3498DB; font-size: 14px;" id="closeVisaSalesDisplay">0.00 ج.م</strong>
+                    </div>
+                    <div id="aggregatorSalesContainer" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px dashed #cccccc;">
+                        <!-- Aggregator sales will be injected here -->
+                    </div>
+                </div>
+                
+                <form id="closeCashDrawerForm" onsubmit="handleCloseCashDrawer(event)">
+                    <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+                        <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">المبلغ الفعلي في الدرج (ج.م) *</label>
+                        <input type="number" class="input" id="closingAmount" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 16px; font-weight: 700; text-align: center;" oninput="calculateDifference()">
+                    </div>
+                    
+                    <div style="background: #fafafa; padding: var(--spacing-lg); border-radius: 12px; margin-bottom: var(--spacing-lg);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #000000; font-weight: 700; font-size: 16px;">الفرق:</span>
+                            <strong style="color: #000000; font-weight: 800; font-size: 20px;" id="closeDifference">0.00 ج.م</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: var(--spacing-lg);">
+                        <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">ملاحظات الإغلاق (اختياري)</label>
+                        <textarea class="input" id="closingNotes" rows="3" placeholder="مثال: الدرج كان ناقص عشان سلفنا فلان..." style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; resize: vertical; font-family: inherit; font-size: 14px;"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--spacing-md);">
+                        <button type="button" class="btn btn-secondary" onclick="closeCloseCashDrawerModal()" style="flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; background: #fafafa; color: #000000; border: 1px solid #e8e8e8;">إلغاء</button>
+                        <button type="submit" id="closeDaySubmitBtn" class="btn btn-primary" style="flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; background: #000000; color: #ffffff;">إغلاق اليوم</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="paymentSuccessModal">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <div style="margin-bottom: var(--spacing-xl);">
+                <div style="width: 80px; height: 80px; background: #000000; border-radius: 50%; margin: 0 auto var(--spacing-lg); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);">
+                    <i class="fas fa-check" style="color: #ffffff; font-size: 40px;"></i>
+                </div>
+                <h2 style="color: #000000; font-size: 28px; font-weight: 700; margin-bottom: var(--spacing-md);">تم الدفع بنجاح!</h2>
+                <div style="font-size: 36px; font-weight: 800; color: #000000; margin-bottom: var(--spacing-xl);" id="successTotalAmount">0.00 ج.م</div>
+            </div>
+            
+            <div style="text-align: right; background: #fafafa; padding: var(--spacing-lg); border-radius: 12px; margin-bottom: var(--spacing-lg);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                    <span style="color: #666666; font-size: 14px;">رقم الطلب:</span>
+                    <strong style="color: #000000; font-size: 14px;" id="successOrderNumber">-</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                    <span style="color: #666666; font-size: 14px;">وقت الدفع:</span>
+                    <strong style="color: #000000; font-size: 14px;" id="successPaymentTime">-</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
+                    <span style="color: #666666; font-size: 14px;">طريقة الدفع:</span>
+                    <strong style="color: #000000; font-size: 14px;" id="successPaymentMethod">-</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666666; font-size: 14px;">الخادم:</span>
+                    <strong style="color: #000000; font-size: 14px;" id="successServerName">-</strong>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                <button class="btn btn-primary" onclick="newOrderFromSuccess()" style="width: 100%;">
+                    <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                    طلب جديد
+                </button>
+                <button class="btn btn-secondary" onclick="printReceipt()" style="width: 100%;">
+                    <i class="fas fa-print" style="margin-left: 8px;"></i>
+                    طباعة الفاتورة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Modal (Cashier) -->
+    <div class="modal" id="attendanceModal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 class="modal-title">تسجيل حضور الموظفين</h3>
+                <button class="modal-close" onclick="closeAttendanceModal()">×</button>
+            </div>
+            <div style="padding: var(--spacing-lg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                    <div style="color:#666666; font-size: 13px;">
+                        اليوم التجاري: <strong id="attendanceBusinessDate" style="color:#000000;">-</strong>
+                    </div>
+                    <div style="display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end;">
+                        <button class="btn btn-secondary" type="button" onclick="selectAllAttendance('default')" style="padding: 10px 14px; background: #f0f0f0; border-color: #e0e0e0;">
+                            <i class="fas fa-minus-circle" style="margin-left: 8px;"></i>
+                            تحديد الكل افتراضي
+                        </button>
+                        <button class="btn btn-secondary" type="button" onclick="selectAllAttendance('present')" style="padding: 10px 14px;">
+                            <i class="fas fa-check-circle" style="margin-left: 8px;"></i>
+                            تحديد الكل حاضر
+                        </button>
+                        <button class="btn btn-secondary" type="button" onclick="selectAllAttendance('absent')" style="padding: 10px 14px;">
+                            <i class="fas fa-times-circle" style="margin-left: 8px;"></i>
+                            تحديد الكل غائب
+                        </button>
+                        <button class="btn btn-secondary" type="button" onclick="reloadAttendanceModal()" style="padding: 10px 16px;">
+                            <i class="fas fa-sync-alt" style="margin-left: 8px;"></i>
+                            تحديث القائمة
+                        </button>
+                    </div>
+                </div>
+
+                <div id="attendanceList" style="display:grid; gap: 10px;">
+                    <div style="text-align:center; color:#999999; padding: var(--spacing-lg);">جاري التحميل...</div>
+                </div>
+
+                <div style="display:flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAttendanceModal()">إلغاء</button>
+                    <button type="button" class="btn btn-primary" style="flex:1;" onclick="saveAttendance()">حفظ الحضور</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div class="modal" id="addExpenseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: #ffffff; border-radius: 16px; padding: var(--spacing-lg); max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <h3 style="color: #000000; font-weight: 700; font-size: 20px; margin: 0;">إضافة مصروف</h3>
+                <button onclick="closeAddExpenseModal()" style="background: none; border: none; font-size: 24px; color: #999999; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.3s ease;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">×</button>
+            </div>
+            <form id="addExpenseForm" onsubmit="handleAddExpenseSubmit(event); return false;">
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">نوع المصروف *</label>
+                    <select id="expenseType" class="input" style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 14px;" required>
+                        <option value="">اختر النوع</option>
+                        <option value="supplies">شراء بضاعة</option>
+                        <option value="bills">فواتير</option>
+                        <option value="rent">إيجار</option>
+                        <option value="other">أخرى</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">المبلغ (ج.م) *</label>
+                    <input type="number" id="expenseAmount" class="input" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 14px;">
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">الوصف (اختياري)</label>
+                    <textarea id="expenseDescription" rows="3" placeholder="وصف المصروف" style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" onclick="closeAddExpenseModal()" style="flex: 1; padding: 12px 24px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">إلغاء</button>
+                    <button type="submit" style="flex: 1; padding: 12px 24px; border: none; border-radius: 12px; background: #000000; color: #ffffff; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/firestore_service.js"></script>
+    <script src="js/sync_manager.js"></script>
+    <script src="js/data.js"></script>
+    <!-- activation.js معطّل — النظام بيستخدم SaaS بدلاً منه -->
+    <!-- <script src="js/activation.js"></script> -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app_logic.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/enhancements.js"></script>
+    <script src="js/main.js"></script>
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkout-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <div class="modal-header">
+                <h3 class="modal-title">اختر طريقة الدفع</h3>
+                <button class="modal-close" onclick="closeCheckoutModal()">×</button>
+            </div>
+            
+            <div style="padding: var(--spacing-xl);">
+                     <div class="checkout-summary" style="margin-bottom: 15px;">
+                         <h3 style="font-size: 24px; font-weight: 700;">الإجمالي المطلوب: <span id="checkoutTotalAmount" class="highlight-total" style="font-size: 32px; font-weight: 800; color: #000000;">0.00 ج.م</span></h3>
+                     </div>
+
+                     <style>
+                         .print-toggle-switch { position: relative; display: inline-block; width: 54px; height: 30px; }
+                         .print-toggle-switch input { opacity: 0; width: 0; height: 0; }
+                         .print-toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+                         .print-toggle-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+                         .print-toggle-switch input:checked + .print-toggle-slider { background-color: #25D366; }
+                         .print-toggle-switch input:checked + .print-toggle-slider:before { transform: translateX(24px); }
+                     </style>
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f0f2f5; border-radius: 8px; border: 1px solid #e4e6eb;">
+                         <div style="display: flex; align-items: center; gap: 10px;">
+                             <i class="fa-solid fa-print" style="color: #1877f2; font-size: 22px;"></i>
+                             <span style="font-weight: bold; font-size: 16px; color: #1c1e21;">طباعة الفاتورة للعميل</span>
+                         </div>
+                         <label class="print-toggle-switch">
+                             <input type="checkbox" id="printReceiptToggle" checked>
+                             <span class="print-toggle-slider"></span>
+                         </label>
+                     </div>
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);"> 
+                     <button class="btn btn-primary" id="checkoutCashBtn" onclick="processOrder('cash')" style="flex: 1; padding: 20px; font-size: 18px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 12px;"> 
+                         <i class="fas fa-money-bill-wave" style="font-size: 24px;"></i> 
+                         💵 نقدي 
+                     </button> 
+                     <button class="btn btn-secondary" id="checkoutVisaBtn" onclick="processOrder('visa')" style="flex: 1; padding: 20px; font-size: 18px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 12px; background: #0066cc; color: #ffffff; border: none;"> 
+                         <i class="fas fa-credit-card" style="font-size: 24px;"></i> 
+                         💳 Visa 
+                     </button> 
+                 </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="closeCheckoutModal()" style="width: 100%; margin-top: var(--spacing-md); padding: 12px; border: 1px solid #e8e8e8; border-radius: 12px; font-weight: 600; cursor: pointer; background: #fafafa; color: #000000;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+    
+    <script>
+    window.logout = function() {
+        if(confirm("هل تريد بالتأكيد تسجيل الخروج؟")) {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        }
+    };
+</script>
+<script>
+    // Firebase Migration & Sync Setup
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Wait for Firebase and FirestoreService to load
+      let retries = 0;
+      const maxRetries = 10;
+      
+      while (retries < maxRetries) {
+        if (typeof window.FirestoreService !== 'undefined' && typeof DataManager !== 'undefined') {
+          // Initialize SyncManager
+          if (typeof window.SyncManager !== 'undefined') {
+            console.log('🔄 [Dashboard] Initializing SyncManager...');
+            window.SyncManager.init();
+          }
+          
+          // Check if migration needed
+          if (!localStorage.getItem('firebase_migration_completed') && navigator.onLine) {
+            try {
+              console.log('🔄 Checking for data migration...');
+              // await DataManager.migrateLocalDataToFirebase(); // This function is removed
+            } catch (error) {
+              console.error('Migration check failed:', error);
+            }
+          }
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retries++;
+      }
+    });
+    </script>
+
+<style>
+    /* تنسيق الجرس والبادج */
+    #stockNotificationBtn { position: relative !important; }
+    
+    .stock-badge {
+        position: absolute; top: -8px; right: -8px;
+        color: white; font-size: 11px; font-weight: 900;
+        min-width: 20px; height: 20px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        z-index: 100; animation: pulse-badge 2s infinite;
+    }
+
+    /* ألوان الصفوف داخل التقرير */
+    .nawaqis-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px; margin-bottom: 8px; border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-right: 5px solid #ddd;
+    }
+    
+    /* حالة الخطر (أحمر) */
+    .nawaqis-row.critical { border-right-color: #e74c3c; background: #fff5f5; }
+    .nawaqis-row.critical .item-v { background: #e74c3c; color: white; }
+    
+    /* حالة التحذير (أصفر) */
+    .nawaqis-row.warning { border-right-color: #f1c40f; background: #fffdf5; }
+    .nawaqis-row.warning .item-v { background: #f1c40f; color: #000; }
+
+    .item-v { padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 13px; direction: ltr; }
+    .item-n { font-weight: 700; color: #333; font-size: 14px; }
+    .item-t { font-size: 11px; color: #666; display: block; }
+
+    @keyframes pulse-badge {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+</style>
+
+<script>
+// دالة تحديد حالة الصنف (أحمر/أصفر/جيد)
+function getItemStatus(item) {
+    const stock = parseFloat(item.stock ?? item.current_stock ?? 0);
+    const redLimit = parseFloat(item.criticalStockLimit ?? item.minThreshold ?? 0);
+    const yellowLimit = parseFloat(item.warningThreshold ?? 0);
+
+    // إذا وصل للحد الأحمر أو أقل
+    if (redLimit > 0 && stock <= redLimit) return 'critical';
+    // إذا وصل للحد الأصفر أو أقل (ولم يصل للأحمر بعد)
+    if (yellowLimit > 0 && stock <= yellowLimit) return 'warning';
+    
+    return 'good';
+}
+
+function updateStockBell() {
+    // نستخدم الـ notifications collection من Firestore عشان أداء أفضل
+    if (typeof window !== 'undefined' && window.FirestoreService) {
+        // لو Firestore متاح، نستخدمه (أفضل أداء)
+        updateFromFirestore();
+    } else {
+        // لو مش متاح، نستخدم localStorage (backup)
+        updateFromLocalStorage();
+    }
+}
+
+// تحديث من Firestore (الطريقة المفضلة)
+async function updateFromFirestore() {
+    try {
+        const notifications = await window.FirestoreService.getAllNotifications();
+        if (!notifications || notifications.length === 0) {
+            // لو مفيش نوتيفيكيشنز، ممكن نعتمد على الـ LocalStorage كـ Backup
+            updateFromLocalStorage(); 
+            return;
+        }
+        
+        const btn = document.getElementById('stockNotificationBtn');
+        if (!btn) return;
+
+        let badge = btn.querySelector('.stock-badge');
+        if (badge) badge.remove();
+
+        const hasCritical = notifications.some(n => n.status === 'critical');
+        const finalColor = hasCritical ? '#e74c3c' : '#f1c40f';
+
+        badge = document.createElement('div');
+        badge.className = 'stock-badge';
+        badge.innerText = notifications.length;
+        badge.style.backgroundColor = finalColor;
+        if (!hasCritical) badge.style.color = '#000';
+        
+        btn.appendChild(badge);
+        btn.querySelector('i').style.color = finalColor;
+
+        window.currentNawaqisList = notifications;
+    } catch (error) {
+        console.error("❌ خطأ في جلب النواقص من Firestore:", error);
+        // في حالة الفشل، شغل النسخة الاحتياطية فوراً
+        updateFromLocalStorage(); 
+    }
+}
+
+// تحديث من localStorage (الطريقة الاحتياطية)
+function updateFromLocalStorage() {
+    const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+    const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+    const allItems = [...ingredients, ...menuItems];
+
+    let nawaqis = [];
+    allItems.forEach(item => {
+        const status = getItemStatus(item);
+        if (status !== 'good') {
+            nawaqis.push({ ...item, alertStatus: status });
+        }
+    });
+
+    const btn = document.getElementById('stockNotificationBtn');
+    if (!btn) return;
+
+    let badge = btn.querySelector('.stock-badge');
+    if (badge) badge.remove();
+
+    if (nawaqis.length > 0) {
+        const hasCritical = nawaqis.some(i => i.alertStatus === 'critical');
+        const finalColor = hasCritical ? '#e74c3c' : '#f1c40f';
+
+        badge = document.createElement('div');
+        badge.className = 'stock-badge';
+        badge.innerText = nawaqis.length;
+        badge.style.backgroundColor = finalColor;
+        if (!hasCritical) badge.style.color = '#000';
+        
+        btn.appendChild(badge);
+        btn.querySelector('i').style.color = finalColor;
+    } else {
+        btn.querySelector('i').style.color = '';
+    }
+
+    window.currentNawaqisList = nawaqis;
+}
+
+window.showStockNotifications = function() {
+    updateStockBell();
+    const items = window.currentNawaqisList || [];
+    
+    let html = '';
+    items.forEach(item => {
+        const isRed = item.alertStatus === 'critical';
+        const msg = isRed ? '🚨 إلحق! الصنف بيخلص فعلاً' : '⚠️ خلي بالك! بدأ يقل';
+        const unit = item.unit || (item.type === 'service' ? '' : 'قطعة');
+
+        html += `
+        <div class="nawaqis-row ${item.alertStatus}">
+            <div style="text-align: right;">
+                <span class="item-n">${item.name}</span>
+                <span class="item-t">${msg}</span>
+            </div>
+            <span class="item-v">${item.stock ?? item.current_stock ?? 0} ${unit}</span>
+        </div>`;
+    });
+
+    const old = document.getElementById('stockReportModal');
+    if(old) old.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'stockReportModal';
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100000; display:flex; align-items:center; justify-content:center; font-family:'Cairo',sans-serif;";
+    
+    modal.innerHTML = `
+        <div style="background:white; width:90%; max-width:400px; border-radius:15px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+            <div style="background:#111; color:white; padding:18px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px;">📦 تقرير حالة المخزون (${items.length})</h3>
+                <button onclick="this.closest('#stockReportModal').remove()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div style="padding:15px; max-height:60vh; overflow-y:auto; background:#f8f9fa;">
+                ${items.length > 0 ? html : '<div style="text-align:center; padding:30px; color:#27ae60;">✅ كل الأصناف في حالة ممتازة</div>'}
+            </div>
+            <div style="padding:15px; border-top:1px solid #eee;">
+                <button onclick="this.closest('#stockReportModal').remove()" style="width:100%; padding:12px; background:#000; color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer;">إغلاق</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+};
+
+// تشغيل الفحص
+updateStockBell();
+setInterval(updateStockBell, 600000); // يفحص كل 10 دقائق
+// دالة لمزامنة كل النواقص الحالية مع الفايربيز فوراً
+// دالة لمزامنة كل النواقص الحالية مع الفايربيز فوراً
+async function forceSyncAllToFirebase() {
+    // 🛡️ السطر السحري: لو مفيش نت أو الفايربيز مش موجود، اخرج فوراً بدون ما تضرب إيرور
+    if (!navigator.onLine || !window.FirestoreService) {
+        console.log("💤 أوفلاين: تم إيقاف مزامنة الإشعارات مؤقتاً");
+        return;
+    }
+    
+    console.log("🚀 Starting Full Notifications Sync...");
+    const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+    const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+
+    for (const item of ingredients) {
+        if (window.FirestoreService && window.FirestoreService.updateNotificationsCollection) {
+            await window.FirestoreService.updateNotificationsCollection(item, 'ingredient');
+        }
+    }
+    for (const item of menuItems) {
+        if (item.stock !== undefined && window.FirestoreService && window.FirestoreService.updateNotificationsCollection) {
+            await window.FirestoreService.updateNotificationsCollection(item, 'menu');
+        }
+    }
+    console.log("✅ All current alerts synced to Firebase.");
+}
+
+// شغل الدالة دي بعد 5 ثواني من فتح الصفحة عشان نضمن إن الفايربيز قط نت
+setTimeout(forceSyncAllToFirebase, 5000);
+</script>
+<script> 
+     // تفعيل الطباعة الصامتة للكاشير 
+     if (typeof require !== 'undefined') { 
+         const { ipcRenderer } = require('electron'); 
+         // تحويل أمر الطباعة العادي لأمر طباعة صامت للإلكترون 
+         window.print = function() { 
+             ipcRenderer.send('silent-print'); 
+         }; 
+     } 
+ </script>
+ > <div class="modal" id="priceAdjustModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center;"> 
+     <div class="modal-content" style="background: #fff; width: 90%; max-width: 450px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"> 
+         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"> 
+             <h3 style="margin:0; font-size: 18px; color: #000;"><i class="fas fa-sliders-h" style="color:#f39c12; margin-left:8px;"></i> تعديل السعر المتقدم</h3> 
+             <button onclick="document.getElementById('priceAdjustModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button> 
+         </div> 
+         
+         >         <div style="margin-bottom: 15px;"> 
+             <label style="font-size: 13px; font-weight: 600; display:block; margin-bottom: 8px;">1. تطبيق على:</label> 
+             <select id="adjTarget" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit; font-size: 14px;" onchange="calculateAdjPreview()"> 
+                 <option value="order">🛒 الطلب بالكامل</option> 
+                 >             </select> 
+         </div> 
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">2. العملية:</label>
+             <div style="display:flex;gap:8px;" id="adjOpContainer">
+                 <button type="button" class="btn adj-op-btn active" data-value="discount" onclick="selectAdjBtn('adjOpContainer',this);calculateAdjPreview()" style="flex:1;padding:10px;background:#000;color:#fff;border:1px solid #000;border-radius:10px;font-weight:600;">خصم ➖</button>
+                 <button type="button" class="btn adj-op-btn" data-value="surcharge" onclick="selectAdjBtn('adjOpContainer',this);calculateAdjPreview()" style="flex:1;padding:10px;background:#fff;color:#27ae60;border:1px solid #ddd;border-radius:10px;font-weight:600;">زيادة ➕</button>
+             </div>
+         </div>
+         <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">3. النوع:</label>
+             <div style="display:flex;gap:8px;" id="adjTypeContainer">
+                 <button type="button" class="btn adj-type-btn active" data-value="value" onclick="selectAdjBtn('adjTypeContainer',this);calculateAdjPreview()" style="flex:1;padding:10px;background:#000;color:#fff;border:1px solid #000;border-radius:10px;font-weight:600;">مبلغ (ج.م)</button>
+                 <button type="button" class="btn adj-type-btn" data-value="percent" onclick="selectAdjBtn('adjTypeContainer',this);calculateAdjPreview()" style="flex:1;padding:10px;background:#fff;color:#000;border:1px solid #ddd;border-radius:10px;font-weight:600;">نسبة (%)</button>
+             </div>
+         </div>
+     </div> 
+     
+     >         <div style="margin-bottom: 20px;"> 
+         <label style="font-size: 13px; font-weight: 600; display:block; margin-bottom: 8px;">4. القيمة:</label> 
+         <input type="number" id="adjValue" min="0" step="0.01" value="0" placeholder="0" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #000; font-size: 16px; font-weight: bold; text-align: center;" oninput="calculateAdjPreview()"> 
+     </div> 
+     
+     >         <div id="adjPreview" style="background: #f0f4f8; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; font-size: 14px; font-weight: 700; color: #333; border: 1px dashed #cbd5e1;"> 
+         اكتب القيمة لرؤية الحسبة النهائية... 
+     </div> 
+     
+     <button onclick="applyPriceAdjustment()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px;">تطبيق التعديل ✓</button> 
+ </div>
+
+ <div class="modal" id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100000; justify-content: center; align-items: center;">
+        <div class="modal-content" style="background: #fff; width: 90%; max-width: 450px; border-radius: 20px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            
+            <div style="background: linear-gradient(135deg, #000000 0%, #333333 100%); padding: 30px 20px; text-align: center; color: white; position: relative;">
+                <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 32px; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+                    🚀
+                </div>
+                <h3 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">تحديث جديد متاح!</h3>
+                <p style="margin: 8px 0 0; color: #cccccc; font-size: 14px;">إصدار <span id="updateVersion" style="color: #fff; font-weight: bold; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 12px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.3);">1.x.x</span></p>
+            </div>
+            
+            <div style="padding: 24px;">
+                <h4 style="margin: 0 0 12px; font-size: 16px; color: #000; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-star" style="color: #f39c12;"></i> الجديد في هذا الإصدار:
+                </h4>
+                <div id="updateNotes" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; font-size: 14px; color: #495057; max-height: 180px; overflow-y: auto; line-height: 1.8; font-weight: 500;">
+                    جاري تحميل تفاصيل التحديث...
+                </div>
+            </div>
+            
+            <div style="padding: 0 24px 24px; display: flex; gap: 12px;">
+                <button onclick="closeUpdateModal()" style="flex: 1; padding: 14px; border: 1px solid #ddd; border-radius: 12px; background: #fafafa; color: #666; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#eee'; this.style.color='#000';" onmouseout="this.style.background='#fafafa'; this.style.color='#666';">
+                    لاحقاً
+                </button>
+                <button onclick="installUpdateNow()" id="installUpdateBtn" style="flex: 2; padding: 14px; border: none; border-radius: 12px; background: #27AE60; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                    <i class="fas fa-download"></i> تحديث الآن
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showUpdateModal(version, notes) {
+            document.getElementById('updateVersion').textContent = version || 'الجديد';
+            if (notes && notes.trim() !== '') {
+                let formattedNotes = notes.replace(/<[^>]*>?/gm, ''); 
+                const notesArray = formattedNotes.split('\n').filter(n => n.trim() !== '');
+                const htmlNotes = notesArray.map(note => 
+                    `<div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: start;">
+                        <i class="fas fa-check-circle" style="color: #27ae60; margin-top: 4px; font-size: 14px;"></i> 
+                        <span>${note.replace(/-/g, '').trim()}</span>
+                    </div>`
+                ).join('');
+                document.getElementById('updateNotes').innerHTML = htmlNotes || 'تحسينات عامة في الأداء وإصلاح الأخطاء.';
+            } else {
+                document.getElementById('updateNotes').innerHTML = 
+                    `<div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: start;">
+                        <i class="fas fa-check-circle" style="color: #27ae60; margin-top: 4px; font-size: 14px;"></i> 
+                        <span>تحسينات عامة في الأداء والسرعة</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: start;">
+                        <i class="fas fa-check-circle" style="color: #27ae60; margin-top: 4px; font-size: 14px;"></i> 
+                        <span>إصلاح بعض الأخطاء السابقة</span>
+                    </div>`;
+            }
+            document.getElementById('updateModal').style.display = 'flex';
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').style.display = 'none';
+        }
+
+        function installUpdateNow() {
+            const btn = document.getElementById('installUpdateBtn');
+            if(btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التثبيت...';
+                btn.style.opacity = '0.8';
+                btn.disabled = true;
+            }
+            if (typeof require !== 'undefined') {
+                const { ipcRenderer } = require('electron');
+                ipcRenderer.send('install-update-now');
+            }
+        }
+        
+        if (typeof require !== 'undefined') {
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.on('show-update-modal', (event, data) => {
+                showUpdateModal(data.version, data.notes);
+            });
+        }
+    </script>
+
+<script> 
+     // 1. فتح بوب-أب الإضافة السريعة 
+     function openQuickAddModal() { 
+         document.getElementById('quickAddCustomerModal').style.display = 'flex'; 
+         document.getElementById('quickAddForm').reset(); 
+     } 
+ 
+     // 2. الحفظ الحقيقي للعميل في الفايربيز من الرئيسية 
+     async function simulateSavingCustomer() { 
+         const name = document.getElementById('qaName').value; 
+         const phone = document.getElementById('qaPhone').value; 
+         const address = document.getElementById('qaAddress').value; 
+ 
+         if(!name || !phone) return; 
+ 
+         const btn = document.querySelector('#quickAddForm button[type="submit"]'); 
+         const originalText = btn.innerText; 
+         btn.disabled = true; 
+         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; 
+ 
+         const newCustomer = { 
+             name: name, 
+             phone: phone, 
+             address: address, 
+             tier: 'regular', 
+             points: 0, 
+             ordersCount: 0 
+         }; 
+ 
+         try { 
+             // حفظ في الفايربيز 
+             await window.FirestoreService.saveCustomer(newCustomer); 
+             
+             document.getElementById('quickAddCustomerModal').style.display = 'none'; 
+             document.getElementById('searchCustomerState').style.display = 'none'; 
+             document.getElementById('activeCustomerState').style.display = 'flex'; 
+             
+             // عرض البيانات في السلة 
+             document.getElementById('cartCustName').textContent = name; 
+             document.getElementById('cartCustTier').textContent = '👤 عادي'; 
+             document.getElementById('cartCustTier').style.color = '#666'; 
+             document.getElementById('cartCustTier').style.background = '#f5f5f5'; 
+             document.getElementById('cartCustPoints').textContent = '0 نقطة'; 
+ 
+             // ربط العميل بالطلب الحالي في السيستم 
+             window.currentOrderCustomer = newCustomer; 
+ 
+         } catch (error) { 
+             alert("حدث خطأ أثناء الحفظ: " + error.message); 
+         } finally { 
+             btn.disabled = false; 
+             btn.innerText = originalText; 
+         } 
+     } 
+ 
+     // 3. إلغاء العميل من السلة 
+     function clearCartCustomer() { 
+         document.getElementById('activeCustomerState').style.display = 'none'; 
+         document.getElementById('searchCustomerState').style.display = 'flex'; 
+         document.getElementById('quickPhoneSearch').value = ''; 
+         window.currentOrderCustomer = null; // تفريغ العميل من الطلب 
+     } 
+ 
+     // 4. 🚀 البحث الحقيقي في الفايربيز (خليناه 10 أرقام عشان رقم التست بتاعك يشتغل) 
+     document.getElementById('quickPhoneSearch').addEventListener('input', async function(e) { 
+         const phone = e.target.value.trim(); 
+         
+         // البحث يبدأ لو الكاشير كتب 10 أرقام أو أكتر 
+         if(phone.length >= 10) { 
+             try { 
+                 const customer = await window.FirestoreService.getCustomerByPhone(phone); 
+                 
+                 if (customer) { 
+                     // العميل موجود! نظهر بياناته الحقيقية 
+                     document.getElementById('searchCustomerState').style.display = 'none'; 
+                     document.getElementById('activeCustomerState').style.display = 'flex'; 
+                     
+                     document.getElementById('cartCustName').textContent = customer.name || 'بدون اسم'; 
+                     
+                     // تحديد شكل التقييم 
+                     const tier = customer.tier || 'regular'; 
+                     let tierName = 'عادي'; let tierColor = '#666'; let tierBg = '#f5f5f5'; let tierIcon = '👤'; 
+                     if(tier === 'gold') { tierName = 'ذهبي'; tierColor = '#d4ac0d'; tierBg = 'rgba(241, 196, 15, 0.15)'; tierIcon = '🥇'; } 
+                     else if(tier === 'silver') { tierName = 'فضي'; tierColor = '#7f8c8d'; tierBg = 'rgba(189, 195, 199, 0.2)'; tierIcon = '🥈'; } 
+                     else if(tier === 'vip') { tierName = 'VIP'; tierColor = '#9b59b6'; tierBg = 'rgba(155, 89, 182, 0.2)'; tierIcon = '👑'; } 
+ 
+                     document.getElementById('cartCustTier').textContent = `${tierIcon} ${tierName}`; 
+                     document.getElementById('cartCustTier').style.color = tierColor; 
+                     document.getElementById('cartCustTier').style.background = tierBg; 
+                     
+                     document.getElementById('cartCustPoints').textContent = `${customer.points || 0} نقطة`; 
+ 
+                     // ربط العميل بالطلب 
+                     window.currentOrderCustomer = customer; 
+                 } 
+             } catch (error) { 
+                 console.error("خطأ في البحث عن العميل:", error); 
+             } 
+         } 
+     }); 
+ </script>
+<style> 
+     /* 🖨️ ستايل يضمن إن بيانات العميل تظهر في الورقة المطبوعة بس ومتبانش على الشاشة */ 
+     @media screen { 
+         #printCustomerData { display: none !important; } 
+     } 
+     @media print { 
+         #printCustomerData { 
+             display: block !important; 
+             border-top: 1px dashed #000; 
+             border-bottom: 1px dashed #000; 
+             padding: 10px 0; 
+             margin: 10px 0; 
+             font-size: 13px; 
+             font-weight: bold; 
+             text-align: right; 
+             direction: rtl; 
+             color: #000; 
+         } 
+     } 
+ </style> 
+ 
+ <script> 
+ 
+ 
+     // 2. الفاتورة الذكية (حقن بيانات العميل قبل الطباعة الصامتة) 
+     const originalSilentPrint = window.print; 
+     window.print = function() { 
+         // إنشاء بلوك للعميل لو مش موجود في الصفحة 
+         let printDiv = document.getElementById('printCustomerData'); 
+         if (!printDiv) { 
+             printDiv = document.createElement('div'); 
+             printDiv.id = 'printCustomerData'; 
+             
+             // بنحطه فوق المنتجات عشان يطبع في المكان الصح 
+             const cartItems = document.getElementById('cartItems'); 
+             if (cartItems) cartItems.parentNode.insertBefore(printDiv, cartItems); 
+         } 
+ 
+         // لو الكاشير مختار عميل -> املا الداتا عشان تطبع 
+         if (window.currentOrderCustomer) { 
+             printDiv.innerHTML = ` 
+                 <div style="font-size: 15px; margin-bottom: 4px;">👤 العميل: ${window.currentOrderCustomer.name}</div> 
+                 <div>📱 الهاتف: ${window.currentOrderCustomer.phone}</div> 
+                 ${window.currentOrderCustomer.address ? `<div>📍 العنوان: ${window.currentOrderCustomer.address}</div>` : ''} 
+             `; 
+             printDiv.style.display = 'block'; // هيظهر في الطباعة بس بسبب الـ CSS 
+         } else { 
+             // لو تيك أواي أو مفيش عميل -> فضيه خالص عشان الفاتورة متطولش على الفاضي 
+             printDiv.innerHTML = ''; 
+             printDiv.style.display = 'none'; 
+         } 
+ 
+         // 🚀 استدعاء الطباعة الصامتة الأصلية بتاعتك اللي بتبعت للـ Electron 
+         if (typeof originalSilentPrint === 'function') { 
+             originalSilentPrint(); 
+         } else if (typeof require !== 'undefined') { 
+             require('electron').ipcRenderer.send('silent-print'); 
+         } 
+     }; 
+ </script>
+
+    <div id="heroCustomerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 2147483647; align-items: center; justify-content: center; backdrop-filter: blur(2px);"> 
+        <div style="background: #fff; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); direction: rtl;"> 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;"> 
+                <h3 style="margin: 0; font-family: 'Cairo'; color: #000; font-size: 18px; font-weight: bold;">إضافة عميل جديد</h3> 
+                <span id="heroCloseBtn" style="font-size: 28px; color: #999; cursor: pointer;">&times;</span> 
+            </div> 
+            
+            <div style="margin-bottom: 15px;"> 
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #555;">رقم الهاتف *</label> 
+                <input type="tel" id="heroPhone" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none;"> 
+            </div> 
+            
+            <div style="margin-bottom: 15px;"> 
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #555;">اسم العميل *</label> 
+                <input type="text" id="heroName" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none;"> 
+            </div> 
+            
+            <div style="margin-bottom: 20px;"> 
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #555;">العنوان (اختياري)</label> 
+                <input type="text" id="heroAddress" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none;"> 
+            </div> 
+            
+            <div style="display: flex; gap: 10px;"> 
+                <button type="button" id="heroSaveBtn" style="flex: 1; background: #27ae60; color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 15px;">حفظ واختيار</button> 
+            </div> 
+        </div> 
+    </div> 
+
+    <script> 
+        document.addEventListener('DOMContentLoaded', function() { 
+            // نأخر شوية عشان نضمن إن الزرار ظهر في الصفحة 
+            setTimeout(function() { 
+                const addBtn = document.getElementById('myHeroAddBtn'); 
+                const modal = document.getElementById('heroCustomerModal'); 
+                const closeBtn = document.getElementById('heroCloseBtn'); 
+                const saveBtn = document.getElementById('heroSaveBtn'); 
+                
+                // 1. تشغيل الزرار 
+                if (addBtn && modal) { 
+                    addBtn.addEventListener('click', function(e) { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        
+                        // سحب الرقم المكتوب في السيرش 
+                        const searchInput = document.getElementById('quickPhoneSearch'); 
+                        document.getElementById('heroPhone').value = searchInput ? searchInput.value : ''; 
+                        document.getElementById('heroName').value = ''; 
+                        document.getElementById('heroAddress').value = ''; 
+                        
+                        modal.style.display = 'flex'; 
+                    }); 
+                } 
+                
+                // 2. قفل الشاشة 
+                if (closeBtn && modal) { 
+                    closeBtn.addEventListener('click', function() { 
+                        modal.style.display = 'none'; 
+                    }); 
+                } 
+                
+                // 3. الحفظ وإضافة العميل للسلة 
+                if (saveBtn) { 
+                    saveBtn.addEventListener('click', async function() { 
+                        const phone = document.getElementById('heroPhone').value.trim(); 
+                        const name = document.getElementById('heroName').value.trim(); 
+                        const address = document.getElementById('heroAddress').value.trim(); 
+                        
+                        if (!phone || !name) { 
+                            alert('برجاء إدخال الاسم ورقم الهاتف'); 
+                            return; 
+                        } 
+                        
+                        saveBtn.innerText = 'جاري الحفظ...'; 
+                        saveBtn.disabled = true; 
+                        
+                        const newCustomer = { 
+                            id: 'CUST_' + Date.now(), 
+                            phone: phone, 
+                            name: name, 
+                            address: address, 
+                            tier: 'regular', 
+                            points: 0, 
+                            ordersCount: 0, 
+                            totalSpent: 0, 
+                            createdAt: new Date().toISOString() 
+                        }; 
+                        
+                        try { 
+                             if (window.FirestoreService && window.FirestoreService.saveCustomer) { 
+                                 await window.FirestoreService.saveCustomer(newCustomer); 
+                             } 
+  
+                             // 🚀 السطر السحري: إضافة العميل الجديد للأوفلاين فوراً عشان التسويق يلقطه 
+                             let offlineCustomers = []; 
+                             try { offlineCustomers = JSON.parse(localStorage.getItem('customers') || '[]'); } catch(e){} 
+                             offlineCustomers.push(newCustomer); 
+                             localStorage.setItem('customers', JSON.stringify(offlineCustomers)); 
+                               
+                             // تحديث بيانات السلة بالعميل الجديد 
+                             window.currentOrderCustomer = newCustomer; 
+                            
+                            const searchState = document.getElementById('searchCustomerState'); 
+                            const activeState = document.getElementById('activeCustomerState'); 
+                            const activeName = document.getElementById('activeCustomerName'); 
+                            const activeTier = document.getElementById('activeCustomerTier'); 
+                            
+                            if (searchState) searchState.style.display = 'none'; 
+                            if (activeState) activeState.style.display = 'flex'; 
+                            if (activeName) activeName.innerText = name; 
+                            if (activeTier) activeTier.innerHTML = '👤 عادي'; 
+                            
+                            modal.style.display = 'none'; 
+                            const searchInput = document.getElementById('quickPhoneSearch'); 
+                            if (searchInput) searchInput.value = ''; 
+                            
+                            if (typeof Notification !== 'undefined') Notification.success('تمت الإضافة بنجاح'); 
+                            else alert('تمت الإضافة بنجاح'); 
+                            
+                        } catch (err) { 
+                            console.error(err); 
+                            alert('حدث خطأ أثناء الحفظ'); 
+                        } finally { 
+                            saveBtn.innerText = 'حفظ واختيار'; 
+                            saveBtn.disabled = false; 
+                        } 
+                    }); 
+                } 
+            }, 500); // تأخير نص ثانية لضمان أمان التشغيل 
+        }); 
+    </script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // SaaS Feature Gates — إخفاء الصفحات حسب الباقة
+    // ═══════════════════════════════════════════════════════
+    window.addEventListener('saas-ready', function () {
+
+        // ── الصفحات المقفولة على Basic فأكثر ──────────────
+        if (!window.SaaS.canUse('reports')) {
+            document.querySelector('a[href="reports.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+
+        if (!window.SaaS.canUse('customers')) {
+            document.querySelector('a[href="customers.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+
+        // ── الصفحات المقفولة على Pro فقط ──────────────────
+        if (!window.SaaS.canUse('whatsapp')) {
+            document.querySelector('a[href="marketing.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+
+        // ── عرض بيانات الباقة في الـ Sidebar ──────────────
+        const plan      = window.SaaS.getPlan();
+        const endDate   = window.SaaS.getEndDate();
+        const planLabel = window.SaaS.getPlanLabel();
+
+        // أضف Badge بالباقة أسفل الـ Sidebar لو الـ element موجود
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && !document.getElementById('saas-plan-badge')) {
+            const badge = document.createElement('div');
+            badge.id = 'saas-plan-badge';
+
+            const colors = { trial: '#4a9eff', basic: '#d4af37', pro: '#9b59b6' };
+            const color  = colors[plan] || '#d4af37';
+
+            // حساب أيام متبقية
+            const daysLeft = endDate
+                ? Math.max(0, Math.ceil((new Date(endDate) - new Date()) / 86400000))
+                : null;
+
+            badge.style.cssText = `
+                margin: 12px; padding: 12px 14px;
+                background: ${color}15; border: 1px solid ${color}44;
+                border-radius: 10px; font-size: 12px; text-align: center;
+            `;
+            badge.innerHTML = `
+                <div style="color:${color}; font-weight:700; margin-bottom:4px;">
+                    ${plan === 'pro' ? '👑' : plan === 'basic' ? '⭐' : '🕐'} ${planLabel}
+                </div>
+                ${daysLeft !== null ? `
+                <div style="color:#888; font-size:11px;">
+                    ${daysLeft} يوم متبقي
+                </div>` : ''}
+                ${plan !== 'pro' ? `
+                <button onclick="window.SaaS.requireFeature('dashboard')" style="
+                    margin-top:8px; width:100%; padding:6px;
+                    background:${color}; border:none; border-radius:6px;
+                    color:#000; font-size:11px; font-weight:700; cursor:pointer;
+                ">ترقية الباقة ↑</button>` : ''}
+            `;
+            sidebar.appendChild(badge);
+        }
+
+    });
+    </script>
+</body>
+</html>

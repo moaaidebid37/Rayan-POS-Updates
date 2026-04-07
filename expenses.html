@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المصاريف</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        * {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #fafafa;
+        }
+        
+        .sidebar {
+            background: #ffffff;
+            border-left: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-item {
+            color: #000000;
+        }
+        
+        .sidebar-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .sidebar-item.active {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-lg);
+            height: 80px;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: var(--spacing-lg);
+        }
+        
+        .header-title {
+            color: #000000;
+            font-weight: 700;
+            font-size: 24px;
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .header-search {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+        }
+        
+        .header-search i {
+            color: #999999;
+            font-size: 14px;
+        }
+        
+        .header-search input {
+            border: none;
+            background: transparent;
+            outline: none;
+            color: #000000;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .header-search input::placeholder {
+            color: #999999;
+        }
+        
+        .main-content {
+            background: #fafafa;
+            padding: var(--spacing-lg);
+        }
+        
+        .expenses-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+        
+        .filters-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .filter-group label {
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: #000000;
+        }
+        
+        .expenses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .expense-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .expense-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .expense-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .expense-type {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .expense-type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #ffffff;
+        }
+        
+        .expense-type-icon.employees {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .expense-type-icon.supplies {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .expense-type-icon.bills {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .expense-type-icon.rent {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .expense-type-icon.other {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .expense-type-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+        }
+        
+        .expense-amount {
+            font-size: 24px;
+            font-weight: 800;
+            color: #000000;
+        }
+        
+        .expense-details {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .expense-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #666666;
+            font-size: 14px;
+        }
+        
+        .expense-detail-item i {
+            color: #999999;
+            font-size: 12px;
+            width: 16px;
+        }
+        
+        .expense-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            justify-content: flex-end;
+        }
+        
+        .btn-edit {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-edit:hover {
+            background: #f5f5f5;
+            border-color: #000000;
+        }
+        
+        .btn-delete {
+            padding: 8px 16px;
+            background: #ffebee;
+            color: #e74c3c;
+            border: 1px solid #ffcdd2;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-delete:hover {
+            background: #ffcdd2;
+            border-color: #e74c3c;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: #999999;
+            font-size: 16px;
+            grid-column: 1/-1;
+        }
+        
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e8e8e8;
+            max-width: 500px;
+        }
+        
+        .modal-title {
+            color: #000000;
+            font-weight: 700;
+        }
+        
+        .modal-close {
+            color: #999999;
+        }
+        
+        .modal-close:hover {
+            color: #000000;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .btn-secondary {
+            background: #fafafa;
+            color: #000000;
+            border: 1px solid #e8e8e8;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar"></nav>
+
+        <div class="main-wrapper">
+            <header class="header">
+                <div class="header-content">
+                    <img src="images/logo.png" class="header-logo" alt="Solo POS">
+             <h2 class="header-title">المصاريف</h2>
+                    <div class="header-actions">
+                        <div class="header-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="expenseSearch" placeholder="ابحث عن مصروف...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddExpenseModal()">
+                            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                            إضافة مصروف
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="expenses-container">
+                    <div class="filters-section">
+                        <div class="filter-group">
+                            <label>النوع:</label>
+                            <select id="typeFilter" onchange="filterExpenses()">
+                                <option value="">الكل</option>
+                                <option value="employees">رواتب العمال</option>
+                                <option value="supplies">شراء بضاعة</option>
+                                <option value="bills">فواتير</option>
+                                <option value="rent">إيجار</option>
+                                <option value="other">أخرى</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>التاريخ:</label>
+                            <input type="date" id="dateFilter" onchange="filterExpenses()">
+                        </div>
+                    </div>
+                    
+                    <div class="expenses-grid" id="expensesGrid">
+                        <div class="empty-state">لا يوجد مصاريف<br><small style="color: #999999; font-size: 14px;">اضغط على "إضافة مصروف" لإضافة مصروف جديد</small></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="expenseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="expenseModalTitle">إضافة مصروف جديد</h3>
+                <button class="modal-close" onclick="closeExpenseModal()">×</button>
+            </div>
+            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)">
+                <div class="form-group">
+                    <label class="label">نوع المصروف *</label>
+                    <select class="input" id="expenseType" required>
+                        <option value="">اختر النوع</option>
+                        <option value="employees">رواتب العمال</option>
+                        <option value="supplies">شراء بضاعة</option>
+                        <option value="bills">فواتير</option>
+                        <option value="rent">إيجار</option>
+                        <option value="other">أخرى</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">المبلغ (ج.م) *</label>
+                    <input type="number" class="input" id="expenseAmount" min="0" step="0.01" placeholder="0.00" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">التاريخ *</label>
+                    <input type="date" class="input" id="expenseDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">الوصف</label>
+                    <textarea class="input" id="expenseDescription" rows="3" placeholder="وصف المصروف (اختياري)"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+                    <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()" style="flex: 1;">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // تهيئة Sync Manager
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SyncManager !== 'undefined' && typeof SyncManager.init === 'function') {
+                SyncManager.init();
+            }
+        });
+        
+        let expenses = [];
+        let editingExpenseId = null;
+        let filteredExpenses = [];
+        
+        // Expense type labels
+        const expenseTypeLabels = {
+            'employees': 'رواتب العمال',
+            'supplies': 'شراء بضاعة',
+            'bills': 'فواتير',
+            'rent': 'إيجار',
+            'other': 'أخرى'
+        };
+        
+        // Expense type icons
+        const expenseTypeIcons = {
+            'employees': 'fa-users',
+            'supplies': 'fa-box',
+            'bills': 'fa-file-invoice',
+            'rent': 'fa-building',
+            'other': 'fa-receipt'
+        };
+        
+        // Check login and apply permissions
+        if (typeof Auth !== 'undefined') {
+            Auth.checkLogin();
+            Auth.checkPageAccess('expenses.html');
+            Auth.applyPermissions();
+        } else {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function logout() {
+            if (typeof Auth !== 'undefined') {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userType');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Load expenses
+        async function loadExpenses() {
+            try {
+                expenses = await DataManager.getExpenses();
+                
+                // للكاشير: عرض مصاريف اليوم فقط
+                const userType = typeof Auth !== 'undefined' ? Auth.getUserType() : (localStorage.getItem('userType') || 'owner');
+                if (userType === 'cashier') {
+                    const today = new Date().toISOString().split('T')[0];
+                    expenses = expenses.filter(e => e.date === today);
+                }
+                
+                filteredExpenses = [...expenses];
+                renderExpenses();
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                expenses = [];
+                filteredExpenses = [];
+                renderExpenses();
+            }
+        }
+        
+        // Render expenses
+        function renderExpenses() {
+            const grid = document.getElementById('expensesGrid');
+            if (!grid) return;
+            
+            if (filteredExpenses.length === 0) {
+                grid.innerHTML = '<div class="empty-state">لا يوجد مصاريف<br><small style="color: #999999; font-size: 14px;">اضغط على "إضافة مصروف" لإضافة مصروف جديد</small></div>';
+                return;
+            }
+            
+            grid.innerHTML = filteredExpenses.map(expense => {
+                const typeLabel = expenseTypeLabels[expense.type] || expense.type;
+                const typeIcon = expenseTypeIcons[expense.type] || 'fa-receipt';
+                // Format date manually to avoid locale issues
+                const dateObj = new Date(expense.date);
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+                const date = `${day}/${month}/${year}`;
+                
+                return `
+                    <div class="expense-card">
+                        <div class="expense-header">
+                            <div class="expense-type">
+                                <div class="expense-type-icon ${expense.type}">
+                                    <i class="fas ${typeIcon}"></i>
+                                </div>
+                                <div class="expense-type-name">${typeLabel}</div>
+                            </div>
+                            <div class="expense-amount">${Utils.formatCurrency(parseFloat(expense.amount) || 0)}</div>
+                        </div>
+                        <div class="expense-details">
+                            <div class="expense-detail-item">
+                                <i class="fas fa-calendar"></i>
+                                <span>${date}</span>
+                            </div>
+                            ${expense.description ? `
+                                <div class="expense-detail-item">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>${expense.description}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="expense-actions">
+                            <button class="btn-edit" onclick="editExpense('${expense.id}')" data-restricted="owner">
+                                <i class="fas fa-edit" style="margin-left: 6px;"></i>
+                                تعديل
+                            </button>
+                            <button class="btn-delete" onclick="deleteExpense('${expense.id}')" data-restricted="owner">
+                                <i class="fas fa-trash" style="margin-left: 6px;"></i>
+                                حذف
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Filter expenses
+        function filterExpenses() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            
+            filteredExpenses = expenses.filter(expense => {
+                const typeMatch = !typeFilter || expense.type === typeFilter;
+                const dateMatch = !dateFilter || expense.date === dateFilter;
+                return typeMatch && dateMatch;
+            });
+            
+            renderExpenses();
+        }
+        
+        // Open Add Expense Modal
+        function openAddExpenseModal() {
+            editingExpenseId = null;
+            document.getElementById('expenseModalTitle').textContent = 'إضافة مصروف جديد';
+            document.getElementById('expenseForm').reset();
+            // استخدام التاريخ بتوقيت مصر
+            const today = DataManager.getEgyptDate(); // YYYY-MM-DD بتوقيت مصر
+            const expenseDateInput = document.getElementById('expenseDate');
+            expenseDateInput.value = today;
+            console.log('=== openAddExpenseModal ===');
+            console.log('today:', today);
+            document.getElementById('expenseModal').classList.add('active');
+        }
+        
+        // Close Expense Modal
+        function closeExpenseModal() {
+            document.getElementById('expenseModal').classList.remove('active');
+            editingExpenseId = null;
+            document.getElementById('expenseForm').reset();
+        }
+        
+        // Edit Expense (مسموح لصاحب المحل فقط)
+        function editExpense(id) {
+            // التحقق من الصلاحيات
+            const userRole = Auth ? Auth.getUserRole() : (localStorage.getItem('userType') || localStorage.getItem('userRole') || 'owner');
+            if (userRole !== 'owner' && userRole !== 'admin') {
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('تعديل المصاريف مسموح لصاحب المحل فقط');
+                } else {
+                    alert('تعديل المصاريف مسموح لصاحب المحل فقط');
+                }
+                return;
+            }
+            
+            const expense = expenses.find(e => e.id === id);
+            if (!expense) return;
+            
+            editingExpenseId = id;
+            document.getElementById('expenseModalTitle').textContent = 'تعديل مصروف';
+            document.getElementById('expenseType').value = expense.type || '';
+            document.getElementById('expenseAmount').value = expense.amount || '';
+            document.getElementById('expenseDate').value = expense.date || '';
+            document.getElementById('expenseDescription').value = expense.description || '';
+            document.getElementById('expenseModal').classList.add('active');
+        }
+        
+        // Delete Expense (مسموح لصاحب المحل فقط)
+        async function deleteExpense(id) {
+            const userRole = (typeof Auth !== 'undefined'
+                ? Auth.getUserRole()
+                : (localStorage.getItem('userRole') || localStorage.getItem('userType') || 'owner'));
+            
+            if (userRole !== 'owner' && userRole !== 'admin') {
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حذف المصاريف مسموح لصاحب المحل فقط');
+                } else {
+                    alert('حذف المصاريف مسموح لصاحب المحل فقط');
+                }
+                return;
+            }
+            
+            if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
+            
+            try {
+                await DataManager.deleteExpense(id);
+                await loadExpenses();
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success('تم حذف المصروف بنجاح');
+                } else {
+                    alert('تم حذف المصروف بنجاح');
+                }
+            } catch (error) {
+                console.error('Error deleting expense:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حذف المصروف');
+                } else {
+                    alert('حدث خطأ أثناء حذف المصروف');
+                }
+            }
+        }
+        
+        // Handle Expense Form Submit
+        async function handleExpenseSubmit(event) {
+            event.preventDefault();
+            
+            const currentUser = (typeof Auth !== 'undefined' ? Auth.getUsername() : (localStorage.getItem('username') || 'المستخدم'));
+            
+            // الحصول على الشيفت المفتوح حالياً (إن وجد) لربط المصروف به
+            let currentShiftId = null;
+            try {
+                if (typeof DataManager !== 'undefined' && typeof DataManager.getTodayCashSession === 'function') {
+                    const currentSession = await DataManager.getTodayCashSession();
+                    if (currentSession && currentSession.id) {
+                        currentShiftId = currentSession.id;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not get current shift:', e);
+            }
+            
+            const expense = {
+                id: editingExpenseId,
+                type: document.getElementById('expenseType').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value) || 0,
+                date: document.getElementById('expenseDate').value,
+                description: document.getElementById('expenseDescription').value.trim(),
+                category: expenseTypeLabels[document.getElementById('expenseType').value] || '',
+                createdBy: currentUser,
+                shift_id: currentShiftId, // ربط المصروف بالشيفت المفتوح
+                shiftId: currentShiftId,  // نسخة احتياطية
+                sessionId: currentShiftId  // نسخة احتياطية أخرى
+            };
+            
+            try {
+                await DataManager.saveExpense(expense);
+                await loadExpenses();
+                closeExpenseModal();
+                
+                if (typeof Notification !== 'undefined') {
+                    Notification.success(editingExpenseId ? 'تم تحديث المصروف بنجاح' : 'تم إضافة المصروف بنجاح');
+                }
+            } catch (error) {
+                console.error('Error saving expense:', error);
+                if (typeof Notification !== 'undefined') {
+                    Notification.error('حدث خطأ أثناء حفظ المصروف');
+                }
+            }
+        }
+        
+        // Search Expenses
+        function initSearch() {
+            const searchInput = document.getElementById('expenseSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const cards = document.querySelectorAll('.expense-card');
+                    
+                    cards.forEach(card => {
+                        const text = card.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // للكاشير: قفل filter التاريخ على اليوم فقط
+            const userType = typeof Auth !== 'undefined' ? Auth.getUserType() : (localStorage.getItem('userType') || 'owner');
+            const dateFilter = document.getElementById('dateFilter');
+            if (userType === 'cashier' && dateFilter) {
+                const today = new Date().toISOString().split('T')[0];
+                dateFilter.value = today;
+                dateFilter.disabled = true;
+                dateFilter.style.opacity = '0.6';
+                dateFilter.style.cursor = 'not-allowed';
+            }
+            
+            loadExpenses();
+            initSearch();
+            const today = new Date().toISOString().split('T')[0];
+            if (dateFilter && !dateFilter.disabled) {
+                dateFilter.value = today;
+            }
+        });
+    </script>
+
+        <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="saas/sidebar.js"></script>
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+
+</body>
+</html>

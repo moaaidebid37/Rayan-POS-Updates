@@ -1,0 +1,65 @@
+[debug] [2026-04-04T19:10:23.077Z] ----------------------------------------------------------------------
+[debug] [2026-04-04T19:10:23.078Z] Command:       /usr/local/bin/node /usr/local/bin/firebase functions:shell
+[debug] [2026-04-04T19:10:23.078Z] CLI Version:   15.13.0
+[debug] [2026-04-04T19:10:23.078Z] Platform:      darwin
+[debug] [2026-04-04T19:10:23.078Z] Node Version:  v24.12.0
+[debug] [2026-04-04T19:10:23.078Z] Time:          Sat Apr 04 2026 21:10:23 GMT+0200 (Eastern European Standard Time)
+[debug] [2026-04-04T19:10:23.078Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-04T19:10:23.329Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-04T19:10:23.329Z] > authorizing via signed-in user (moaaidebid37@gmail.com)
+[debug] [2026-04-04T19:10:23.329Z] [iam] checking project solo-pos-saas for permissions ["firebase.projects.get"]
+[debug] [2026-04-04T19:10:23.329Z] Checked if tokens are valid: true, expires at: 1775333296870
+[debug] [2026-04-04T19:10:23.329Z] Checked if tokens are valid: true, expires at: 1775333296870
+[debug] [2026-04-04T19:10:23.329Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/solo-pos-saas:testIamPermissions [none]
+[debug] [2026-04-04T19:10:23.329Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/solo-pos-saas:testIamPermissions  x-goog-user-project=solo-pos-saas
+[debug] [2026-04-04T19:10:23.329Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/solo-pos-saas:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-04-04T19:10:23.603Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/solo-pos-saas:testIamPermissions 200
+[debug] [2026-04-04T19:10:23.604Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/solo-pos-saas:testIamPermissions {"permissions":["firebase.projects.get"]}
+[warn] ⚠  functions: Functions Emulator unable to start on port 5000, starting on 5001 instead. {"metadata":{"emulator":{"name":"functions"},"message":"Functions Emulator unable to start on port 5000, starting on 5001 instead."}}
+[debug] [2026-04-04T19:10:23.712Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-04-04T19:10:23.714Z] defaultcredentials: writing to file /Users/moaaidebid/.config/firebase/moaaidebid37_gmail_com_application_default_credentials.json
+[debug] [2026-04-04T19:10:23.715Z] DEBUG: Setting GAC to /Users/moaaidebid/.config/firebase/moaaidebid37_gmail_com_application_default_credentials.json
+[debug] [2026-04-04T19:10:23.715Z] Checked if tokens are valid: true, expires at: 1775333296870
+[debug] [2026-04-04T19:10:23.715Z] Checked if tokens are valid: true, expires at: 1775333296870
+[debug] [2026-04-04T19:10:23.715Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/solo-pos-saas/adminSdkConfig [none]
+[debug] [2026-04-04T19:10:23.973Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/solo-pos-saas/adminSdkConfig 200
+[debug] [2026-04-04T19:10:23.973Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/solo-pos-saas/adminSdkConfig {"projectId":"solo-pos-saas","storageBucket":"solo-pos-saas.firebasestorage.app"}
+[debug] [2026-04-04T19:10:23.980Z] [functions] Watching "/Users/moaaidebid/Desktop/Solo_POS_Projects/Solo_POS_SaaS/functions" for Cloud Functions...
+[debug] [2026-04-04T19:10:23.981Z] Validating nodejs source
+[debug] [2026-04-04T19:10:24.546Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0",
+    "openai": "^6.33.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.4.1"
+  },
+  "private": true
+}
+[debug] [2026-04-04T19:10:24.546Z] Building nodejs source
+[debug] [2026-04-04T19:10:24.546Z] Failed to find version of module node: reached end of search path /Users/moaaidebid/Desktop/Solo_POS_Projects/Solo_POS_SaaS/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "20" doesn't match your global version "24". Using node@24 from host. 
+[debug] [2026-04-04T19:10:24.547Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-04-04T19:10:24.551Z] Found firebase-functions binary at '/Users/moaaidebid/Desktop/Solo_POS_Projects/Solo_POS_SaaS/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8438
+
+[debug] [2026-04-04T19:10:24.686Z] Got response from /__/functions.yaml {"endpoints":{"parseMenuImage":{"availableMemoryMb":512,"timeoutSeconds":120,"minInstances":null,"maxInstances":10,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"secretEnvironmentVariables":[{"key":"OPENAI_API_KEY"}],"labels":{},"callableTrigger":{},"entryPoint":"parseMenuImage"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{},"params":[{"type":"secret","name":"OPENAI_API_KEY"}]}
+[debug] [2026-04-04T19:10:28.696Z] [functions] Loaded functions definitions from source: parseMenuImage.
+[debug] [2026-04-04T19:10:28.696Z] [functions[us-central1-parseMenuImage]] http function initialized (http://127.0.0.1:5001/solo-pos-saas/us-central1/parseMenuImage).
+[info] i  functions: Loaded functions: parseMenuImage 
+[warn] ⚠  functions: The following emulators are not running, calls to these services will affect production: firestore, database, pubsub, storage, eventarc, tasks 

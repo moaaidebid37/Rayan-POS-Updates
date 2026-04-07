@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solo POS - Key Generator 🔐</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #ffffff;
+        }
+        
+        .container {
+            background: rgba(26, 33, 62, 0.8);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+        }
+        
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .key-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 20px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .key-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        .key-btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .key-btn.trial {
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+        
+        .key-btn.trial:hover {
+            background: rgba(255, 193, 7, 0.2);
+            border-color: rgba(255, 193, 7, 0.8);
+        }
+        
+        .key-btn.one-month {
+            border-color: rgba(108, 117, 125, 0.5);
+        }
+        
+        .key-btn.one-month:hover {
+            background: rgba(108, 117, 125, 0.2);
+            border-color: rgba(108, 117, 125, 0.8);
+        }
+        
+        .key-btn.three-months {
+            border-color: rgba(192, 192, 192, 0.5);
+        }
+        
+        .key-btn.three-months:hover {
+            background: rgba(192, 192, 192, 0.2);
+            border-color: rgba(192, 192, 192, 0.8);
+        }
+        
+        .key-btn.six-months {
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+        
+        .key-btn.six-months:hover {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 0.8);
+        }
+        
+        .key-btn.one-year {
+            border-color: rgba(255, 20, 147, 0.5);
+        }
+        
+        .key-btn.one-year:hover {
+            background: rgba(255, 20, 147, 0.2);
+            border-color: rgba(255, 20, 147, 0.8);
+        }
+        
+        .output-section {
+            margin-top: 32px;
+        }
+        
+        .output-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .output-container {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+        
+        .output-box {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            letter-spacing: 2px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-all;
+        }
+        
+        .copy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0 32px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Solo POS - Key Generator</h1>
+            <p>أداة توليد رموز الترخيص للمشرفين</p>
+        </div>
+        
+        <div class="buttons-grid">
+            <button class="key-btn trial" onclick="generateKey('TRIAL-')">
+                🎟️<br>Trial<br><small>(3 Days)</small>
+            </button>
+            <button class="key-btn one-month" onclick="generateKey('1M-')">
+                🥉<br>1 Month<br><small>(30 Days)</small>
+            </button>
+            <button class="key-btn three-months" onclick="generateKey('3M-')">
+                🥈<br>3 Months<br><small>(90 Days)</small>
+            </button>
+            <button class="key-btn six-months" onclick="generateKey('6M-')">
+                🥇<br>6 Months<br><small>(180 Days)</small>
+            </button>
+            <button class="key-btn one-year" onclick="generateKey('1Y-')">
+                💎<br>1 Year<br><small>(365 Days)</small>
+            </button>
+        </div>
+        
+        <div class="output-section">
+            <label class="output-label">الكود المولد:</label>
+            <div class="output-container">
+                <div class="output-box" id="outputBox">انقر على أحد الأزرار أعلاه لتوليد رمز الترخيص</div>
+                <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">
+                    <i class="fas fa-copy"></i>
+                    نسخ
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© Solo POS System - Admin Tool</p>
+        </div>
+    </div>
+    
+    <!-- Firebase Compat SDKs -->
+    <script src="js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+    <!-- App Services -->
+    <script src="js/firestore_service.js"></script>
+    
+    <script>
+        // Generate random alphanumeric string
+        function generateRandomString(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+        
+        // Generate license key with prefix
+        async function generateKey(prefix) {
+            // Generate 4 groups of 4 characters each
+            const group1 = generateRandomString(4);
+            const group2 = generateRandomString(4);
+            const group3 = generateRandomString(4);
+            const group4 = generateRandomString(4);
+            
+            // Combine: PREFIX-XXXX-XXXX-XXXX-XXXX
+            const licenseKey = `${prefix}${group1}-${group2}-${group3}-${group4}`;
+            
+            // Display in output box
+            const outputBox = document.getElementById('outputBox');
+            outputBox.textContent = licenseKey;
+            outputBox.style.color = '#4ade80';
+            
+            // Reset copy button
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> نسخ';
+            
+            // Store in Firestore as one-time code
+            const durationMap = {
+                'TRIAL-': 3,
+                '1M-': 30,
+                '3M-': 90,
+                '6M-': 180,
+                '1Y-': 365
+            };
+            const durationDays = durationMap[prefix] || 0;
+            
+            if (!durationDays) {
+                console.warn('Unknown prefix duration:', prefix);
+                return;
+            }
+            
+            if (!navigator.onLine) {
+                outputBox.style.color = '#ffc107';
+                console.warn('Offline: generated code not saved to Firestore');
+                return;
+            }
+            
+            if (!window.FirestoreService || typeof window.FirestoreService.createValidLicenseCode !== 'function') {
+                outputBox.style.color = '#ffc107';
+                console.warn('FirestoreService.createValidLicenseCode not available - code not saved');
+                return;
+            }
+            
+            try {
+                await window.FirestoreService.createValidLicenseCode(licenseKey, durationDays);
+                // keep green
+            } catch (e) {
+                outputBox.style.color = '#ff6b6b';
+                console.error('Failed to save code to Firestore:', e);
+            }
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard() {
+            const outputBox = document.getElementById('outputBox');
+            const text = outputBox.textContent;
+            
+            // Check if there's a valid key
+            if (!text || text.includes('انقر على')) {
+                alert('لا يوجد رمز للنسخ! يرجى توليد رمز أولاً.');
+                return;
+            }
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(text).then(() => {
+                // Update button to show success
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> نسخ';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('فشل النسخ. يرجى المحاولة مرة أخرى.');
+            });
+        }
+        
+        // Allow Enter key to copy
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                copyToClipboard();
+            }
+        });
+    </script>
+
+    <script src="saas/plans-ui.js"></script>
+    <script src="saas/auth-ui.js"></script>
+    <script src="saas/subscription-manager.js"></script>
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // SaaS Feature Gates — إخفاء الصفحات حسب الباقة
+    // ═══════════════════════════════════════════════════════
+    window.addEventListener('saas-ready', function () {
+
+        // ── الصفحات المقفولة على Basic فأكثر ──────────────
+        if (!window.SaaS.canUse('reports')) {
+            document.querySelector('a[href="reports.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+        if (!window.SaaS.canUse('customers')) {
+            document.querySelector('a[href="customers.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+
+        // ── الصفحات المقفولة على Pro فقط ───────────────────
+        if (!window.SaaS.canUse('whatsapp')) { // 'whatsapp' is a Pro feature
+            document.querySelector('a[href="marketing.html"]')
+                ?.style.setProperty('display', 'none', 'important');
+        }
+        
+        // ── Badge ──────────────────────────────────────────
+        const plan = window.SaaS.getPlan();
+        const planLabel = window.SaaS.getPlanLabel();
+        const endDate = window.SaaS.getEndDate();
+
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && !document.getElementById('saas-plan-badge')) {
+            const badge = document.createElement('div');
+            badge.id = 'saas-plan-badge';
+
+            const colors = { trial: '#4a9eff', basic: '#d4af37', pro: '#9b59b6', mega: '#e74c3c' };
+            const color  = colors[plan] || '#d4af37';
+
+            const daysLeft = endDate
+                ? Math.max(0, Math.ceil((new Date(endDate) - new Date()) / 86400000))
+                : null;
+
+            badge.style.cssText = 'margin: 12px; padding: 12px 14px; background: ' + color + '15; border: 1px solid ' + color + '44; border-radius: 10px; font-size: 12px; text-align: center;';
+            
+            let badgeHTML = '<div style="color:' + color + '; font-weight:700; margin-bottom:4px;">' + (plan === 'mega' ? '🚀' : plan === 'pro' ? '👑' : plan === 'basic' ? '⭐' : '🕐') + ' ' + planLabel + '</div>';
+
+            if (daysLeft !== null) {
+                badgeHTML += '<div style="color:#888; font-size:11px;">' + daysLeft + ' يوم متبقي</div>';
+            }
+
+            if (plan !== 'mega') {
+                badgeHTML += '<button onclick="window.SaaS.requireFeature(\'dashboard\')" style="margin-top:8px; width:100%; padding:6px; background:' + color + '; border:none; border-radius:6px; color:#000; font-size:11px; font-weight:700; cursor:pointer;">ترقية الباقة ↑</button>';
+            }
+
+            badge.innerHTML = badgeHTML;
+            sidebar.appendChild(badge);
+        }
+
+    });
+    </script>
+
+</body>
+</html>

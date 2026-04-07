@@ -1,0 +1,138 @@
+<!--
+  ════════════════════════════════════════════════════════════════════
+  Solo POS SaaS — دليل التكامل الكامل
+  ════════════════════════════════════════════════════════════════════
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  1. ترتيب الـ <script> في index.html                           │
+  └─────────────────────────────────────────────────────────────────┘
+-->
+
+<!-- 1. Firebase SDKs (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.x.x/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.x.x/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore-compat.js"></script>
+
+<!-- 2. إعدادات Firebase -->
+<script src="firebase-config.js"></script>
+
+<!-- 3. تهيئة Firebase + Firestore -->
+<script src="firebase.js"></script>
+<!-- أو firestore_service.js لو بتستخدمه بدل firebase.js -->
+
+<!-- 4. SaaS System (الترتيب مهم) -->
+
+
+  <!-- بيشتغل أوتوماتيك -->
+
+<!-- 5. باقي ملفات البرنامج -->
+<script src="app-logic.js"></script>
+<!-- ... -->
+
+<!--
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  2. استخدام الـ Feature Gates في كودك                          │
+  └─────────────────────────────────────────────────────────────────┘
+
+  ● تحقق بسيط:
+    if (window.SaaS.canUse('whatsapp')) {
+      // شغّل الواتساب
+    }
+
+  ● مع رسالة ترقية تلقائية:
+    window.SaaS.requireFeature('reports');  // يعرض شاشة ترقية لو مش متاح
+
+  ● مع callback مخصص:
+    window.SaaS.requireFeature('dashboard', (feature) => {
+      showToast('هذه الميزة تتطلب باقة Pro');
+    });
+
+  ● إخفاء أزرار حسب الباقة (مثال):
+    document.addEventListener('saas-ready', () => {
+      // إخفاء تبويب الواتساب لو مش Pro
+      const waTab = document.getElementById('whatsapp-tab');
+      if (waTab) waTab.style.display = SaaS.canUse('whatsapp') ? '' : 'none';
+
+      // إخفاء تبويب التقارير لو Trial
+      const repTab = document.getElementById('reports-tab');
+      if (repTab) repTab.style.display = SaaS.canUse('reports') ? '' : 'none';
+    });
+
+  ● عرض معلومات الباقة في الـ UI:
+    SaaS.getPlan()        // 'trial' | 'basic' | 'pro'
+    SaaS.getPlanLabel()   // 'تجربة مجانية' | 'أساسي — 299 ج/شهر' ...
+    SaaS.getEndDate()     // ISO string
+    SaaS.getOfflineDays() // عدد الأيام المتبقية أوفلاين
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  3. خريطة الفيتشرز لكل باقة                                   │
+  └─────────────────────────────────────────────────────────────────┘
+
+  trial:  ['pos', 'orders']
+  basic:  ['pos', 'orders', 'reports', 'customers']
+  pro:    ['pos', 'orders', 'reports', 'customers',
+           'whatsapp', 'dashboard', 'bulk_messages',
+           'advanced_reports', 'multi_branch']
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  4. بنية Firestore Collections                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+  subscriptions/{uid}
+  ├── uid:          string
+  ├── plan:         'trial' | 'basic' | 'pro'
+  ├── status:       'active' | 'expired' | 'suspended'
+  ├── startDate:    ISO string
+  ├── endDate:      ISO string
+  ├── hardwareIds:  string[]     ← أجهزة مسجّلة
+  ├── email:        string | null
+  ├── phone:        string | null
+  ├── displayName:  string | null
+  ├── lastVerified: ISO string   ← تحديث كل تشغيل أونلاين
+  └── createdAt:    ISO string
+
+  users/{uid}
+  ├── uid, email, phone, displayName, createdAt
+
+  admins/{uid}
+  └── role: 'super_admin' | 'support'
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  5. تفعيل مستخدم يدوياً (Super Admin)                         │
+  └─────────────────────────────────────────────────────────────────┘
+
+  من Firebase Console → Firestore → subscriptions/{uid}:
+  {
+    "plan": "basic",          // غيّر الباقة
+    "status": "active",       // فعّل
+    "endDate": "2025-12-31T00:00:00.000Z"  // تاريخ الانتهاء
+  }
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  6. إضافة Admin                                                │
+  └─────────────────────────────────────────────────────────────────┘
+
+  Firebase Console → Firestore → مجموعة جديدة "admins" → Document ID = uid الأدمين
+  {
+    "role": "super_admin",
+    "email": "admin@solopos.com"
+  }
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  7. تفعيل Firebase Auth (Phone + Google)                       │
+  └─────────────────────────────────────────────────────────────────┘
+
+  Firebase Console → Authentication → Sign-in method:
+  ✅ Phone  (فعّله + أضف مصر +20 في Authorized domains)
+  ✅ Google (فعّله + أضف SHA-1 fingerprint لو Electron)
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  8. المرحلة 2 — القادمة                                        │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [ ] Paymob integration → تحديث الباقة أوتوماتيك بـ webhook
+  [ ] Super Admin Dashboard → React web app على Firebase Hosting
+  [ ] Landing Page → Next.js + تحميل إصدارات Electron
+  [ ] Email notifications → Firebase Functions
+  [ ] Multi-branch → restaurants/{uid}/branches/{branchId}
+-->
