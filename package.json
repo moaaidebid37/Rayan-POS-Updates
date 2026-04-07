@@ -1,6 +1,6 @@
 {
   "name": "solo-system-pos",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Solo System - Complete Point of Sale (POS) system built with HTML, CSS, and JavaScript.",
   "main": "app.js",
   "scripts": {
