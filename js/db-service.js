@@ -803,7 +803,7 @@
         WHERE 1=1
       `;
       const p = [];
-      if (filters.date)        { sql += ' AND a.date = ?';         p.push(filters.date); }
+      if (filters.date || filters.businessDate) { sql += ' AND a.date = ?'; p.push(filters.date || filters.businessDate); }
       if (filters.employee_id) { sql += ' AND a.employee_id = ?';  p.push(filters.employee_id); }
       if (filters.session_id)  { sql += ' AND a.session_id = ?';   p.push(filters.session_id); }
       sql += ' ORDER BY a.created_at DESC';
