@@ -892,10 +892,11 @@
 
             // ── حفظ مستخدم النظام (تعديل اسم ورقم تليفون فقط) ──
             if (editingSystemUserId) {
-                const newName  = document.getElementById('employeeName').value.trim();
-                const newPhone = document.getElementById('employeePhone').value.trim();
+                const newName   = document.getElementById('employeeName').value.trim();
+                const newPhone  = document.getElementById('employeePhone').value.trim();
                 const newSalary = parseFloat(document.getElementById('employeeSalary')?.value) || 0;
                 try {
+                    // 1. حفظ في localStorage
                     let users = JSON.parse(localStorage.getItem('users') || '[]');
                     const idx = users.findIndex(u =>
                         String(u.id || u.uid || u.username || '') === editingSystemUserId
@@ -907,11 +908,19 @@
                         localStorage.setItem('users', JSON.stringify(users));
                         systemUsersForDisplay = users;
                     }
+
+                    // 2. حفظ في Firebase — عشان الراتب ميصفرش عند إعادة التحميل
+                    const updatePayload = { salary: newSalary, phone: newPhone };
+                    if (newName) updatePayload.displayName = newName;
+                    if (window.DBService && typeof window.DBService.updateUser === 'function') {
+                        await window.DBService.updateUser(editingSystemUserId, updatePayload);
+                    } else if (typeof updateUser === 'function') {
+                        await updateUser(editingSystemUserId, updatePayload);
+                    }
                 } catch (e) {
                     console.error('Error saving system user:', e);
                 }
                 renderEmployees();
-                // loadTeamPerformance(); // مخفية مؤقتاً
                 closeEmployeeModal();
                 if (typeof Notification !== 'undefined') Notification.success('تم تحديث بيانات المستخدم بنجاح');
                 return;
