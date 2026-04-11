@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="fontawesome/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animations.css">
     <style>
@@ -206,7 +206,7 @@
             gap: var(--spacing-sm);
         }
         
-        .btn-call, .btn-edit, .btn-delete {
+        .btn-call, .btn-whatsapp, .btn-edit, .btn-delete {
             flex: 1;
             padding: 10px;
             border: none;
@@ -415,13 +415,7 @@
                         <div class="empty-state">لا يوجد موظفين</div>
                     </div>
                     
-                    <!-- Employee Performance Section -->
-                    <div class="card" style="margin-top: var(--spacing-lg);">
-                        <h3 style="color: #000000; font-weight: 700; margin-bottom: var(--spacing-lg); font-size: 20px;">👥 أداء الموظفين</h3>
-                        <div id="employeePerformance" style="display: grid; gap: var(--spacing-md);">
-                            <div style="text-align: center; padding: var(--spacing-md); color: #999999;">جاري التحميل...</div>
-                        </div>
-                    </div>
+                    <!-- Team Performance Section — مخفية مؤقتاً -->
 
                     <!-- Attendance Summary (Business Month) -->
                     <div class="card" style="margin-top: var(--spacing-lg);">
@@ -509,6 +503,7 @@
     <script src="js/firebase.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
@@ -522,7 +517,9 @@
         });
         
         let employees = [];
-        let editingEmployeeId = null;
+        let systemUsersForDisplay = [];
+        let editingEmployeeId    = null;
+        let editingSystemUserId  = null; // ID للمستخدم من النظام عند التعديل
 
         function _onRoleChange() {
           // PIN and page permissions are managed in User Management (Settings → إدارة المستخدمين)
@@ -550,73 +547,147 @@
             }
         }
         
-        // Load employees
+        // Load employees + system users
         async function loadEmployees() {
             try {
-                // Offline-first: DataManager يرجع localStorage فوراً ويسنك Firebase في الخلفية
+                // جيب المستخدمين من النظام (كاشير/مالك/مدير)
+                try {
+                    systemUsersForDisplay = window.DBService
+                        ? ((await window.DBService.getUsers()) || [])
+                        : JSON.parse(localStorage.getItem('users') || '[]');
+                } catch (_) {
+                    try { systemUsersForDisplay = JSON.parse(localStorage.getItem('users') || '[]'); } catch (__) {}
+                }
+
+                // جيب الموظفين العاديين (طباخ/نادل/إلخ)
                 if (typeof DataManager !== 'undefined' && DataManager.getEmployees) {
                     const data = await DataManager.getEmployees();
                     employees = data || [];
                 } else {
-                    // Fallback: localStorage مباشرة
                     try {
-                        const stored = localStorage.getItem('employees');
-                        employees = stored ? JSON.parse(stored) : [];
+                        if (window.DBService && typeof window.DBService.getEmployees === 'function') {
+                            employees = await window.DBService.getEmployees() || [];
+                        } else {
+                            employees = [];
+                        }
                     } catch (e) {
                         employees = [];
                     }
                 }
 
                 renderEmployees();
-                await loadEmployeePerformance();
+                // loadTeamPerformance(); // مخفية مؤقتاً
             } catch (error) {
                 console.error('Error loading employees:', error);
                 employees = [];
                 renderEmployees();
-                await loadEmployeePerformance();
+                // loadTeamPerformance(); // مخفية مؤقتاً
             }
         }
         
-        // Render employees
+        // Render employees + system users
         function renderEmployees() {
             const grid = document.getElementById('employeesGrid');
             if (!grid) return;
-            
-            if (employees.length === 0) {
-                grid.innerHTML = '<div class="empty-state">لا يوجد موظفين<br><small style="color: #999999; font-size: 14px;">اضغط على "إضافة موظف" لإضافة موظف جديد</small></div>';
-                return;
-            }
-            
-            grid.innerHTML = employees.map(employee => {
-                const initials = employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                
-                return `
-                    <div class="employee-card" data-employee-id="${employee.id}">
+
+            // لونات/أيقونات المستخدمين من النظام
+            const sysRoleColors  = { owner: '#f59e0b', admin: '#8b5cf6', cashier: '#3b82f6' };
+            const sysRoleLabels  = { owner: 'مالك', admin: 'مدير', cashier: 'كاشير' };
+            const sysRoleIcons   = { owner: '👑', admin: '👔', cashier: '💰' };
+
+            // كروت المستخدمين من النظام — نفس ديزاين كروت الموظفين بالظبط
+            const sysNames = new Set();
+            const sysCards = (systemUsersForDisplay || [])
+                .filter(u => u.displayName || u.name || u.username)
+                .map(u => {
+                    const uid     = String(u.id || u.uid || u.username || '');
+                    const name    = u.displayName || u.name || u.username || '';
+                    const role    = u.role || 'cashier';
+                    const color   = sysRoleColors[role]  || '#3b82f6';
+                    const label   = sysRoleLabels[role]  || role;
+                    const icon    = sysRoleIcons[role]   || '💰';
+                    const phone   = u.phone || '';
+                    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    const uidSafe = encodeURIComponent(uid);
+                    sysNames.add(name.toLowerCase());
+                    return `
+                    <div class="employee-card" style="border-top:3px solid ${color};">
                         <div class="employee-profile">
-                            <div class="employee-avatar">${initials}</div>
+                            <div class="employee-avatar" style="background:linear-gradient(135deg,${color}33,${color}55);color:${color};border:2px solid ${color}44;">
+                                ${initials}
+                            </div>
                             <div class="employee-info">
-                                <div class="employee-name">${employee.name}</div>
-                                <div class="employee-role">${employee.role || 'غير محدد'}</div>
+                                <div class="employee-name">${name}</div>
+                                <div class="employee-role">
+                                    <span style="color:${color};font-weight:700;">${icon} ${label}</span>
+                                    <span style="font-size:10px;background:#f5f5f5;color:#aaa;border-radius:5px;padding:1px 5px;margin-right:5px;">نظام</span>
+                                </div>
                             </div>
                         </div>
                         <div class="employee-details">
                             <div class="employee-detail-item">
                                 <i class="fas fa-phone"></i>
-                                <span>${employee.phone}</span>
+                                <span>${phone || 'لم يُضف رقم بعد'}</span>
                             </div>
                             <div class="employee-detail-item">
                                 <i class="fas fa-money-bill-wave"></i>
-                                <span>الراتب الشهري: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(parseFloat(employee.salary) || 0) : ((parseFloat(employee.salary) || 0) + ' ج.م')}</span>
+                                <span>الراتب الشهري: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(parseFloat(u.salary) || 0) : ((parseFloat(u.salary) || 0) + ' ج.م')}</span>
+                            </div>
+                        </div>
+                        <div class="employee-actions">
+                            <button class="btn-call" onclick="callEmployee('${phone}')" ${!phone ? 'style="opacity:.45;cursor:not-allowed;"' : ''}>
+                                <i class="fas fa-phone"></i>اتصال
+                            </button>
+                            <button class="btn-whatsapp" onclick="openWhatsApp('${phone}')" ${!phone ? 'style="opacity:.45;cursor:not-allowed;"' : ''}>
+                                <i class="fab fa-whatsapp"></i>واتساب
+                            </button>
+                            <button class="btn-edit" onclick="editSystemUser('${uidSafe}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteSystemUser('${uidSafe}')" data-restricted="owner">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+            // لونات الموظفين العاديين حسب الدور
+            const empRoleColors = { 'طباخ': '#ef4444', 'نادل': '#10b981', 'مدير': '#8b5cf6', 'كاشير': '#3b82f6', 'أخرى': '#64748b' };
+            const empRoleIcons  = { 'طباخ': '🍳', 'نادل': '🧑‍🍽️', 'مدير': '👔', 'كاشير': '💰', 'أخرى': '👤' };
+
+            // كروت الموظفين العاديين (بدون تكرار من النظام)
+            const empCards = employees
+                .filter(e => !sysNames.has((e.name || '').toLowerCase()))
+                .map(employee => {
+                    const initials  = employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    const eColor    = empRoleColors[employee.role] || '#64748b';
+                    const eIcon     = empRoleIcons[employee.role]  || '👤';
+                    const _fmtSal   = v => typeof Utils !== 'undefined' ? Utils.formatCurrency(v) : (v + ' ج.م');
+                    return `
+                    <div class="employee-card" data-employee-id="${employee.id}" style="border-top:3px solid ${eColor};">
+                        <div class="employee-profile">
+                            <div class="employee-avatar" style="background:linear-gradient(135deg,${eColor}33,${eColor}55);color:${eColor};border:2px solid ${eColor}44;">${initials}</div>
+                            <div class="employee-info">
+                                <div class="employee-name">${employee.name}</div>
+                                <div class="employee-role" style="color:${eColor};font-weight:700;">${eIcon} ${employee.role || 'غير محدد'}</div>
+                            </div>
+                        </div>
+                        <div class="employee-details">
+                            <div class="employee-detail-item">
+                                <i class="fas fa-phone"></i>
+                                <span>${employee.phone || '—'}</span>
+                            </div>
+                            <div class="employee-detail-item">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>الراتب الشهري: ${_fmtSal(parseFloat(employee.salary) || 0)}</span>
                             </div>
                         </div>
                         <div class="employee-actions">
                             <button class="btn-call" onclick="callEmployee('${employee.phone}')">
-                                <i class="fas fa-phone"></i>
-                                اتصال
+                                <i class="fas fa-phone"></i>اتصال
                             </button>
                             <button class="btn-whatsapp" onclick="openWhatsApp('${employee.phone}')">
-                                <i class="fab fa-whatsapp"></i>
-                                واتساب
+                                <i class="fab fa-whatsapp"></i>واتساب
                             </button>
                             <button class="btn-edit" onclick="editEmployee('${employee.id}')">
                                 <i class="fas fa-edit"></i>
@@ -625,9 +696,11 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    </div>`;
+                }).join('');
+
+            const allCards = sysCards + empCards;
+            grid.innerHTML = allCards || '<div class="empty-state">لا يوجد موظفون أو مستخدمون<br><small style="color:#999;font-size:14px;">اضغط على "إضافة موظف" لإضافة موظف جديد</small></div>';
         }
         
         // ربط تغيير الدور بإظهار/إخفاء الحقول
@@ -635,25 +708,44 @@
 
         // Open Add Employee Modal
         function openAddEmployeeModal() {
-            editingEmployeeId = null;
+            editingEmployeeId   = null;
+            editingSystemUserId = null;
             document.getElementById('employeeModalTitle').textContent = 'إضافة موظف جديد';
             document.getElementById('employeeForm').reset();
+            // تأكد إن الحقول ظاهرة ومكتمل الـ required
+            const { roleGroup, salaryGroup } = _getSysModalFields();
+            if (roleGroup)   roleGroup.style.display   = '';
+            if (salaryGroup) salaryGroup.style.display = '';
+            const roleSelect = document.getElementById('employeeRole');
+            if (roleSelect) roleSelect.setAttribute('required', '');
+            const salaryInput = document.getElementById('employeeSalary');
+            if (salaryInput) salaryInput.setAttribute('required', '');
             document.getElementById('employeeModal').classList.add('active');
         }
         
         // Close Employee Modal
         function closeEmployeeModal() {
             document.getElementById('employeeModal').classList.remove('active');
-            editingEmployeeId = null;
+            editingEmployeeId   = null;
+            editingSystemUserId = null;
             document.getElementById('employeeForm').reset();
+            // استعادة الحقول المخفية + required attributes
+            const { roleGroup, salaryGroup } = _getSysModalFields();
+            if (roleGroup)   roleGroup.style.display   = '';
+            if (salaryGroup) salaryGroup.style.display = '';
+            const roleSelect = document.getElementById('employeeRole');
+            if (roleSelect) roleSelect.setAttribute('required', '');
+            const salaryInput = document.getElementById('employeeSalary');
+            if (salaryInput) salaryInput.setAttribute('required', '');
         }
-        
+
         // Edit Employee
         function editEmployee(id) {
             const employee = employees.find(e => e.id === id);
             if (!employee) return;
 
-            editingEmployeeId = id;
+            editingEmployeeId   = id;
+            editingSystemUserId = null;
             document.getElementById('employeeModalTitle').textContent = 'تعديل موظف';
             document.getElementById('employeeName').value = employee.name || '';
             document.getElementById('employeePhone').value = employee.phone || '';
@@ -693,7 +785,7 @@
                 }
 
                 // Reload performance stats as it depends on employees list
-                await loadEmployeePerformance();
+                // loadTeamPerformance(); // مخفية مؤقتاً
 
             } catch (error) {
                 console.error('Error during employee deletion process:', error);
@@ -705,28 +797,138 @@
         
         // Call Employee
         function callEmployee(phone) {
+            if (!phone) return;
             window.location.href = `tel:${phone}`;
         }
 
         // WhatsApp Employee
         function openWhatsApp(phone) {
+            if (!phone) return;
             const cleaned = phone.replace(/\D/g, '');
             const intl = cleaned.startsWith('0') ? '2' + cleaned : cleaned;
             window.open(`https://wa.me/${intl}`, '_blank');
         }
-        
+
+        // ========================
+        // System User Edit / Delete
+        // ========================
+        function _getSysModalFields() {
+            return {
+                roleGroup:   document.getElementById('employeeRole')?.closest?.('.form-group'),
+                salaryGroup: document.getElementById('employeeSalary')?.closest?.('.form-group'),
+            };
+        }
+
+        function editSystemUser(uidEnc) {
+            const uid = decodeURIComponent(uidEnc);
+            const user = (systemUsersForDisplay || []).find(u =>
+                String(u.id || u.uid || u.username || '') === uid
+            );
+            if (!user) return;
+
+            editingEmployeeId   = null;
+            editingSystemUserId = uid;
+
+            const name  = user.displayName || user.name || user.username || '';
+            const phone = user.phone || '';
+
+            const roleLabel  = { owner: 'مالك', admin: 'مدير', cashier: 'كاشير' }[user.role] || user.role || '';
+            const roleColor  = { owner: '#f59e0b', admin: '#8b5cf6', cashier: '#3b82f6' }[user.role] || '#3b82f6';
+            const roleIcon   = { owner: '👑', admin: '👔', cashier: '💰' }[user.role] || '💰';
+
+            document.getElementById('employeeModalTitle').innerHTML =
+                `تعديل بيانات المستخدم &nbsp;<span style="font-size:12px;background:${roleColor}18;color:${roleColor};
+                border-radius:8px;padding:2px 9px;font-weight:700;">${roleIcon} ${roleLabel}</span>`;
+            document.getElementById('employeeName').value  = name;
+            document.getElementById('employeePhone').value = phone;
+
+            // أخفي حقل الدور فقط — الراتب ظاهر ومتاح للتعديل
+            const { roleGroup, salaryGroup } = _getSysModalFields();
+            if (roleGroup) roleGroup.style.display = 'none';
+            if (salaryGroup) salaryGroup.style.display = '';
+
+            // شيل required من الـ select عشان مخفي ومش محتاجه
+            const roleSelect = document.getElementById('employeeRole');
+            if (roleSelect) {
+                roleSelect.removeAttribute('required');
+                roleSelect.value = user.role || 'cashier'; // قيمة افتراضية
+            }
+            const salaryInput = document.getElementById('employeeSalary');
+            if (salaryInput) {
+                salaryInput.removeAttribute('required'); // مش إجباري لمستخدمي النظام
+                salaryInput.value = parseFloat(user.salary) || '';
+            }
+
+            document.getElementById('employeeModal').classList.add('active');
+        }
+
+        async function deleteSystemUser(uidEnc) {
+            try {
+                if (typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function' && !Auth.canDelete()) {
+                    if (typeof Notification !== 'undefined') Notification.error('الحذف مسموح لصاحب المحل فقط');
+                    return;
+                }
+            } catch (_) {}
+
+            if (!confirm('هل أنت متأكد من حذف هذا المستخدم من النظام؟')) return;
+
+            const uid = decodeURIComponent(uidEnc);
+            // احذف من localStorage
+            try {
+                let users = JSON.parse(localStorage.getItem('users') || '[]');
+                users = users.filter(u => String(u.id || u.uid || u.username || '') !== uid);
+                localStorage.setItem('users', JSON.stringify(users));
+                systemUsersForDisplay = users;
+            } catch (_) {}
+
+            renderEmployees();
+            await loadTeamPerformance();
+            if (typeof Notification !== 'undefined') Notification.success('تم حذف المستخدم بنجاح');
+        }
+
         // Handle Employee Form Submit
         async function handleEmployeeSubmit(event) {
             event.preventDefault();
 
+            // ── حفظ مستخدم النظام (تعديل اسم ورقم تليفون فقط) ──
+            if (editingSystemUserId) {
+                const newName  = document.getElementById('employeeName').value.trim();
+                const newPhone = document.getElementById('employeePhone').value.trim();
+                const newSalary = parseFloat(document.getElementById('employeeSalary')?.value) || 0;
+                try {
+                    let users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const idx = users.findIndex(u =>
+                        String(u.id || u.uid || u.username || '') === editingSystemUserId
+                    );
+                    if (idx !== -1) {
+                        if (newName)  users[idx].displayName = newName;
+                        users[idx].phone  = newPhone;
+                        users[idx].salary = newSalary;
+                        localStorage.setItem('users', JSON.stringify(users));
+                        systemUsersForDisplay = users;
+                    }
+                } catch (e) {
+                    console.error('Error saving system user:', e);
+                }
+                renderEmployees();
+                // loadTeamPerformance(); // مخفية مؤقتاً
+                closeEmployeeModal();
+                if (typeof Notification !== 'undefined') Notification.success('تم تحديث بيانات المستخدم بنجاح');
+                return;
+            }
+
+            // ── حفظ موظف عادي ──
             const role = document.getElementById('employeeRole').value;
 
+            const empSalary = parseFloat(document.getElementById('employeeSalary').value) || 0;
             const employee = {
                 id: editingEmployeeId || 'EMP' + Date.now(),
                 name: document.getElementById('employeeName').value.trim(),
                 phone: document.getElementById('employeePhone').value.trim(),
                 role,
-                salary: parseFloat(document.getElementById('employeeSalary').value) || 0,
+                salary:        empSalary,
+                salary_amount: empSalary,   // ← يتوافق مع db-service عمود salary_amount
+                salary_type:   'monthly',   // ← دايماً شهري
                 createdAt: editingEmployeeId ? employees.find(e => e.id === editingEmployeeId)?.createdAt : new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -745,7 +947,10 @@
                     employees.push(employee);
                 }
                 
-                localStorage.setItem('employees', JSON.stringify(employees));
+                // Save to DBService
+                if (window.DBService && typeof window.DBService.saveEmployee === 'function') {
+                    try { await window.DBService.saveEmployee(employee); } catch(e) { console.error('DBService saveEmployee error:', e); }
+                }
 
                 // إضافة للمزامنة مع Firebase
                 if (typeof window !== 'undefined' && window.SyncManager) {
@@ -790,92 +995,413 @@
             }
         }
         
-        // Employee Performance (from orders)
-        async function loadEmployeePerformance() {
-            const container = document.getElementById('employeePerformance');
+        // ===========================
+        // 🏆 UNIFIED TEAM PERFORMANCE
+        // كاشيرز: إيراداتهم من السيشنز اللي فتحوها
+        // موظفين عاديين: إيرادات الشيفتات في أيام حضورهم
+        // ===========================
+        window._teamPeriod = 'month';
+
+        window.loadTeamPerformance = async function(period) {
+            if (period) window._teamPeriod = period;
+            else period = window._teamPeriod || 'month';
+
+            const container = document.getElementById('teamPerformance');
             if (!container) return;
-            
-            container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">جاري تحميل أداء الموظفين...</div>';
-            
+            container.innerHTML = '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-spinner fa-spin" style="font-size:24px;"></i><br>جاري التحميل...</div>';
+
+            const _fmt = v => typeof Utils !== 'undefined' ? Utils.formatCurrency(v) : v.toFixed(2) + ' ج.م';
+
             try {
-                let orders = [];
+                // ── جيب كل الداتا ──
+                let systemUsers = [], manualEmps = [], allSessions = [], allOrders = [], allAttendance = [];
+
                 try {
-                    orders = await (typeof DataManager !== 'undefined' && DataManager.getOrders ? DataManager.getOrders() : Promise.resolve([])) || [];
-                } catch (e) {
-                    console.warn('getOrders failed in loadEmployeePerformance:', e);
-                }
-                if (!orders.length) {
-                    container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">لا توجد طلبات حتى الآن</div>';
-                    return;
-                }
-                
-                const empList = Array.isArray(employees) ? employees : [];
-                const stats = {};
-                orders.forEach(order => {
-                    const cashier = order.cashier || order.createdBy || 'غير معروف';
-                    if (!stats[cashier]) {
-                        stats[cashier] = { orders: 0, revenue: 0 };
+                    systemUsers = window.DBService
+                        ? (await window.DBService.getUsers() || [])
+                        : JSON.parse(localStorage.getItem('users') || '[]');
+                } catch(_) { try { systemUsers = JSON.parse(localStorage.getItem('users') || '[]'); } catch(__) {} }
+
+                try {
+                    manualEmps = window.DBService
+                        ? (await window.DBService.getEmployees() || [])
+                        : JSON.parse(localStorage.getItem('employees') || '[]');
+                } catch(_) { try { manualEmps = JSON.parse(localStorage.getItem('employees') || '[]'); } catch(__) {} }
+
+                try {
+                    [allSessions, allOrders] = await Promise.all([
+                        window.DBService ? window.DBService.getCashSessions() : [],
+                        window.DBService ? window.DBService.getOrders()       : [],
+                    ]);
+                } catch(_) {}
+                allSessions = allSessions || [];
+                allOrders   = allOrders   || [];
+
+                // ── DEBUG ──
+                console.log('[PERF DEBUG] sessions:', allSessions.length, allSessions.map(s=>({id:s.id, opened_by:s.opened_by||s.cashier_name, date:(s.opened_at||'').slice(0,10)})));
+                console.log('[PERF DEBUG] orders:', allOrders.length, allOrders.map(o=>({sid:o.session_id||o.sessionId, total:o.total})));
+                console.log('[PERF DEBUG] sysUsers from localStorage:', JSON.parse(localStorage.getItem('users')||'[]').map(u=>({name:u.displayName||u.name, phone:u.phone, id:u.id||u.uid})));
+
+                // SQLite-first للحضور
+                try {
+                    if (window.DBService && typeof window.DBService.getAttendance === 'function') {
+                        allAttendance = (await window.DBService.getAttendance({})) || [];
                     }
-                    stats[cashier].orders++;
-                    stats[cashier].revenue += (parseFloat(order.total) || 0);
+                } catch(_) {
+                    try { allAttendance = JSON.parse(localStorage.getItem('attendance') || '[]'); } catch(__) {}
+                }
+
+                // ── نطاق الفترة ──
+                const today = getBusinessDateSafe();
+                let rangeStart = '';
+                if (period === 'today') {
+                    rangeStart = today;
+                } else if (period === 'week') {
+                    const d = new Date(`${today}T00:00:00`);
+                    d.setDate(d.getDate() - 6);
+                    rangeStart = new Intl.DateTimeFormat('en-CA').format(d);
+                } else if (period === 'month') {
+                    const d = new Date(`${today}T00:00:00`);
+                    rangeStart = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+                } else {
+                    rangeStart = '2000-01-01';
+                }
+
+                // ── فلترة السيشنز ──
+                const filteredSessions = allSessions.filter(s => {
+                    const d = s.business_date || s.businessDate || (s.opened_at || '').split('T')[0] || '';
+                    return d >= rangeStart && d <= today;
                 });
-                
-                // ربط الأداء ببيانات الموظفين (للراتب وصافي الربح)
-                const employeesByName = {};
-                empList.forEach(emp => {
-                    employeesByName[emp.name] = emp;
+
+                // بناء maps
+                const dateSessionMap = {}; // date → sessions[]
+                filteredSessions.forEach(s => {
+                    const d = s.business_date || s.businessDate || (s.opened_at || '').split('T')[0] || '';
+                    if (!d) return;
+                    if (!dateSessionMap[d]) dateSessionMap[d] = [];
+                    dateSessionMap[d].push(s);
                 });
-                
-                const items = Object.entries(stats)
-                    .map(([name, data]) => {
-                        const salary = parseFloat(employeesByName[name]?.salary) || 0;
-                        const avgOrder = data.orders > 0 ? data.revenue / data.orders : 0;
-                        const netAfterSalary = data.revenue - salary;
+
+                const rangeSessionIds = new Set(filteredSessions.map(s => String(s.id)));
+                const filteredOrders = allOrders.filter(o =>
+                    rangeSessionIds.has(String(o.session_id || o.sessionId || ''))
+                );
+
+                const sessionRevMap = {};    // sessionId → total revenue
+                const sessionOrdMap = {};   // sessionId → order count
+                filteredOrders.forEach(o => {
+                    const sid = String(o.session_id || o.sessionId || '');
+                    if (!sid) return;
+                    sessionRevMap[sid] = (sessionRevMap[sid] || 0) + (parseFloat(o.total) || 0);
+                    sessionOrdMap[sid] = (sessionOrdMap[sid] || 0) + 1;
+                });
+
+                const filteredAttendance = allAttendance.filter(r => {
+                    const d = String(r.businessDate ?? r.business_date ?? '');
+                    return d >= rangeStart && d <= today;
+                });
+
+                // ── بناء قائمة الأشخاص الموحدة ──
+                const SYS_ROLE_COLORS  = { owner: '#f59e0b', admin: '#8b5cf6', cashier: '#3b82f6' };
+                const SYS_ROLE_LABELS  = { owner: 'مالك', admin: 'مدير', cashier: 'كاشير' };
+                const SYS_ROLE_ICONS   = { owner: '👑', admin: '👔', cashier: '💰' };
+                const EMP_ROLE_COLORS  = { 'طباخ': '#ef4444', 'نادل': '#10b981', 'مدير': '#8b5cf6', 'كاشير': '#3b82f6' };
+                const EMP_ROLE_ICONS   = { 'طباخ': '🍳', 'نادل': '🧑‍🍽️', 'مدير': '👔', 'كاشير': '💰' };
+
+                const sysPersons = systemUsers
+                    .filter(u => u.displayName || u.name || u.username)
+                    .map(u => {
+                        // اجمع كل الأسماء/المعرّفات الممكنة عشان نطابق بيها السيشن
+                        const identifiers = new Set(
+                            [u.displayName, u.name, u.username, u.phone, u.id, u.uid]
+                            .filter(Boolean).map(v => String(v).trim())
+                        );
                         return {
-                            name,
-                            orders: data.orders,
-                            revenue: data.revenue,
-                            avgOrder,
-                            salary,
-                            netAfterSalary
+                            id:           String(u.id || u.uid || u.username || ''),
+                            name:         u.displayName || u.name || u.username || '',
+                            role:         u.role || 'cashier',
+                            isSystemUser: true,
+                            roleLabel:    SYS_ROLE_LABELS[u.role] || u.role || 'كاشير',
+                            roleIcon:     SYS_ROLE_ICONS[u.role]  || '💰',
+                            roleColor:    SYS_ROLE_COLORS[u.role] || '#3b82f6',
+                            _identifiers: identifiers,  // ← كل المعرّفات للمطابقة
                         };
-                    })
-                    .sort((a, b) => b.revenue - a.revenue);
-                
-                if (!items.length) {
-                    container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #999999;">لا توجد بيانات</div>';
+                    });
+
+                const sysNamesLc = new Set(sysPersons.map(p => p.name.toLowerCase()));
+
+                const empPersons = manualEmps
+                    .filter(e => e.name && !sysNamesLc.has((e.name || '').toLowerCase()))
+                    .map(e => ({
+                        id:           String(e.id || ''),
+                        name:         e.name || '',
+                        role:         e.role || 'موظف',
+                        isSystemUser: false,
+                        salary:       parseFloat(e.salary) || 0,
+                        roleLabel:    e.role || 'موظف',
+                        roleIcon:     EMP_ROLE_ICONS[e.role]  || '👤',
+                        roleColor:    EMP_ROLE_COLORS[e.role] || '#64748b',
+                    }));
+
+                const allPersons = [...sysPersons, ...empPersons];
+
+                // ── حساب الإحصائيات لكل شخص ──
+                const personStats = allPersons.map(person => {
+                    let participatedRevenue = 0;
+                    let participatedOrders  = 0;
+                    let participatedSessions = 0;
+                    let presentDays = 0;
+
+                    if (person.isSystemUser) {
+                        // الكاشير/المالك: حضوره = السيشنز اللي فتحها
+                        // نطابق بأي identifier (اسم، يوزرنيم، تليفون، id)
+                        const ids = person._identifiers || new Set([person.name]);
+                        const mySessions = filteredSessions.filter(s => {
+                            const ob = String(s.cashier_name || s.cashierName || s.opened_by || s.openedBy || '').trim();
+                            return ob && ids.has(ob);
+                        });
+                        const myDates = new Set(mySessions.map(s =>
+                            s.business_date || s.businessDate || (s.opened_at || '').split('T')[0]
+                        ));
+                        presentDays = myDates.size;
+                        participatedSessions = mySessions.length;
+                        mySessions.forEach(s => {
+                            const sid = String(s.id);
+                            participatedRevenue += sessionRevMap[sid] || 0;
+                            participatedOrders  += sessionOrdMap[sid]  || 0;
+                        });
+                    } else {
+                        // الموظف العادي: حضوره = سجلات الحضور بـ status=present
+                        const personAtt = filteredAttendance.filter(r => {
+                            const pid = String(r.employeeId ?? r.employee_id ?? '');
+                            return pid === person.id && normalizeStatus(r.status) === 'present';
+                        });
+                        const presentDatesSet = new Set(personAtt.map(r =>
+                            String(r.businessDate ?? r.business_date ?? '')
+                        ));
+                        presentDays = presentDatesSet.size;
+
+                        presentDatesSet.forEach(date => {
+                            (dateSessionMap[date] || []).forEach(s => {
+                                const sid = String(s.id);
+                                participatedRevenue += sessionRevMap[sid] || 0;
+                                participatedOrders  += sessionOrdMap[sid]  || 0;
+                                participatedSessions++;
+                            });
+                        });
+                    }
+
+                    return {
+                        ...person,
+                        presentDays,
+                        participatedRevenue,
+                        participatedOrders,
+                        participatedSessions,
+                        avgOrder: participatedOrders > 0 ? participatedRevenue / participatedOrders : 0,
+                    };
+                }).sort((a, b) => b.participatedRevenue - a.participatedRevenue);
+
+                // ── DEBUG ──
+                console.log('[PERF DEBUG] filteredSessions:', filteredSessions.length, 'sessionRevMap:', sessionRevMap);
+                console.log('[PERF DEBUG] allPersons:', allPersons.map(p=>({name:p.name, ids:[...( p._identifiers||new Set())]})));
+                console.log('[PERF DEBUG] personStats:', personStats.map(p=>({name:p.name, rev:p.participatedRevenue, sessions:p.participatedSessions, days:p.presentDays})));
+
+                // ── إجمالي الفترة ──
+                const totalRev = filteredSessions.reduce((s, sess) => s + (sessionRevMap[String(sess.id)] || 0), 0);
+                const totalSessions = filteredSessions.length;
+                const topPerson = personStats.find(p => p.participatedRevenue > 0);
+
+                const maxRev = Math.max(...personStats.map(p => p.participatedRevenue), 1);
+
+                // ── Period Filter Tabs ──
+                const periodMeta = [
+                    { key: 'today', label: 'اليوم' },
+                    { key: 'week',  label: 'الأسبوع' },
+                    { key: 'month', label: 'الشهر' },
+                    { key: 'all',   label: 'الكل' },
+                ];
+                const filterHtml = `
+                <div style="display:flex;gap:5px;margin-bottom:20px;background:#f0f0f0;border-radius:14px;padding:4px;">
+                    ${periodMeta.map(p => `
+                        <button onclick="loadTeamPerformance('${p.key}')"
+                                style="flex:1;padding:9px 4px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;
+                                       font-family:inherit;transition:all .2s;
+                                       background:${period === p.key ? '#000' : 'transparent'};
+                                       color:${period === p.key ? '#fff' : '#888'};">
+                            ${p.label}
+                        </button>
+                    `).join('')}
+                </div>`;
+
+                // ── KPI Cards ──
+                const kpiHtml = `
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;">
+                    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:16px;padding:16px;text-align:center;">
+                        <div style="font-size:11px;color:#94a3b8;margin-bottom:5px;letter-spacing:.5px;">💰 إجمالي الإيرادات</div>
+                        <div style="font-size:17px;font-weight:900;color:#34d399;">${_fmt(totalRev)}</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:16px;padding:16px;text-align:center;">
+                        <div style="font-size:11px;color:#94a3b8;margin-bottom:5px;letter-spacing:.5px;">🔄 الشيفتات</div>
+                        <div style="font-size:20px;font-weight:900;color:#60a5fa;">${totalSessions}</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:16px;padding:16px;text-align:center;">
+                        <div style="font-size:11px;color:#94a3b8;margin-bottom:5px;letter-spacing:.5px;">🏆 الأعلى أداءً</div>
+                        <div style="font-size:14px;font-weight:900;color:#fbbf24;">${topPerson ? topPerson.roleIcon + ' ' + topPerson.name : '—'}</div>
+                    </div>
+                </div>`;
+
+                // ── Empty state ──
+                if (!personStats.length || personStats.every(p => p.participatedRevenue === 0 && p.presentDays === 0)) {
+                    container.innerHTML = filterHtml + kpiHtml + `
+                    <div style="text-align:center;padding:40px 20px;background:#f9fafb;border-radius:20px;border:2px dashed #e5e7eb;">
+                        <div style="font-size:48px;margin-bottom:14px;">📊</div>
+                        <div style="font-weight:800;font-size:17px;color:#000;">لا توجد بيانات في هذه الفترة</div>
+                        <div style="font-size:13px;color:#aaa;margin-top:8px;">افتح شيفت وسجّل حضور الموظفين لتظهر الإحصائيات هنا</div>
+                    </div>`;
                     return;
                 }
-                
-                container.innerHTML = items.map((emp, index) => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); background: #fafafa; border-radius: 16px; border: 1px solid #e8e8e8;">
-                        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
-                            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${index === 0 ? '#27AE60' : '#3498DB'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">
-                                ${emp.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <div style="font-weight: 700; color: #000000; font-size: 16px; margin-bottom: 4px;">${emp.name}</div>
-                                <div style="display: flex; gap: var(--spacing-md); color: #666666; font-size: 13px;">
-                                    <span>${emp.orders} طلب</span>
-                                    <span>•</span>
-                                    <span>متوسط الطلب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.avgOrder) : emp.avgOrder.toFixed(2) + ' ج.م'}</span>
+
+                // ── Podium (Top 3) ──
+                const top3 = personStats.filter(p => p.participatedRevenue > 0).slice(0, 3);
+                let podiumHtml = '';
+                if (top3.length > 0) {
+                    // ترتيب العرض: 2nd — 1st — 3rd (الوسط أعلى)
+                    const display = top3.length === 1 ? [top3[0]] :
+                                    top3.length === 2 ? [top3[1], top3[0]] :
+                                    [top3[1], top3[0], top3[2]];
+
+                    const heights  = top3.length === 1 ? ['90px'] :
+                                     top3.length === 2 ? ['70px','100px'] :
+                                     ['70px','100px','50px'];
+
+                    const podColors = ['#c0c0c0', '#fbbf24', '#cd7c3b']; // silver, gold, bronze
+                    const medals    = ['🥈', '🥇', '🥉'];
+                    const ranks     = [2, 1, 3];
+
+                    const itemsData = display.map((person, di) => ({
+                        person,
+                        height:  heights[di],
+                        podColor: di === 1 ? podColors[1] : di === 0 ? podColors[0] : podColors[2],
+                        medal:   di === 1 ? medals[1] : di === 0 ? medals[0] : medals[2],
+                        rank:    di === 1 ? ranks[1] : di === 0 ? ranks[0] : ranks[2],
+                    }));
+
+                    podiumHtml = `
+                    <div style="margin-bottom:24px;background:linear-gradient(180deg,#fafafa,#fff);border-radius:20px;padding:20px 16px 0;">
+                        <div style="text-align:center;font-weight:800;font-size:14px;color:#666;margin-bottom:20px;letter-spacing:.5px;">🏆 قائمة الشرف — ${period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : period === 'month' ? 'هذا الشهر' : 'كل الوقت'}</div>
+                        <div style="display:flex;align-items:flex-end;justify-content:center;gap:10px;">
+                            ${itemsData.map(item => `
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;max-width:110px;">
+                                <!-- Avatar -->
+                                <div style="width:52px;height:52px;border-radius:50%;
+                                    background:${item.person.roleColor}22;border:2.5px solid ${item.person.roleColor};
+                                    color:${item.person.roleColor};display:flex;align-items:center;justify-content:center;
+                                    font-weight:900;font-size:22px;box-shadow:0 4px 12px ${item.person.roleColor}44;">
+                                    ${item.person.name.charAt(0).toUpperCase()}
+                                </div>
+                                <!-- Info -->
+                                <div style="text-align:center;">
+                                    <div style="font-size:12px;font-weight:800;color:#000;">${item.medal} ${item.person.name.split(' ')[0]}</div>
+                                    <div style="font-size:10px;color:${item.person.roleColor};font-weight:700;">${item.person.roleLabel}</div>
+                                    <div style="font-size:11px;color:#16a34a;font-weight:800;margin-top:2px;">${_fmt(item.person.participatedRevenue)}</div>
+                                </div>
+                                <!-- Podium block -->
+                                <div style="width:100%;height:${item.height};
+                                    background:linear-gradient(180deg,${item.podColor},${item.podColor}bb);
+                                    border-radius:8px 8px 0 0;
+                                    display:flex;align-items:center;justify-content:center;
+                                    color:#fff;font-weight:900;font-size:22px;
+                                    box-shadow:0 -4px 10px ${item.podColor}55;">
+                                    ${item.rank}
+                                </div>
+                            </div>`).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                // ── Full Ranked List ──
+                const listHtml = `
+                <div style="display:grid;gap:10px;margin-top:${top3.length > 0 ? '16px' : '0'};">
+                    ${personStats.map((person, i) => {
+                        const pct = maxRev > 0 ? Math.round((person.participatedRevenue / maxRev) * 100) : 0;
+                        const isTop = i === 0, is2nd = i === 1, is3rd = i === 2;
+                        const medal = isTop ? '🥇' : is2nd ? '🥈' : is3rd ? '🥉' : '';
+                        const bgCard = isTop ? '#fffbeb' : is2nd ? '#f8faff' : is3rd ? '#fff8f0' : '#fff';
+                        const borderRight = person.roleColor;
+                        const hasNoData = person.participatedRevenue === 0 && person.presentDays === 0;
+
+                        return `
+                        <div style="background:${bgCard};border:1px solid #e8e8e8;border-radius:16px;padding:14px 16px;
+                                    border-right:4px solid ${borderRight};
+                                    opacity:${hasNoData ? '0.55' : '1'};
+                                    transition:box-shadow .2s;"
+                             onmouseover="if(!this.style.opacity||this.style.opacity!='0.55')this.style.boxShadow='0 4px 18px rgba(0,0,0,.09)'"
+                             onmouseout="this.style.boxShadow='none'">
+
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${hasNoData ? '0' : '10px'};">
+                                <!-- يسار: أفاتار + اسم -->
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="position:relative;">
+                                        <div style="width:44px;height:44px;border-radius:50%;
+                                            background:${person.roleColor}20;border:2px solid ${person.roleColor};
+                                            color:${person.roleColor};display:flex;align-items:center;justify-content:center;
+                                            font-weight:900;font-size:19px;">
+                                            ${person.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        ${medal ? `<div style="position:absolute;top:-6px;right:-6px;font-size:16px;">${medal}</div>` : `<div style="position:absolute;top:-4px;right:-5px;background:#e5e7eb;color:#555;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${i+1}</div>`}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:800;font-size:14px;color:#000;margin-bottom:3px;">${person.name}</div>
+                                        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                                            <span style="font-size:11px;background:${person.roleColor}18;color:${person.roleColor};
+                                                border-radius:6px;padding:1px 7px;font-weight:700;">
+                                                ${person.roleIcon} ${person.roleLabel}
+                                            </span>
+                                            ${person.isSystemUser ? '<span style="font-size:10px;background:#f5f5f5;color:#999;border-radius:5px;padding:1px 5px;">⚙️ نظام</span>' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- يمين: ايرادات + تفاصيل -->
+                                <div style="text-align:left;min-width:120px;">
+                                    ${hasNoData
+                                        ? `<div style="font-size:12px;color:#aaa;text-align:center;">لم يُسجَّل حضور</div>`
+                                        : `<div style="font-weight:900;color:#16a34a;font-size:15px;">${_fmt(person.participatedRevenue)}</div>
+                                           <div style="font-size:11px;color:#888;margin-top:2px;">
+                                               ${person.presentDays} يوم • ${person.participatedSessions} شيفت • ${person.participatedOrders} طلب
+                                           </div>`
+                                    }
                                 </div>
                             </div>
-                        </div>
-                        <div style="text-align: left; min-width: 200px;">
-                            <div style="font-weight: 700; color: #27AE60; font-size: 16px;">إيرادات: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.revenue) : emp.revenue.toFixed(2) + ' ج.م'}</div>
-                            <div style="font-size: 13px; color: #666666;">الراتب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.salary) : emp.salary.toFixed(2) + ' ج.م'}</div>
-                            <div style="font-size: 13px; font-weight: 700; color: ${emp.netAfterSalary >= 0 ? '#27AE60' : '#E74C3C'};">
-                                صافي بعد الراتب: ${typeof Utils !== 'undefined' ? Utils.formatCurrency(emp.netAfterSalary) : emp.netAfterSalary.toFixed(2) + ' ج.م'}
+
+                            ${!hasNoData ? `
+                            <!-- Progress bar -->
+                            <div style="background:#f0f0f0;border-radius:6px;height:7px;overflow:hidden;">
+                                <div style="height:100%;width:${pct}%;background:${person.roleColor};border-radius:6px;
+                                    transition:width .7s cubic-bezier(.4,0,.2,1);"></div>
                             </div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error loading employee performance:', error);
-                container.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: #e74c3c;">حدث خطأ أثناء تحميل أداء الموظفين</div>';
+                            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#aaa;">
+                                <span>متوسط الطلب: <strong style="color:#333;">${_fmt(person.avgOrder)}</strong></span>
+                                <span>${pct}% من الإجمالي</span>
+                            </div>` : ''}
+
+                        </div>`;
+                    }).join('')}
+                </div>`;
+
+                container.innerHTML = filterHtml + kpiHtml + podiumHtml + listHtml;
+
+            } catch(err) {
+                console.error('[loadTeamPerformance]', err);
+                container.innerHTML = `
+                    ${`<div style="display:flex;gap:5px;margin-bottom:20px;background:#f0f0f0;border-radius:14px;padding:4px;">
+                        ${['today','week','month','all'].map(p => `<button onclick="loadTeamPerformance('${p}')" style="flex:1;padding:9px;border:none;border-radius:10px;font-weight:700;cursor:pointer;background:${period===p?'#000':'transparent'};color:${period===p?'#fff':'#888'};">${{today:'اليوم',week:'الأسبوع',month:'الشهر',all:'الكل'}[p]}</button>`).join('')}
+                    </div>`}
+                    <div style="color:#e74c3c;text-align:center;padding:20px;">حدث خطأ أثناء التحميل</div>`;
             }
-        }
+        };
+
+        // Alias for backward compat (delete handler calls this)
+        async function loadTeamPerformance(p) { return window.loadTeamPerformance(p); }
 
         // ===========================
         // Attendance Summary (Business Month)
@@ -922,58 +1448,122 @@
             const { startStr, endStr } = monthRangeFromBusinessDate(businessDate);
 
             let records = [];
-            // Prefer Firebase
-            if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
-                try {
-                    if (typeof window.FirestoreService.getAttendanceByRange === 'function') {
-                        records = await window.FirestoreService.getAttendanceByRange(startStr, endStr);
-                    }
-                } catch (e) {
-                    console.warn('Error loading attendance from Firebase:', e);
+            // SQLite أولاً
+            try {
+                if (window.DBService && typeof window.DBService.getAttendance === 'function') {
+                    const all = (await window.DBService.getAttendance({})) || [];
+                    const filtered = all.filter(r => {
+                        const d = String(r.businessDate ?? r.business_date ?? '');
+                        return d >= startStr && d <= endStr;
+                    });
+                    if (filtered.length > 0) records = filtered;
                 }
+            } catch (e) {
+                console.warn('[loadAttendanceSummary] SQLite:', e.message);
             }
             // Fallback localStorage
             if (!Array.isArray(records) || records.length === 0) {
                 try {
                     const local = JSON.parse(localStorage.getItem('attendance') || '[]');
-                    records = local.filter(r => String(r.businessDate) >= startStr && String(r.businessDate) <= endStr);
+                    records = local.filter(r => {
+                        const d = String(r.businessDate ?? r.business_date ?? '');
+                        return d >= startStr && d <= endStr;
+                    });
                 } catch (_) {
                     records = [];
                 }
             }
+            // Firebase آخر خيار (اونلاين فقط)
+            if (!records.length && typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
+                try {
+                    if (typeof window.FirestoreService.getAttendanceByRange === 'function') {
+                        records = await window.FirestoreService.getAttendanceByRange(startStr, endStr) || [];
+                    }
+                } catch (e) {
+                    console.warn('Error loading attendance from Firebase:', e);
+                }
+            }
 
-            if (!employees || employees.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#999999; padding: var(--spacing-md);">لا يوجد موظفين</div>';
+            // دمج المستخدمين من النظام مع الموظفين العاديين
+            const SYS_LABELS = { owner: 'مالك', admin: 'مدير', cashier: 'كاشير' };
+            const SYS_COLORS = { owner: '#f59e0b', admin: '#8b5cf6', cashier: '#3b82f6' };
+            const EMP_COLORS = { 'طباخ': '#ef4444', 'نادل': '#10b981', 'مدير': '#8b5cf6', 'كاشير': '#3b82f6' };
+
+            const sysAsEmps = (systemUsersForDisplay || [])
+                .filter(u => u.displayName || u.name || u.username)
+                .map(u => ({
+                    id:       String(u.id || u.uid || u.username || ''),
+                    name:     u.displayName || u.name || u.username || '',
+                    role:     SYS_LABELS[u.role] || u.role || 'كاشير',
+                    color:    SYS_COLORS[u.role] || '#3b82f6',
+                    isSystem: true,
+                }));
+            const sysNamesLc = new Set(sysAsEmps.map(e => e.name.toLowerCase()));
+            const manualAsEmps = (employees || [])
+                .filter(e => !sysNamesLc.has((e.name || '').toLowerCase()))
+                .map(e => ({
+                    id:       String(e.id ?? ''),
+                    name:     e.name || '',
+                    role:     e.role || 'موظف',
+                    color:    EMP_COLORS[e.role] || '#64748b',
+                    isSystem: false,
+                }));
+            const allForAttendance = [...sysAsEmps, ...manualAsEmps];
+
+            if (!allForAttendance.length) {
+                container.innerHTML = '<div style="text-align:center; color:#999999; padding: var(--spacing-md);">لا يوجد موظفين أو مستخدمين</div>';
                 return;
             }
 
             const byEmp = new Map();
             records.forEach(r => {
-                const empId = String(r.employeeId ?? '');
+                const empId = String(r.employeeId ?? r.employee_id ?? '');
                 if (!empId) return;
                 if (!byEmp.has(empId)) byEmp.set(empId, []);
                 byEmp.get(empId).push({ ...r, status: normalizeStatus(r.status) });
             });
 
-            container.innerHTML = employees.map(emp => {
-                const empId = String(emp.id ?? '');
-                const list = byEmp.get(empId) || [];
-                const present = list.filter(x => x.status === 'present').length;
-                const absent = list.filter(x => x.status === 'absent').length;
+            container.innerHTML = allForAttendance.map(emp => {
+                const empId   = String(emp.id ?? '');
+                const list    = byEmp.get(empId) || [];
+                const present  = list.filter(x => x.status === 'present').length;
+                const absent   = list.filter(x => x.status === 'absent').length;
                 const vacation = list.filter(x => x.status === 'vacation').length;
+                const total    = present + absent + vacation;
+                const pct      = total > 0 ? Math.round((present / total) * 100) : 0;
 
                 return `
-                    <div style="border:1px solid #e8e8e8; border-radius: 14px; padding: 14px; background:#ffffff; display:flex; justify-content:space-between; align-items:center; gap: 12px;">
-                        <div>
-                            <div style="font-weight:800; color:#000000; font-size: 15px;">${emp.name}</div>
-                            <div style="margin-top: 6px; display:flex; gap: 8px; flex-wrap: wrap; font-size: 12px;">
-                                <span style="padding:6px 10px; border-radius: 10px; background:#e8f5e9; color:#27AE60; font-weight:800;">حضور: ${present}</span>
-                                <span style="padding:6px 10px; border-radius: 10px; background:#ffebee; color:#E74C3C; font-weight:800;">غياب: ${absent}</span>
-                                <span style="padding:6px 10px; border-radius: 10px; background:#e3f2fd; color:#2980B9; font-weight:800;">إجازة: ${vacation}</span>
+                    <div style="border:1px solid #e8e8e8;border-radius:14px;padding:14px;background:#fff;
+                                display:flex;justify-content:space-between;align-items:center;gap:12px;
+                                border-right:4px solid ${emp.color};">
+                        <div style="flex:1;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <div style="width:32px;height:32px;border-radius:50%;
+                                    background:${emp.color}18;color:${emp.color};border:1.5px solid ${emp.color}44;
+                                    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">
+                                    ${emp.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div style="font-weight:800;color:#000;font-size:14px;">${emp.name}</div>
+                                    <div style="font-size:11px;color:${emp.color};font-weight:700;">
+                                        ${emp.role}${emp.isSystem ? ' &nbsp;<span style="background:#f5f5f5;color:#aaa;border-radius:4px;padding:0 4px;font-size:10px;">نظام</span>' : ''}
+                                    </div>
+                                </div>
                             </div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px;">
+                                <span style="padding:4px 8px;border-radius:8px;background:#e8f5e9;color:#27AE60;font-weight:800;">✅ ${present}</span>
+                                <span style="padding:4px 8px;border-radius:8px;background:#ffebee;color:#E74C3C;font-weight:800;">❌ ${absent}</span>
+                                <span style="padding:4px 8px;border-radius:8px;background:#e3f2fd;color:#2980B9;font-weight:800;">🏖️ ${vacation}</span>
+                                ${total > 0 ? `<span style="padding:4px 8px;border-radius:8px;background:#fef9c3;color:#92400e;font-weight:800;">📊 ${pct}%</span>` : ''}
+                            </div>
+                            ${total > 0 ? `
+                            <div style="background:#f0f0f0;border-radius:4px;height:5px;overflow:hidden;">
+                                <div style="height:100%;width:${pct}%;background:${emp.color};border-radius:4px;transition:width .5s;"></div>
+                            </div>` : ''}
                         </div>
                         <div>
-                            <button class="btn btn-secondary" type="button" style="padding: 10px 14px;" onclick="openAttendanceDetails('${encodeURIComponent(empId)}','${encodeURIComponent(emp.name || '')}','${startStr}','${endStr}')">
+                            <button class="btn btn-secondary" type="button" style="padding:8px 12px;font-size:13px;"
+                                onclick="openAttendanceDetails('${encodeURIComponent(empId)}','${encodeURIComponent(emp.name || '')}','${startStr}','${endStr}')">
                                 التفاصيل
                             </button>
                         </div>
@@ -1058,8 +1648,7 @@
         // بعد ما SaaS يخلص (Firebase Auth جاهز + _saasUid متسجل) → حدّث البيانات من Firebase
         window.addEventListener('saas-ready', async () => {
             if (employees.length === 0) {
-                // امسح الكاش عشان تجبر DataManager يروح Firebase
-                localStorage.removeItem('employees');
+                // Force reload from DataManager/Firebase
                 await loadEmployees();
                 await loadAttendanceSummary();
             }

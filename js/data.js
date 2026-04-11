@@ -1,7 +1,20 @@
 
-// بيانات نظام نقاط البيع - مطعم ريان
-// تم إفراغ البيانات الافتراضية ليكون النظام جاهزاً للبيانات الحية فقط
+// بيانات نظام نقاط البيع - Solo POS SaaS
+// ═══════════════════════════════════════════════════════════════════════════
+// 🚀 الإصدار الجديد: 100% SQLite عبر window.DBService
+// لا يعتمد على localStorage للبيانات التشغيلية أبداً
+// البيانات التشغيلية: orders, menuItems, categories, ingredients, expenses,
+//   expensesHistory, employees, suppliers, aggregators, customers, salesHistory,
+//   ordersOnHold, cashSessions
+// ═══════════════════════════════════════════════════════════════════════════
 
+
+// ⏰ الوقت الآن بتوقيت مصر (مشترك مع dashboard.js)
+function _egyptNow() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
 const menuData = {
   categories: [], // مصفوفة فارغة
   items: []       // مصفوفة فارغة
@@ -13,17 +26,16 @@ if (typeof window !== 'undefined') {
 }
 var globalMenuData = menuData;
 
-// Initialize localStorage keys if they don't exist
-const localStorageKeys = [
-    'categories', 'menuItems', 'ingredients', 'orders', 'expenses',
-    'suppliers', 'employees', 'cashSessions', 'salesHistory',
-    'expensesHistory', 'ordersOnHold', 'users', 'customers',
-    'settings', 'attendance', 'notifications', 'performance',
+// ═══════════════════════════════════════════════════════════════════════════
+// localStorage مسموح فقط لـ: settings, users, auth, saas, UI preferences
+// ═══════════════════════════════════════════════════════════════════════════
+const _nonOperationalKeys = [
+    'users', 'settings', 'attendance', 'notifications', 'performance',
     'daily_log', 'performance_snapshots'
 ];
 
 try {
-    localStorageKeys.forEach(key => {
+    _nonOperationalKeys.forEach(key => {
         if (localStorage.getItem(key) === null) {
             localStorage.setItem(key, JSON.stringify([]));
         }
@@ -32,9 +44,10 @@ try {
     // Clear all data on first run (for clean distribution)
     if (!localStorage.getItem('first_run_completed')) {
         const keysToRemove = [
-            'orders', 'ordersOnHold', 'salesHistory', 'suppliers', 'cashSessions', 
-            'expenses', 'expensesHistory', 'menuItems', 'ingredients', 'categories', 
-            'employees', 'users', 'customers', 'isLoggedIn', 'username', 'userType', 
+            'orders', 'ordersOnHold', 'salesHistory', 'suppliers', 'cashSessions',
+            'expenses', 'expensesHistory', 'menuItems', 'ingredients', 'categories',
+            'employees', 'customers', 'aggregators',
+            'isLoggedIn', 'username', 'userType',
             'solo_store_name', 'taxServiceSettings', 'storeSettings', 'appSettings'
         ];
         keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -67,109 +80,95 @@ const DataManager = {
   getStorePhone: () => localStorage.getItem('solo_store_phone') || '',
   getStoreAddress: () => localStorage.getItem('solo_store_address') || '',
 
-  // --- ترتيب الفئات زي ما كانت ---
-  // getCategories defined below (line ~350) — this duplicate removed
+  // ======================
+  // 🛵 شركات التوصيل (Aggregators) — SQLite Only
+  // ======================
   getAggregators: async () => {
-    let localData = [];
     try {
-        localData = JSON.parse(localStorage.getItem('aggregators') || '[]');
-    } catch (e) { localData = []; }
-
-    let remoteData = [];
-    if (DataManager.useFirebase() && navigator.onLine) {
-        try {
-            remoteData = await window.FirestoreService.getCollection('aggregators') || [];
-        } catch (e) { console.warn("Failed to update aggregators:", e); }
-    }
-
-    const allData = [...localData, ...remoteData];
-    const uniqueMap = new Map();
-    allData.forEach(item => {
-        const name = (item.companyName || "").trim().toUpperCase();
-        if (name) {
-            uniqueMap.set(name, item);
+        const sqlData = await window.DBService.getAggregators();
+        // مزامنة Firebase في الخلفية
+        if (DataManager.useFirebase() && navigator.onLine) {
+            setTimeout(async () => {
+                try {
+                    const remoteData = await window.FirestoreService.getCollection('aggregators') || [];
+                    if (remoteData && remoteData.length > 0) {
+                        for (const agg of remoteData)
+                            await window.DBService.saveAggregator(agg, { alreadySynced: true });
+                    }
+                } catch(e) {}
+            }, 3000);
         }
-    });
-
-    const cleanList = Array.from(uniqueMap.values());
-    localStorage.setItem('aggregators', JSON.stringify(cleanList));
-    return cleanList;
+        return sqlData;
+    } catch(e) {
+        console.warn('[DataManager] getAggregators SQLite err:', e.message);
+        return [];
+    }
   },
 
+  // ======================
+  // 👨‍💼 الموظفين (Employees) — SQLite Only
+  // ======================
   getEmployees: async () => {
-      let localData = [];
       try {
-          localData = JSON.parse(localStorage.getItem('employees') || '[]');
-      } catch (e) { localData = []; }
-
-      // Offline-first: return local immediately, sync in background
-      if (localData.length > 0) {
+          const sqlData = await window.DBService.getEmployees();
+          // مزامنة Firebase في الخلفية
           if (DataManager.useFirebase() && navigator.onLine) {
               setTimeout(async () => {
                   try {
                       const remoteData = await window.FirestoreService.getAllEmployees();
                       if (remoteData && remoteData.length > 0) {
-                          localStorage.setItem('employees', JSON.stringify(remoteData));
+                          // جيب الـ local أولاً عشان نحمي الراتب المحفوظ محلياً
+                          const localMap = {};
+                          try {
+                              const localRows = await window.DBService.getEmployees();
+                              for (const le of localRows) localMap[le.id] = le;
+                          } catch(_) {}
+                          for (const emp of remoteData) {
+                              const local = localMap[emp.id];
+                              // لو محلي عنده راتب وFire مش عندها، احتفظ بالمحلي
+                              const safeSalary = emp.salary_amount || emp.salary || (local ? (local.salary_amount || local.salary || 0) : 0);
+                              await window.DBService.saveEmployee(
+                                  { ...emp, salary_amount: safeSalary, salary: safeSalary },
+                                  { alreadySynced: true }
+                              );
+                          }
                       }
-                  } catch (e) {}
+                  } catch(e) {}
               }, 3000);
           }
-          return localData;
+          return sqlData;
+      } catch(e) {
+          console.warn('[DataManager] getEmployees SQLite err:', e.message);
+          return [];
       }
-      // First time — wait for Firebase
-      if (DataManager.useFirebase() && navigator.onLine) {
-          try {
-              const remoteData = await window.FirestoreService.getAllEmployees();
-              if (remoteData && remoteData.length > 0) {
-                  localStorage.setItem('employees', JSON.stringify(remoteData));
-                  return remoteData;
-              }
-          } catch (e) { console.warn("فشل تحديث الموظفين:", e); }
-      }
-      return localData;
   },
 
   // ======================
-  // 🔥 الموردين (Suppliers) - تحديث إجباري ودمج
+  // 📦 الموردين (Suppliers) — SQLite Only
   // ======================
   getSuppliers: async () => {
-    let localData = [];
     try {
-        localData = JSON.parse(localStorage.getItem('suppliers') || '[]');
-    } catch (e) { localData = []; }
-
-    // Offline-first
-    if (localData.length > 0) {
+        const sqlData = await window.DBService.getSuppliers();
         if (DataManager.useFirebase() && navigator.onLine) {
             setTimeout(async () => {
                 try {
                     const remoteData = await window.FirestoreService.getAllSuppliers();
                     if (remoteData && remoteData.length > 0) {
-                        const dataMap = new Map();
-                        localData.forEach(item => dataMap.set(item.id, item));
-                        remoteData.forEach(item => dataMap.set(item.id, item));
-                        localStorage.setItem('suppliers', JSON.stringify(Array.from(dataMap.values())));
+                        for (const sup of remoteData)
+                            await window.DBService.saveSupplier(sup, { alreadySynced: true });
                     }
-                } catch (e) {}
+                } catch(e) {}
             }, 3000);
         }
-        return localData;
+        return sqlData;
+    } catch(e) {
+        console.warn('[DataManager] getSuppliers SQLite err:', e.message);
+        return [];
     }
-    // First time
-    if (DataManager.useFirebase() && navigator.onLine) {
-        try {
-            const remoteData = await window.FirestoreService.getAllSuppliers();
-            if (remoteData && remoteData.length > 0) {
-                localStorage.setItem('suppliers', JSON.stringify(remoteData));
-                return remoteData;
-            }
-        } catch (e) { console.warn("فشل تحديث الموردين:", e); }
-    }
-    return localData;
   },
 
   // ======================
-  // 🔥 المستخدمين (Users) - إضافة جديدة
+  // 🔥 المستخدمين (Users) — localStorage مسموح (ليست بيانات تشغيلية)
   // ======================
   getUsers: async () => {
     let localData = [];
@@ -177,23 +176,20 @@ const DataManager = {
         localData = JSON.parse(localStorage.getItem('users') || '[]');
     } catch (e) { localData = []; }
 
-    // لو أونلاين، هات الجديد وحدث اللوكال
     if (DataManager.useFirebase() && navigator.onLine) {
         try {
-            // نستخدم دالة عامة لجلب الكولكشن لأن مفيش دالة مخصصة لليوزرز
             const db = window.firebaseDb;
             if (db && window.FirestoreModule && window.FirestoreModule.collection) {
                 const usersRef = window.FirestoreModule.collection(db, "users");
                 const safeGetDocs = window.FirestoreModule.getDocs;
                 const snap = await safeGetDocs(usersRef);
                 const remoteData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                
+
                 if (remoteData && remoteData.length > 0) {
-                    // دمج البيانات (البعيد يحدث المحلي)
                     const dataMap = new Map();
                     localData.forEach(item => dataMap.set(item.id, item));
-                    remoteData.forEach(item => dataMap.set(item.id, item)); // الفايربيز يكتب فوق المحلي
-                    
+                    remoteData.forEach(item => dataMap.set(item.id, item));
+
                     const merged = Array.from(dataMap.values());
                     localStorage.setItem('users', JSON.stringify(merged));
                     return merged;
@@ -205,50 +201,49 @@ const DataManager = {
   },
 
   // ======================
-  // 🔥 العملاء (Customers) - إعادة إضافة
+  // 👥 العملاء (Customers) — SQLite Only
   // ======================
   getCustomers: async () => {
-    let localData = [];
     try {
-        localData = JSON.parse(localStorage.getItem('customers') || '[]');
-    } catch (e) { localData = []; }
-
-    if (DataManager.useFirebase() && navigator.onLine) {
-        try {
-            const remoteData = await window.FirestoreService.getAllCustomers();
-            if (remoteData && remoteData.length > 0) {
-                const dataMap = new Map();
-                localData.forEach(item => dataMap.set(item.id, item));
-                remoteData.forEach(item => dataMap.set(item.id, item));
-                
-                const merged = Array.from(dataMap.values());
-                localStorage.setItem('customers', JSON.stringify(merged));
-                return merged;
-            }
-        } catch (e) { console.warn("فشل تحديث العملاء:", e); }
+        const sqlData = await window.DBService.getCustomers();
+        if (DataManager.useFirebase() && navigator.onLine) {
+            setTimeout(async () => {
+                try {
+                    const remoteData = await window.FirestoreService.getAllCustomers();
+                    if (remoteData && remoteData.length > 0) {
+                        for (const c of remoteData)
+                            await window.DBService.saveCustomer(c, { alreadySynced: true });
+                    }
+                } catch(e) {}
+            }, 3000);
+        }
+        return sqlData;
+    } catch(e) {
+        console.warn('[DataManager] getCustomers SQLite err:', e.message);
+        return [];
     }
-    return localData;
   },
 
+  // ======================
+  // حفظ/حذف Suppliers — SQLite Only
+  // ======================
   saveSupplier: async (supplier) => {
     const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     supplier._localId = localId;
     supplier._synced = false;
-    
-    let suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
-    const isUpdate = supplier.id && suppliers.findIndex(s => s.id === supplier.id) !== -1;
-    
-    if (supplier.id) {
-      const index = suppliers.findIndex(s => s.id === supplier.id);
-      if (index !== -1) suppliers[index] = supplier;
-      else suppliers.push(supplier);
-    } else {
-      supplier.id = 'SUP' + String(Date.now()).slice(-6);
-      suppliers.push(supplier);
+
+    let isUpdate = false;
+    try {
+        if (supplier.id) {
+            const existing = await window.DBService.getSuppliers();
+            isUpdate = existing.some(s => s.id === supplier.id);
+        }
+        supplier.id = await window.DBService.saveSupplier(supplier);
+    } catch(e) {
+        console.error('[DataManager] saveSupplier SQLite err:', e.message);
+        if (!supplier.id) supplier.id = 'SUP' + String(Date.now()).slice(-6);
     }
-    
-    localStorage.setItem('suppliers', JSON.stringify(suppliers));
-    
+
     if (DataManager.useFirebase() && window.SyncManager) {
       window.SyncManager.addToSyncQueue('suppliers', isUpdate ? 'update' : 'add', supplier, localId);
     }
@@ -256,50 +251,48 @@ const DataManager = {
   },
 
   removeSupplier: async (supplierId) => {
-    let suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
-    const supplier = suppliers.find(s => s.id === supplierId);
-    const filtered = suppliers.filter(s => s.id !== supplierId);
-    localStorage.setItem('suppliers', JSON.stringify(filtered));
-    
-    if (window.SyncManager && supplier) {
-      window.SyncManager.addToSyncQueue('suppliers', 'delete', { id: supplierId, ...supplier });
+    try {
+        await window.DBService.removeSupplier(supplierId);
+    } catch(e) { console.warn('[DataManager] removeSupplier SQLite err:', e.message); }
+
+    if (window.SyncManager) {
+      window.SyncManager.addToSyncQueue('suppliers', 'delete', { id: supplierId });
     }
     return true;
   },
 
+  // ======================
+  // حذف Employees — SQLite Only
+  // ======================
   removeEmployee: async (employeeId) => {
-    let employees = JSON.parse(localStorage.getItem('employees') || '[]');
-    const employee = employees.find(e => e.id === employeeId);
-    const filtered = employees.filter(e => e.id !== employeeId);
-    localStorage.setItem('employees', JSON.stringify(filtered));
-    
-    if (window.SyncManager && employee) {
-      window.SyncManager.addToSyncQueue('employees', 'delete', { id: employeeId, ...employee });
+    try {
+        await window.DBService.removeEmployee(employeeId);
+    } catch(e) { console.warn('[DataManager] removeEmployee SQLite err:', e.message); }
+
+    if (window.SyncManager) {
+      window.SyncManager.addToSyncQueue('employees', 'delete', { id: employeeId });
     }
     return true;
   },
 
+  // ======================
+  // حفظ/حذف Aggregators — SQLite Only
+  // ======================
   saveAggregator: async (aggregator) => {
     const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     aggregator._localId = localId;
     aggregator._synced = false;
-    
-    let aggregators = JSON.parse(localStorage.getItem('aggregators') || '[]');
-    
-    const existingIndex = aggregators.findIndex(item => item.companyName === aggregator.companyName);
 
-    if (existingIndex !== -1) {
-        // Update existing item
-        aggregators[existingIndex] = { ...aggregators[existingIndex], ...aggregator };
-    } else {
-        // Add new item
-        aggregator.id = 'AGG' + String(Date.now()).slice(-6);
-        aggregators.push(aggregator);
+    let isUpdate = false;
+    try {
+        const existing = await window.DBService.getAggregators();
+        isUpdate = existing.some(a => (a.companyName || a.name) === (aggregator.companyName || aggregator.name));
+        aggregator.id = await window.DBService.saveAggregator(aggregator);
+    } catch(e) {
+        console.error('[DataManager] saveAggregator SQLite err:', e.message);
+        if (!aggregator.id) aggregator.id = 'AGG' + String(Date.now()).slice(-6);
     }
-    
-    localStorage.setItem('aggregators', JSON.stringify(aggregators));
-    
-    const isUpdate = existingIndex !== -1;
+
     if (DataManager.useFirebase() && window.SyncManager) {
         window.SyncManager.addToSyncQueue('aggregators', isUpdate ? 'update' : 'add', aggregator, localId);
     }
@@ -307,533 +300,538 @@ const DataManager = {
   },
 
   removeAggregator: async (aggregatorId) => {
-    let aggregators = JSON.parse(localStorage.getItem('aggregators') || '[]');
-    const aggregator = aggregators.find(s => s.id === aggregatorId);
-    const filtered = aggregators.filter(s => s.id !== aggregatorId);
-    localStorage.setItem('aggregators', JSON.stringify(filtered));
-    
-    if (window.SyncManager && aggregator) {
-      window.SyncManager.addToSyncQueue('aggregators', 'delete', { id: aggregatorId, ...aggregator });
+    try {
+        await window.DBService.removeAggregator(aggregatorId);
+    } catch(e) { console.warn('[DataManager] removeAggregator SQLite err:', e.message); }
+
+    if (window.SyncManager) {
+      window.SyncManager.addToSyncQueue('aggregators', 'delete', { id: aggregatorId });
     }
     return true;
   },
 
   // ======================
-  // 🔥 المنيو (Menu)
+  // 🍔 المنيو (Menu) — SQLite Only
   // ======================
-   getMenuItems: async () => { 
-       let localItems = JSON.parse(localStorage.getItem('menuItems') || '[]'); 
-       
-       // الاعتماد على الداتا المحلية فوراً لمنع التأخير 
-       if (localItems.length > 0) { 
-           // جلب التحديثات في الخلفية بدون تعطيل الشاشة 
-           if (DataManager.useFirebase() && navigator.onLine) { 
-               setTimeout(async () => { 
-                   try { 
-                       const remoteItems = await window.FirestoreService.getAllMenuItems(); 
-                       // لا تقم بالتحديث إلا لو فيه اختلاف حقيقي في عدد المنتجات 
-                       if (remoteItems && remoteItems.length > 0 && remoteItems.length !== localItems.length) { 
-                           localStorage.setItem('menuItems', JSON.stringify(remoteItems)); 
-                       } 
-                   } catch (e) {} 
-               }, 2000); // تأخير الفحص ثانيتين عشان الأولوية للكاشير يشتغل 
-           } 
-           return localItems; // يرجع اللوكال فوراً زي الصاروخ 
-       } 
-       
-       // لو الجهاز جديد ومفيش داتا محلية، نستنى السيرفر 
-       if (DataManager.useFirebase() && navigator.onLine) { 
-           try { 
-               const remoteItems = await window.FirestoreService.getAllMenuItems(); 
-               if (remoteItems && remoteItems.length > 0) { 
-                   localStorage.setItem('menuItems', JSON.stringify(remoteItems)); 
-                   return remoteItems; 
-               } 
-           } catch (e) {} 
-       } 
-       return localItems; 
-   }, 
- 
+   getMenuItems: async () => {
+       try {
+           const sqlData = await window.DBService.getMenuItems();
+           if (DataManager.useFirebase() && navigator.onLine) {
+               setTimeout(async () => {
+                   try {
+                       const remoteItems = await window.FirestoreService.getAllMenuItems();
+                       if (remoteItems && remoteItems.length > 0) {
+                           for (const item of remoteItems)
+                               await window.DBService.saveMenuItem(item, { alreadySynced: true });
+                       }
+                   } catch (e) {}
+               }, 2000);
+           }
+           return sqlData;
+       } catch(e) {
+           console.warn('[DataManager] getMenuItems SQLite err:', e.message);
+           return [];
+       }
+   },
+
    getCategories: async () => {
-       let localCats = [];
-       try { localCats = JSON.parse(localStorage.getItem('categories') || '[]'); } catch(e) {}
-
-       const _mergeAndSortCats = (local, remote) => {
-           const allData = [...local, ...remote];
-           const uniqueMap = new Map();
-           allData.forEach(item => {
-               const name = (item.name || '').trim().toUpperCase();
-               if (name) {
-                   const existing = uniqueMap.get(name);
-                   if (!item.createdAt && existing && existing.createdAt) item.createdAt = existing.createdAt;
-                   uniqueMap.set(name, item);
-               }
-           });
-           const cleanList = Array.from(uniqueMap.values());
-           cleanList.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-           return cleanList;
-       };
-
-       // Offline-first: return local immediately, sync in background
-       if (localCats.length > 0) {
+       try {
+           const sqlData = await window.DBService.getCategories();
            if (DataManager.useFirebase() && navigator.onLine) {
                setTimeout(async () => {
                    try {
                        const remoteCats = await window.FirestoreService.getAllCategories() || [];
                        if (remoteCats.length > 0) {
-                           const merged = _mergeAndSortCats(localCats, remoteCats);
-                           localStorage.setItem('categories', JSON.stringify(merged));
+                           for (const cat of remoteCats)
+                               await window.DBService.saveCategory(cat, { alreadySynced: true });
                        }
                    } catch (e) {}
                }, 3000);
            }
-           localCats.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-           return localCats;
+           sqlData.sort((a, b) => new Date(a.createdAt || a.created_at || 0) - new Date(b.createdAt || b.created_at || 0));
+           return sqlData;
+       } catch(e) {
+           console.warn('[DataManager] getCategories SQLite err:', e.message);
+           return [];
        }
-       // First time
-       if (DataManager.useFirebase() && navigator.onLine) {
-           try {
-               const remoteCats = await window.FirestoreService.getAllCategories() || [];
-               if (remoteCats.length > 0) {
-                   const merged = _mergeAndSortCats([], remoteCats);
-                   localStorage.setItem('categories', JSON.stringify(merged));
-                   return merged;
-               }
-           } catch (e) { console.warn('Failed to update categories:', e); }
+   },
+
+   // ======================
+   // 🧪 المواد الخام (Ingredients) — SQLite Only
+   // ======================
+   getIngredients: async () => {
+       try {
+           const sqlData = await window.DBService.getIngredients();
+           if (DataManager.useFirebase() && navigator.onLine) {
+               setTimeout(async () => {
+                   try {
+                       const remoteIngs = await window.FirestoreService.getAllIngredients();
+                       if (remoteIngs && remoteIngs.length > 0) {
+                           for (const ing of remoteIngs)
+                               await window.DBService.saveIngredient(ing, { alreadySynced: true });
+                       }
+                   } catch (e) {}
+               }, 2000);
+           }
+           return sqlData;
+       } catch(e) {
+           console.warn('[DataManager] getIngredients SQLite err:', e.message);
+           return [];
        }
-       return localCats;
-   }, 
- 
-   getIngredients: async () => { 
-       let localIngs = JSON.parse(localStorage.getItem('ingredients') || '[]'); 
-       
-       if (localIngs.length > 0) { 
-           if (DataManager.useFirebase() && navigator.onLine) { 
-               setTimeout(async () => { 
-                   try { 
-                       const remoteIngs = await window.FirestoreService.getAllIngredients(); 
-                       if (remoteIngs && remoteIngs.length > 0 && remoteIngs.length !== localIngs.length) { 
-                           localStorage.setItem('ingredients', JSON.stringify(remoteIngs)); 
-                       } 
-                   } catch (e) {} 
-               }, 2000); 
-           } 
-           return localIngs; 
-       } 
- 
-       if (DataManager.useFirebase() && navigator.onLine) { 
-           try { 
-               const remoteIngs = await window.FirestoreService.getAllIngredients(); 
-               if (remoteIngs && remoteIngs.length > 0) { 
-                   localStorage.setItem('ingredients', JSON.stringify(remoteIngs)); 
-                   return remoteIngs; 
-               } 
-           } catch (e) {} 
-       } 
-       return localIngs; 
    },
 
   // ======================
-  // Orders
+  // 📋 Orders — SQLite Only
   // ======================
-  getOrders: async () => {
-      let localOrders = [];
+  getOrders: async (filters = {}) => {
       try {
-          localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-      } catch (e) { return []; }
+          const localOrders = await window.DBService.getOrders(filters);
 
-      const ordersLocalOnly = localStorage.getItem('_ordersLocalOnly') === 'true';
-      if (ordersLocalOnly) return localOrders;
-
-      const _sortOrders = (arr) => arr.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.date || a.timestamp || 0).getTime();
-          const dateB = new Date(b.createdAt || b.date || b.timestamp || 0).getTime();
-          return dateB - dateA;
-      });
-
-      // Offline-first: return local immediately, sync in background
-      if (localOrders.length > 0) {
-          if (DataManager.useFirebase() && navigator.onLine) {
+          // مزامنة Firebase في الخلفية (بدون تأخير الواجهة)
+          if (DataManager.useFirebase() && navigator.onLine && !filters.session_id) {
               setTimeout(async () => {
                   try {
                       const remoteOrders = await window.FirestoreService.getAllOrders();
                       if (remoteOrders && remoteOrders.length > 0) {
-                          const ordersMap = new Map();
-                          localOrders.forEach(o => ordersMap.set(String(o.id), o));
-                          remoteOrders.forEach(o => ordersMap.set(String(o.id), o));
-                          const merged = _sortOrders(Array.from(ordersMap.values()));
-                          localStorage.setItem('orders', JSON.stringify(merged));
+                          for (const o of remoteOrders) {
+                              await window.DBService.saveOrder(o, { alreadySynced: true });
+                          }
                       }
                   } catch (e) {}
               }, 3000);
           }
+
           return localOrders;
+      } catch (err) {
+          console.warn('[DataManager] getOrders → SQLite failed:', err.message);
+          return [];
       }
-      // First time (empty local) — wait for Firebase
-      if (DataManager.useFirebase() && navigator.onLine) {
-          try {
-              const remoteOrders = await window.FirestoreService.getAllOrders();
-              if (remoteOrders && remoteOrders.length > 0) {
-                  const sorted = _sortOrders([...remoteOrders]);
-                  localStorage.setItem('orders', JSON.stringify(sorted));
-                  return sorted;
-              }
-          } catch (e) { console.warn('Orders sync failed:', e); }
-      }
-      return localOrders;
-  },
-  
-  saveOrder: async (order) => {
-    try {
-      const currentSession = await DataManager.getTodayCashSession();
-      if (currentSession && currentSession.id) order.shift_id = currentSession.id;
-    } catch (error) {}
-    
-    const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    order._localId = localId;
-    order._synced = false;
-    
-    const now = new Date();
-    order.isoDate = now.toISOString().split('T')[0];
-    order.timestamp = now.getTime();
-    
-    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const id = order.id ? String(order.id) : '';
-    
-    if (id) {
-      const idx = orders.findIndex(o => String(o?.id ?? '') === id);
-      if (idx >= 0) orders[idx] = { ...orders[idx], ...order };
-      else orders.push(order);
-    } else {
-      orders.push(order);
-    }
-    
-    localStorage.setItem('orders', JSON.stringify(orders));
-    
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('orderUpdated', { detail: { orderId: order.id, order: order } }));
-    }
-    
-    if (DataManager.useFirebase() && window.SyncManager) {
-      window.SyncManager.addToSyncQueue('orders', 'add', order, localId);
-    }
-    return true;
   },
 
+  saveOrder: async (order) => {
+      // ── ربط الشيفت الحالي ────────────────────────────────────────────────
+      try {
+          const currentSession = await DataManager.getTodayCashSession();
+          if (currentSession?.id) {
+              order.session_id = currentSession.id;
+              order.shift_id   = currentSession.id;
+          }
+      } catch (_) {}
+
+      const now     = new Date();
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      order._localId  = localId;
+      order._synced   = false;
+      order.isoDate   = DataManager.getEgyptDate();
+      order.timestamp = now.getTime();
+
+      // ── حفظ في SQLite (المصدر الوحيد) ─────────────────────────────────────
+      try {
+          order.id = await window.DBService.saveOrder(order);
+      } catch (err) {
+          console.error('[DataManager] saveOrder → SQLite FAILED:', err.message);
+          if (!order.id) order.id = `ORD-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+      }
+
+      // ── تحديث إحصائيات العميل ────────────────────────────────────────────
+      if (order.customer_id || order.customerId) {
+          try {
+              const cid = order.customer_id || order.customerId;
+              const pts = Math.floor((order.total || 0) / 10);
+              await window.DBService.updateCustomerStats(cid, order.total || 0, pts);
+          } catch (_) {}
+      }
+
+      // ── إشعار UI ─────────────────────────────────────────────────────────
+      window.dispatchEvent(new CustomEvent('orderUpdated', { detail: { orderId: order.id, order } }));
+
+      // ── قائمة انتظار Firebase ─────────────────────────────────────────────
+      if (DataManager.useFirebase() && window.SyncManager) {
+          window.SyncManager.addToSyncQueue('orders', 'add', order, localId);
+      }
+
+      return true;
+  },
+
+  // ======================
+  // 🛒 Orders On Hold — SQLite Only
+  // ======================
   getOrdersOnHold: async () => {
-    return JSON.parse(localStorage.getItem('ordersOnHold') || '[]');
+    try {
+        return await window.DBService.getOrdersOnHold();
+    } catch(e) {
+        console.warn('[DataManager] getOrdersOnHold SQLite err:', e.message);
+        return [];
+    }
   },
 
   saveOrderOnHold: async (order) => {
-    const orders = JSON.parse(localStorage.getItem('ordersOnHold') || '[]');
-    orders.push(order);
-    localStorage.setItem('ordersOnHold', JSON.stringify(orders));
+    try {
+        order.id = await window.DBService.saveOrderOnHold(order);
+    } catch(e) {
+        console.error('[DataManager] saveOrderOnHold SQLite err:', e.message);
+        if (!order.id) order.id = `HOLD-${Date.now()}`;
+    }
     return true;
   },
 
   removeOrderOnHold: async (orderId) => {
-    const orders = JSON.parse(localStorage.getItem('ordersOnHold') || '[]');
-    const filtered = orders.filter(o => o.id !== orderId);
-    localStorage.setItem('ordersOnHold', JSON.stringify(filtered));
+    try {
+        await window.DBService.removeOrderOnHold(orderId);
+    } catch(e) {
+        console.warn('[DataManager] removeOrderOnHold SQLite err:', e.message);
+    }
     return true;
   },
 
   // ======================
-  // Sales & Cash
+  // 📜 Sales History — SQLite Only
   // ======================
   getSalesHistory: async () => {
-    return JSON.parse(localStorage.getItem('salesHistory') || '[]');
+    try {
+        return await window.DBService.getSalesHistory();
+    } catch(e) {
+        console.warn('[DataManager] getSalesHistory SQLite err:', e.message);
+        return [];
+    }
   },
-  
+
   saveSale: async (sale) => {
-    const sales = JSON.parse(localStorage.getItem('salesHistory') || '[]');
-    sales.push(sale);
-    localStorage.setItem('salesHistory', JSON.stringify(sales));
-    
+    try {
+        sale.id = await window.DBService.saveSaleHistory(sale);
+    } catch(e) {
+        console.error('[DataManager] saveSale SQLite err:', e.message);
+        if (!sale.id) sale.id = `SALE-${Date.now()}`;
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orderUpdated', { detail: { saleId: sale.id, sale: sale } }));
     }
-    
-    // Fire-and-forget the cloud sync
+
     if (DataManager.useFirebase() && window.SyncManager) {
       const localId = `local_sale_${Date.now()}`;
-      // DO NOT AWAIT. Let it run in the background.
       window.SyncManager.addToSyncQueue('salesHistory', 'add', sale, localId);
     }
     return true;
   },
-  
+
   generateOrderId: async () => {
-    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const onHold = JSON.parse(localStorage.getItem('ordersOnHold') || '[]');
-    const total = orders.length + onHold.length;
-    return `ORD${String(total + 1).padStart(6, '0')}`;
+    try {
+        const orders = await window.DBService.getOrders({ limit: 1 });
+        const onHold = await window.DBService.getOrdersOnHold();
+        // استخدم timestamp-based ID بدلاً من count-based (أكثر أماناً)
+        const seq = (orders.length || 0) + (onHold.length || 0) + 1;
+        return `ORD${String(seq).padStart(6, '0')}`;
+    } catch(e) {
+        return `ORD${Date.now().toString().slice(-6)}`;
+    }
   },
 
   // ======================
-  // Cash Sessions (Shifts)
+  // Cash Sessions (Shifts) — SQLite Only (already migrated)
   // ======================
   getCashSessions: async () => {
-    const localSessions = JSON.parse(localStorage.getItem('cashSessions') || '[]');
+      try {
+          const localSessions = await window.DBService.getCashSessions();
 
-    const _normSession = (s) => {
-        if (!s) return null;
-        const id = s.id || s.shift_id;
-        if (!id) return null;
-        return { ...s, id, openingAmount: s.opening_balance || s.openingAmount || 0,
-            cashier_name: s.cashier_name || s.cashierName || 'Admin', status: s.status || 'open' };
-    };
-    const _mergeSessions = (local, fbRaw) => {
-        const fbSessions = (fbRaw || []).map(_normSession).filter(Boolean);
-        const sessionMap = new Map();
-        local.forEach(s => sessionMap.set(s.id, s));
-        fbSessions.forEach(s => { if (!sessionMap.has(s.id)) sessionMap.set(s.id, s); });
-        return Array.from(sessionMap.values());
-    };
+          // مزامنة Firebase في الخلفية
+          if (DataManager.useFirebase() && navigator.onLine) {
+              setTimeout(async () => {
+                  try {
+                      const fbRaw = await window.FirestoreService.getShifts();
+                      if (!fbRaw || fbRaw.length === 0) return;
 
-    // Offline-first: return local immediately, sync in background
-    if (localSessions.length > 0) {
-        if (DataManager.useFirebase() && navigator.onLine) {
-            setTimeout(async () => {
-                try {
-                    const firebaseSessionsRaw = await window.FirestoreService.getShifts();
-                    if (!firebaseSessionsRaw || firebaseSessionsRaw.length === 0) return;
-                    const merged = _mergeSessions(localSessions, firebaseSessionsRaw);
-                    if (merged.length !== localSessions.length) {
-                        localStorage.setItem('cashSessions', JSON.stringify(merged));
-                    }
-                } catch (e) {}
-            }, 5000);
-        }
-        return localSessions;
-    }
-    // First time
-    if (DataManager.useFirebase() && navigator.onLine) {
-        try {
-            if (!window.firebaseDb) await new Promise(r => setTimeout(r, 500));
-            const firebaseSessionsRaw = await window.FirestoreService.getShifts();
-            if (!firebaseSessionsRaw || firebaseSessionsRaw.length === 0) return localSessions;
-            const merged = _mergeSessions(localSessions, firebaseSessionsRaw);
-            localStorage.setItem('cashSessions', JSON.stringify(merged));
-            return merged;
-        } catch (e) { return localSessions; }
-    }
-    return localSessions;
+                      const localSessions = await window.DBService.getCashSessions().catch(() => []);
+                      const localMap = new Map(localSessions.map(s => [s.id, s]));
+
+                      const recentClose = window._shiftJustClosed ||
+                          sessionStorage.getItem('_shiftJustClosed') === '1';
+
+                      for (const s of fbRaw) {
+                          const local = localMap.get(s.id);
+                          const fbStatus    = (s.status || 'open').toLowerCase();
+                          const localStatus = (local && local.status || '').toLowerCase();
+
+                          // Guard 1: local=closed + FB=open → Firebase stale
+                          if (local && localStatus === 'closed' && fbStatus === 'open') {
+                              console.log(`[DataManager] ⛔ Skipping stale Firebase session ${s.id}`);
+                              continue;
+                          }
+
+                          // Guard 2: recentClose flag
+                          if (recentClose && fbStatus === 'open') {
+                              console.log(`[DataManager] ⛔ Skipping Firebase session ${s.id} (recentClose)`);
+                              try {
+                                  const updShift = window.FirestoreService?.updateShift || window.updateShift;
+                                  if (typeof updShift === 'function') {
+                                      await updShift(String(s.id), { status: 'closed', closedAt: _egyptNow() });
+                                  }
+                              } catch(_) {}
+                              continue;
+                          }
+
+                          // Guard 3: لو فيه شيفت محلي مفتوح بنفس التاريخ والكاشير → ده duplicate
+                          if (!local && fbStatus === 'open') {
+                              const fbDate = (s.date || s.businessDate || s.opened_at || s.createdAt || '').slice(0, 10);
+                              const fbCashier = s.openedBy || s.opened_by || s.cashier_name || '';
+                              const hasDuplicate = localSessions.some(ls => {
+                                  const lsDate = (ls.date || ls.businessDate || ls.opened_at || ls.createdAt || '').slice(0, 10);
+                                  const lsCashier = ls.openedBy || ls.opened_by || ls.cashier_name || '';
+                                  return ls.status === 'open' && lsDate === fbDate && lsCashier === fbCashier;
+                              });
+                              if (hasDuplicate) {
+                                  console.log(`[DataManager] ⛔ Skipping duplicate Firebase session ${s.id} (same date+cashier)`);
+                                  continue;
+                              }
+
+                              // Guard 4: الـ ID مش بصيغة SHIFT-xxx → garbage doc من sync قديم → تجاهل
+                              if (!String(s.id || '').startsWith('SHIFT-')) {
+                                  console.log(`[DataManager] ⛔ Skipping malformed Firebase session ${s.id} (not SHIFT-xxx format)`);
+                                  continue;
+                              }
+
+                              // Guard 5: لو فيه شيفت محلي مغلق في نفس اليوم → ما تفتحش شيفت جديد من Firebase
+                              const hasClosedSameDay = localSessions.some(ls => {
+                                  const lsDate = (ls.date || ls.businessDate || ls.opened_at || ls.createdAt || '').slice(0, 10);
+                                  return ls.status === 'closed' && lsDate === fbDate;
+                              });
+                              if (hasClosedSameDay && !localSessions.some(ls => ls.status === 'open')) {
+                                  console.log(`[DataManager] ⛔ Skipping Firebase open session ${s.id} — today already has a closed shift and no open shift locally`);
+                                  continue;
+                              }
+                          }
+
+                          await window.DBService.saveCashSession(s, { alreadySynced: true });
+                      }
+                  } catch (_) {}
+              }, 5000);
+          }
+
+          return localSessions;
+      } catch (err) {
+          console.warn('[DataManager] getCashSessions → SQLite failed:', err.message);
+          return [];
+      }
   },
-  
+
   saveCashSession: async (session) => {
-    const sessions = JSON.parse(localStorage.getItem('cashSessions') || '[]');
-    
-    if (session.id) {
-      const index = sessions.findIndex(s => s.id === session.id);
-      if (index !== -1) sessions[index] = { ...sessions[index], ...session };
-      else sessions.push(session);
-    } else {
-      const businessDate = session.date || DataManager.getBusinessDate();
-      session.id = 'SESSION-' + businessDate.replace(/-/g, '') + '-' + String(Date.now()).slice(-6);
-      session.date = businessDate;
-      session.createdAt = new Date().toISOString();
-      if (!session.openedBy) session.openedBy = localStorage.getItem('username') || 'المستخدم';
-      sessions.push(session);
-    }
-    
-    const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    session._localId = localId;
-    session._synced = false;
-    
-    localStorage.setItem('cashSessions', JSON.stringify(sessions));
-    
-    if (DataManager.useFirebase() && window.SyncManager) {
-      const isUpdate = session.id && sessions.findIndex(s => s.id === session.id) !== -1;
-      const shiftData = {
-        id: session.id,
-        cashier_name: session.cashier_name || session.cashierName || 'Admin',
-        opening_balance: session.openingAmount || session.opening_balance || 0,
-        ...session
-      };
-      window.SyncManager.addToSyncQueue('shifts', isUpdate ? 'update' : 'add', shiftData, localId);
-    }
-    return true;
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      session._localId = localId;
+      session._synced  = false;
+
+      if (!session.openedBy && !session.opened_by) {
+          session.openedBy = localStorage.getItem('username') || 'المستخدم';
+      }
+
+      try {
+          session.id = await window.DBService.saveCashSession(session);
+      } catch (err) {
+          console.error('[DataManager] saveCashSession → SQLite FAILED:', err.message);
+          if (!session.id) {
+              session.id = `SESSION-${DataManager.getBusinessDate().replace(/-/g,'')}-${String(Date.now()).slice(-6)}`;
+              session.createdAt = _egyptNow();
+          }
+      }
+
+      if (DataManager.useFirebase() && window.SyncManager) {
+          const shiftData = {
+              id: session.id,
+              cashier_name:    session.cashier_name || session.cashierName || session.openedBy || 'Admin',
+              opening_balance: session.openingAmount || session.opening_balance || 0,
+              ...session,
+          };
+          window.SyncManager.addToSyncQueue('shifts', 'add', shiftData, localId);
+      }
+
+      return true;
   },
 
   getTodayCashSession: async () => {
-    const sessions = await DataManager.getCashSessions();
-
-    // هيدور على أي شيفت مفتوح بغض النظر إحنا في أي تاريخ
-    const open = (sessions || []).filter(s => s.status === 'open');
-    if (open.length === 0) return null;
-    if (open.length === 1) return open[0];
-
-    // لو لقى أكتر من شيفت مفتوح (بالغلط)، هيجيب أحدث واحد فيهم
-    open.sort((a, b) => {
-      const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return tB - tA;
-    });
-    return open[0];
+      try {
+          return await window.DBService.getOpenSession();
+      } catch (err) {
+          console.warn('[DataManager] getTodayCashSession → SQLite failed:', err.message);
+          return null;
+      }
   },
 
   updateCashSession: async (sessionId, updates) => {
-    const sessions = JSON.parse(localStorage.getItem('cashSessions') || '[]');
-    const index = sessions.findIndex(s => s.id === sessionId);
-    
-    if (index !== -1) {
-      sessions[index] = { ...sessions[index], ...updates };
-      if (updates.status === 'closed' && !sessions[index].closedAt) {
-          sessions[index].closedAt = new Date().toISOString();
-          sessions[index].closedBy = localStorage.getItem('username') || 'المستخدم';
-      }
-      
       const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessions[index]._localId = localId;
-      sessions[index]._synced = false;
-      
-      localStorage.setItem('cashSessions', JSON.stringify(sessions));
-      
-      if (DataManager.useFirebase() && window.SyncManager) {
-        window.SyncManager.addToSyncQueue('shifts', 'update', { id: sessionId, ...sessions[index] }, localId);
+
+      if (updates.status === 'closed' && !updates.closed_at && !updates.closedAt) {
+          updates.closed_at = _egyptNow();
+          updates.closedAt  = updates.closed_at;
+          updates.closedBy  = localStorage.getItem('username') || 'المستخدم';
       }
-      return sessions[index];
-    }
-    return null;
+
+      try {
+          await window.DBService.updateCashSession(sessionId, updates);
+      } catch (err) {
+          console.error('[DataManager] updateCashSession → SQLite FAILED:', err.message);
+      }
+
+      if (DataManager.useFirebase() && window.SyncManager) {
+          window.SyncManager.addToSyncQueue('shifts', 'update', { id: sessionId, ...updates }, localId);
+      }
+
+      try { return await window.DBService.getOpenSession(); } catch { return null; }
   },
 
   // ======================
-  // Expenses
+  // 💸 Expenses — SQLite Only
   // ======================
-  getExpenses: async () => {
-    const localExpenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+  getExpenses: async (filters = {}) => {
+      try {
+          const localExpenses = await window.DBService.getExpenses(filters);
 
-    // Offline-first
-    if (localExpenses.length > 0) {
-        if (DataManager.useFirebase() && navigator.onLine) {
-            setTimeout(async () => {
-                try {
-                    const firebaseExpenses = await window.FirestoreService.getAllExpenses();
-                    if (firebaseExpenses && firebaseExpenses.length > 0) {
-                        const merged = [...localExpenses, ...firebaseExpenses].filter((e, i, self) =>
-                            i === self.findIndex(x => x.id === e.id)
-                        );
-                        localStorage.setItem('expenses', JSON.stringify(merged));
-                    }
-                } catch (e) {}
-            }, 3000);
-        }
-        return localExpenses;
-    }
-    // First time
-    if (DataManager.useFirebase() && navigator.onLine) {
-        try {
-            const firebaseExpenses = await window.FirestoreService.getAllExpenses();
-            const merged = [...firebaseExpenses, ...localExpenses].filter((e, i, self) =>
-                i === self.findIndex(x => x.id === e.id)
-            );
-            localStorage.setItem('expenses', JSON.stringify(merged));
-            return merged;
-        } catch (e) { console.warn('Expenses sync failed:', e); }
-    }
-    return localExpenses;
+          if (DataManager.useFirebase() && navigator.onLine && !filters.session_id) {
+              setTimeout(async () => {
+                  try {
+                      const fb = await window.FirestoreService.getAllExpenses();
+                      if (fb && fb.length > 0) {
+                          for (const e of fb) {
+                              await window.DBService.saveExpense(e, { alreadySynced: true });
+                          }
+                      }
+                  } catch (_) {}
+              }, 3000);
+          }
+
+          return localExpenses;
+      } catch (err) {
+          console.warn('[DataManager] getExpenses → SQLite failed:', err.message);
+          return [];
+      }
   },
 
   saveExpense: async (expense) => {
-    try {
-      const currentSession = await DataManager.getTodayCashSession();
-      if (currentSession && currentSession.id) expense.shift_id = currentSession.id;
-    } catch (e) {}
+      try {
+          const session = await DataManager.getTodayCashSession();
+          if (session?.id) {
+              expense.session_id = session.id;
+              expense.shift_id   = session.id;
+          }
+      } catch (_) {}
 
-    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    
-    if (expense.id) {
-      const index = expenses.findIndex(e => e.id === expense.id);
-      if (index !== -1) expenses[index] = expense;
-      else expenses.push(expense);
-    } else {
-      const now = new Date();
-      expense.date = expense.date || DataManager.getEgyptDate();
-      expense.id = 'EXP-' + expense.date.replace(/-/g, '') + '-' + String(now.getTime()).slice(-6);
-      expense.createdAt = now.toISOString();
-      expenses.push(expense);
-    }
-    
-    const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    expense._localId = localId;
-    expense._synced = false;
-    
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    try { await DataManager.saveExpenseToHistory({ ...expense }); } catch (e) {}
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      expense._localId = localId;
+      expense._synced  = false;
 
-    if (DataManager.useFirebase() && window.SyncManager) {
-      const isUpdate = expense.id && expenses.findIndex(e => e.id === expense.id && e !== expense) !== -1;
-      window.SyncManager.addToSyncQueue('expenses', isUpdate ? 'update' : 'add', expense, localId);
-    }
-    return true;
+      // حفظ في SQLite (يحفظ في expensesHistory تلقائياً عبر transaction في DBService)
+      try {
+          expense.id = await window.DBService.saveExpense(expense);
+      } catch (err) {
+          console.error('[DataManager] saveExpense → SQLite FAILED:', err.message);
+          if (!expense.id) {
+              expense.date      = expense.date || DataManager.getEgyptDate();
+              expense.id        = 'EXP-' + expense.date.replace(/-/g, '') + '-' + String(Date.now()).slice(-6);
+              expense.createdAt = _egyptNow();
+          }
+      }
+
+      if (DataManager.useFirebase() && window.SyncManager) {
+          window.SyncManager.addToSyncQueue('expenses', 'add', expense, localId);
+      }
+
+      return true;
   },
 
   updateExpense: async (expenseId, updates) => {
-    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    const index = expenses.findIndex(e => e.id === expenseId);
-    if (index !== -1) {
       const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      expenses[index] = { ...expenses[index], ...updates, _localId: localId, _synced: false };
-      localStorage.setItem('expenses', JSON.stringify(expenses));
+      try {
+          await window.DBService.saveExpense({ id: expenseId, ...updates });
+      } catch (err) {
+          console.error('[DataManager] updateExpense → SQLite FAILED:', err.message);
+      }
       if (DataManager.useFirebase() && window.SyncManager) {
-        window.SyncManager.addToSyncQueue('expenses', 'update', { id: expenseId, ...expenses[index] }, localId);
+          window.SyncManager.addToSyncQueue('expenses', 'update', { id: expenseId, ...updates }, localId);
       }
       return true;
-    }
-    return false;
   },
 
   removeExpense: async (expenseId) => {
-    let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    const expense = expenses.find(e => e.id === expenseId);
-    const filtered = expenses.filter(e => e.id !== expenseId);
-    localStorage.setItem('expenses', JSON.stringify(filtered));
-    if (DataManager.useFirebase() && window.SyncManager && expense) {
-      window.SyncManager.addToSyncQueue('expenses', 'delete', { id: expenseId, ...expense });
-    }
-    return true;
+      try {
+          await window.DBService.removeExpense(expenseId);
+      } catch (err) {
+          console.warn('[DataManager] removeExpense → SQLite err:', err.message);
+      }
+      if (DataManager.useFirebase() && window.SyncManager) {
+          window.SyncManager.addToSyncQueue('expenses', 'delete', { id: expenseId });
+      }
+      return true;
   },
 
   // ======================
-  // Expenses History
+  // 📊 Expenses History — SQLite Only
   // ======================
   getExpensesHistory: async () => {
-    const localHistory = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
-    if (DataManager.useFirebase() && navigator.onLine) {
-      try {
-        const remoteHistory = await window.FirestoreService.getAllExpensesHistory();
-        const merged = [...remoteHistory, ...localHistory].filter((e, i, self) => 
-            i === self.findIndex(x => x.id === e.id)
-        );
-        localStorage.setItem('expensesHistory', JSON.stringify(merged));
-        return merged;
-      } catch (e) { console.warn('Expense history sync failed:', e); }
+    try {
+        const sqlData = await window.DBService.getExpensesHistory();
+        if (DataManager.useFirebase() && navigator.onLine) {
+            setTimeout(async () => {
+                try {
+                    const remoteHistory = await window.FirestoreService.getAllExpensesHistory();
+                    if (remoteHistory && remoteHistory.length > 0) {
+                        // DBService.saveExpense already writes to expensesHistory via transaction
+                        // so we only need to import remote-only records
+                    }
+                } catch(e) {}
+            }, 3000);
+        }
+        return sqlData;
+    } catch(e) {
+        console.warn('[DataManager] getExpensesHistory SQLite err:', e.message);
+        return [];
     }
-    return localHistory;
   },
-  
+
   saveExpenseToHistory: async (expense) => {
-    const history = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
-    history.push(expense);
-    localStorage.setItem('expensesHistory', JSON.stringify(history));
+    // DBService.saveExpense already inserts into expensesHistory via transaction
+    // This function is kept for backwards compatibility
     if (DataManager.useFirebase() && window.SyncManager) {
         const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         window.SyncManager.addToSyncQueue('expensesHistory', 'add', expense, localId);
     }
     return true;
   },
-  
 
 
   // ======================
   // General Utils
   // ======================
+
+  /**
+   * loadData — جلب بيانات من SQLite حسب اسم الجدول
+   * يستبدل localStorage.getItem(key) القديم
+   */
   loadData: async (key) => {
-      return JSON.parse(localStorage.getItem(key) || '[]');
+      // توجيه لـ DBService حسب المفتاح
+      const dbMap = {
+          orders:          () => window.DBService.getOrders(),
+          menuItems:       () => window.DBService.getMenuItems(),
+          categories:      () => window.DBService.getCategories(),
+          ingredients:     () => window.DBService.getIngredients(),
+          expenses:        () => window.DBService.getExpenses(),
+          expensesHistory: () => window.DBService.getExpensesHistory(),
+          employees:       () => window.DBService.getEmployees(),
+          suppliers:       () => window.DBService.getSuppliers(),
+          aggregators:     () => window.DBService.getAggregators(),
+          customers:       () => window.DBService.getCustomers(),
+          salesHistory:    () => window.DBService.getSalesHistory(),
+          ordersOnHold:    () => window.DBService.getOrdersOnHold(),
+          cashSessions:    () => window.DBService.getCashSessions(),
+      };
+
+      if (dbMap[key] && window.DBService) {
+          try { return await dbMap[key](); }
+          catch(e) { console.warn(`[DataManager] loadData(${key}) SQLite err:`, e.message); }
+      }
+
+      // للمفاتيح غير التشغيلية (settings, users, etc.)
+      try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+      catch { return []; }
   },
 
-  // جلب التاريخ بتوقيت مصر الدقيق (يقلب يوم جديد الساعة 12:00 منتصف الليل فوراً)
   getEgyptDate: () => {
       const d = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Cairo"}));
       const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -841,7 +839,6 @@ const DataManager = {
       return `${d.getFullYear()}-${mm}-${dd}`;
   },
 
-  // اليوم التجاري متطابق تماماً مع تاريخ اليوم في مصر
   getBusinessDate: () => {
       const d = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Cairo"}));
       const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -854,30 +851,57 @@ const DataManager = {
     return `${prefix}${Date.now()}`;
   },
 
-  // Generic save and get functions
+  // ======================
+  // Generic save — SQLite First
+  // ======================
   save: async (collectionName, data) => {
-    // 🔒 حقن restaurantId قبل الحفظ المحلي لضمان عزل البيانات
+    // 🔒 حقن restaurantId
     if (collectionName !== 'settings') {
         const _uid = localStorage.getItem('userId') || localStorage.getItem('_saasUid');
         if (_uid && !data.restaurantId) data.restaurantId = _uid;
     }
 
-    let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+    // توجيه لـ DBService
+    const dbServiceMap = {
+        menuItems:    'saveMenuItem',
+        categories:   'saveCategory',
+        employees:    'saveEmployee',
+        customers:    'saveCustomer',
+        aggregators:  'saveAggregator',
+        suppliers:    'saveSupplier',
+        ingredients:  'saveIngredient',
+        orders:       'saveOrder',
+        expenses:     'saveExpense',
+    };
 
-    if (data.id) {
-        const index = collection.findIndex(item => item.id === data.id);
-        if (index !== -1) {
-            collection[index] = { ...collection[index], ...data };
-        } else {
-            collection.push(data);
-        }
-    } else {
-        data.id = DataManager.generateIdFor(collectionName);
-        collection.push(data);
+    if (dbServiceMap[collectionName] && window.DBService) {
+        try {
+            const method = dbServiceMap[collectionName];
+            if (typeof window.DBService[method] === 'function') {
+                const savedId = await window.DBService[method](data);
+                if (savedId && !data.id) data.id = savedId;
+            }
+        } catch(e) { console.warn(`[DataManager] save(${collectionName}) SQLite err:`, e.message); }
     }
-    
-    localStorage.setItem(collectionName, JSON.stringify(collection));
-    
+
+    if (!data.id) data.id = DataManager.generateIdFor(collectionName);
+
+    // للمفاتيح غير التشغيلية فقط → localStorage
+    const nonOperational = ['settings', 'users', 'notifications', 'performance', 'daily_log', 'performance_snapshots'];
+    if (nonOperational.includes(collectionName)) {
+        try {
+            let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+            if (data.id) {
+                const index = collection.findIndex(item => item.id === data.id);
+                if (index !== -1) collection[index] = { ...collection[index], ...data };
+                else collection.push(data);
+            } else {
+                collection.push(data);
+            }
+            localStorage.setItem(collectionName, JSON.stringify(collection));
+        } catch(e) {}
+    }
+
     if (DataManager.useFirebase() && window.SyncManager) {
         const localId = `local_${Date.now()}`;
         data._localId = localId;
@@ -887,29 +911,45 @@ const DataManager = {
     return data;
   },
 
-remove: async (collectionName, itemId) => {
-    // 1. مسح من الذاكرة المحلية
-    let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
-    const filtered = collection.filter(i => String(i.id) !== String(itemId));
-    localStorage.setItem(collectionName, JSON.stringify(filtered));
-    
-    // 2. تنظيف طابور المزامنة
-    let syncQueue = JSON.parse(localStorage.getItem('_syncQueue') || '[]');
-    syncQueue = syncQueue.filter(job => job.data && String(job.data.id) !== String(itemId));
-    localStorage.setItem('_syncQueue', JSON.stringify(syncQueue));
-
-    // 3. الضرب المباشر في سيرفرات جوجل
-    if (DataManager.useFirebase() && typeof window.firebase !== 'undefined' && window.firebase.firestore) {
+  // ======================
+  // Generic remove — SQLite First
+  // ======================
+  remove: async (collectionName, itemId) => {
+    const dbServiceRemoveMap = {
+        menuItems:    'removeMenuItem',
+        employees:    'removeEmployee',
+        categories:   'removeCategory',
+        aggregators:  'removeAggregator',
+        suppliers:    'removeSupplier',
+        ingredients:  'removeIngredient',
+        customers:    'removeCustomer',
+        orders:       'updateOrder',  // soft delete via status
+    };
+    if (dbServiceRemoveMap[collectionName] && window.DBService) {
         try {
-            console.log(`🔥 إبادة مباشرة لـ ${itemId} من ${collectionName}...`);
-            await window.firebase.firestore().collection(collectionName).doc(String(itemId)).delete();
-            console.log(`✅ تمت الإبادة بنجاح.`);
-        } catch (error) {
-            console.error(`❌ فشل المسح من السيرفر:`, error);
-        }
+            const method = dbServiceRemoveMap[collectionName];
+            if (typeof window.DBService[method] === 'function')
+                await window.DBService[method](itemId);
+        } catch(e) { console.warn(`[DataManager] remove(${collectionName}) SQLite err:`, e.message); }
+    }
+
+    // تنظيف طابور المزامنة
+    if (window.SyncManager) {
+        try {
+            window.SyncManager.syncQueue = window.SyncManager.syncQueue.filter(
+                job => !(job.data && String(job.data.id) === String(itemId))
+            );
+            window.SyncManager.saveSyncQueue();
+        } catch(e) {}
+    }
+
+    // مسح من Firebase
+    if (DataManager.useFirebase() && window.SyncManager) {
+        window.SyncManager.addToSyncQueue(collectionName, 'delete', { id: itemId });
     }
     return true;
   },
+
   get: async (collectionName, id) => {
     const collection = await DataManager.loadData(collectionName);
     return collection.find(item => item.id === id);

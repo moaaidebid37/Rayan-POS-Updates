@@ -1,6 +1,6 @@
 {
   "name": "solo-system-pos",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Solo System - Complete Point of Sale (POS) system built with HTML, CSS, and JavaScript.",
   "main": "app.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:all": "electron-builder --win --mac",
+    "postinstall": "electron-rebuild",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "better-sqlite3": "^9.6.0",
     "cors": "^2.8.6",
     "electron-updater": "^6.3.9",
     "express": "^5.2.1",
@@ -29,7 +31,8 @@
   },
   "devDependencies": {
     "electron": "^22.3.27",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9"
   },
   "build": {
     "productName": "Solo POS",

@@ -4,6 +4,13 @@ function getDataManager() {
   return (typeof window !== 'undefined' && window.DataManager) || (typeof DataManager !== 'undefined' ? DataManager : null);
 }
 
+// ⏰ الوقت الآن بتوقيت مصر — بديل لـ egyptNow() الذي يُرجع UTC
+function egyptNow() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 // تعريف المتغيرات العامة
 let selectedCategory = null; // Category id (string preferred)
 let cart = [];
@@ -104,34 +111,58 @@ function removeLocalById(storageKey, id) {
 }
 
 async function loadEmployeesForAttendance() {
-    // Prefer Firebase
-    if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
-        try {
-            const list = await window.FirestoreService.getAllEmployees();
-            if (Array.isArray(list)) return list;
-        } catch (e) {
-            console.warn('Error loading employees from Firebase:', e);
-        }
-    }
-    // Fallback localStorage
+    const SYS_LABELS = { owner: 'مالك', admin: 'مدير', cashier: 'كاشير' };
+
+    // ── جيب الموظفين العاديين (SQLite أولاً) ──
+    let manualEmps = [];
     try {
-        return JSON.parse(localStorage.getItem('employees') || '[]');
-    } catch {
-        return [];
+        if (window.DBService) {
+            const dbEmps = await window.DBService.getEmployees();
+            if (Array.isArray(dbEmps) && dbEmps.length > 0) manualEmps = dbEmps;
+        }
+    } catch (e) {
+        console.warn('[loadEmployeesForAttendance] SQLite employees:', e.message);
     }
+    if (!manualEmps.length) {
+        try { manualEmps = JSON.parse(localStorage.getItem('employees') || '[]'); } catch (_) {}
+    }
+
+    // ── جيب مستخدمي النظام ──
+    let systemUsers = [];
+    try {
+        systemUsers = window.DBService
+            ? (await window.DBService.getUsers() || [])
+            : JSON.parse(localStorage.getItem('users') || '[]');
+    } catch (_) {
+        try { systemUsers = JSON.parse(localStorage.getItem('users') || '[]'); } catch (__) {}
+    }
+
+    // حوّل مستخدمي النظام لـ employee-like objects
+    const sysEmps = systemUsers
+        .filter(u => u.displayName || u.name || u.username)
+        .map(u => ({
+            id:           String(u.id || u.uid || u.username || ''),
+            name:         u.displayName || u.name || u.username || '',
+            role:         SYS_LABELS[u.role] || u.role || 'كاشير',
+            isSystemUser: true,
+        }));
+
+    // ادمج بدون تكرار (لو اسم الموظف نفس اسم المستخدم يظهر مرة واحدة بس)
+    const sysNamesLc = new Set(sysEmps.map(e => e.name.toLowerCase()));
+    const filteredManual = manualEmps.filter(e =>
+        !sysNamesLc.has((e.name || '').toLowerCase())
+    );
+
+    return [...sysEmps, ...filteredManual];
 }
 
 async function loadAttendanceForDate(businessDate) {
-    // Prefer Firebase
-    if (typeof window !== 'undefined' && window.FirestoreService && navigator.onLine) {
+    // SQLite أولاً (المصدر الرئيسي)
+    if (window.DBService) {
         try {
-            if (typeof window.FirestoreService.getAttendanceByDate === 'function') {
-                const list = await window.FirestoreService.getAttendanceByDate(businessDate);
-                if (Array.isArray(list)) return list;
-            }
-        } catch (e) {
-            console.warn('Error loading attendance from Firebase:', e);
-        }
+            const all = await window.DBService.getAttendance({ businessDate: String(businessDate) });
+            if (Array.isArray(all) && all.length > 0) return all;
+        } catch(e) { console.warn('[loadAttendanceForDate] SQLite:', e.message); }
     }
     // Fallback localStorage
     try {
@@ -153,41 +184,91 @@ function renderAttendanceModal({ businessDate, employees, attendanceRecords }) {
         return;
     }
 
-    // عند فتح النافذة نعرض دائماً "افتراضي" كمحدد (لا نحمّل الحالة المحفوظة)
-    const status = 'default';
+    // بناء map: employeeId → سجل الحضور المحفوظ مسبقاً لهذا اليوم
+    const recordedMap = {};
+    (attendanceRecords || []).forEach(r => {
+        const eid = String(r.employeeId ?? r.employee_id ?? '');
+        if (eid) recordedMap[eid] = r;
+    });
+
+    const _statusLabel = { present: 'حاضر', absent: 'غائب', vacation: 'إجازة', default: 'افتراضي' };
+    const _statusColor = { present: '#16a34a', absent: '#dc2626', vacation: '#d97706', default: '#666' };
 
     container.innerHTML = employees.map(emp => {
-        const id = String(emp.id ?? '');
-        const name = emp.name || 'غير محدد';
-        const role = emp.role || '';
+        const id    = String(emp.id ?? '');
+        const name  = emp.name || 'غير محدد';
+        const role  = emp.role || '';
         const salary = round2(emp.salary || 0);
-        const rowId = `att_${encodeURIComponent(id)}`;
+        const rowId  = `att_${encodeURIComponent(id)}`;
+
+        const existing = recordedMap[id]; // سجل موجود مسبقاً لهذا اليوم
+        const isLocked = !!existing;      // مسجّل → اقفل الصف
+        const savedStatus = existing ? (existing.status || 'default') : 'default';
+        const dailyWage  = existing ? round2(existing.dailyWage || 0) : 0;
+
+        const borderStyle = isLocked
+            ? 'border:2px solid #ef4444; background:#fff5f5;'
+            : 'border:1px solid #e8e8e8; background:#ffffff;';
+
+        const lockedBadge = isLocked ? `
+            <div style="display:flex;align-items:center;gap:6px;background:#fee2e2;border:1px solid #fca5a5;
+                border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;color:#dc2626;white-space:nowrap;">
+                <i class="fas fa-lock" style="font-size:11px;"></i>
+                مسجّل — ${_statusLabel[savedStatus] || savedStatus}
+                ${dailyWage > 0 ? `<span style="margin-right:4px;color:#7f1d1d;">(${dailyWage} ج.م)</span>` : ''}
+            </div>` : '';
+
+        const makeRadio = (val) => {
+            const isChecked = savedStatus === val;
+            const bg = isChecked
+                ? (val === 'present' ? '#dcfce7' : val === 'absent' ? '#fee2e2' : val === 'vacation' ? '#fef9c3' : '#f0f0f0')
+                : '#fafafa';
+            const borderClr = isChecked
+                ? (val === 'present' ? '#16a34a' : val === 'absent' ? '#dc2626' : val === 'vacation' ? '#d97706' : '#aaa')
+                : '#e8e8e8';
+            return `
+                <label style="display:inline-flex;align-items:center;gap:6px;border:1px solid ${borderClr};
+                    padding:8px 10px;border-radius:10px;
+                    cursor:${isLocked ? 'not-allowed' : 'pointer'};
+                    background:${bg};opacity:${isLocked ? '0.65' : '1'};">
+                    <input type="radio" name="${rowId}" value="${val}"
+                        ${isChecked ? 'checked' : ''}
+                        ${isLocked ? 'disabled' : ''} />
+                    <span style="font-weight:700;font-size:12px;color:${isChecked ? _statusColor[val] : '#333'};">
+                        ${_statusLabel[val]}
+                    </span>
+                </label>`;
+        };
+
+        const sysBadge = emp.isSystemUser
+            ? `<span style="font-size:10px;background:#f5f5f5;color:#aaa;border-radius:4px;padding:1px 5px;margin-right:4px;">⚙️ نظام</span>`
+            : '';
+        // جيب الراتب من مستخدمي النظام لو مش موجود في الـ employee object
+        const effectiveSalary = salary || (() => {
+            if (!emp.isSystemUser) return 0;
+            try {
+                const u = JSON.parse(localStorage.getItem('users') || '[]').find(x =>
+                    String(x.id || x.uid || x.username || '') === id
+                );
+                return round2(u?.salary || 0);
+            } catch(_) { return 0; }
+        })();
+
         return `
-            <div style="border:1px solid #e8e8e8; border-radius: 12px; padding: 12px 14px; background:#ffffff; display:flex; justify-content:space-between; align-items:center; gap: 12px;">
-                <div style="min-width: 220px;">
-                    <div style="font-weight: 800; color:#000000; font-size: 15px; line-height: 1.4;">${name}</div>
-                    <div style="color:#666666; font-size: 12px; margin-top: 2px;">${role ? role : ''} ${salary ? `— الراتب: ${salary} ج.م` : ''}</div>
+            <div style="${borderStyle} border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div style="min-width:200px;">
+                    <div style="font-weight:800;color:#000000;font-size:15px;line-height:1.4;">${name} ${sysBadge}</div>
+                    <div style="color:#666666;font-size:12px;margin-top:2px;">${role || ''} ${effectiveSalary ? `— الراتب: ${effectiveSalary} ج.م` : ''}</div>
                 </div>
-                <div style="display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end;">
-                    <label style="display:inline-flex; align-items:center; gap:6px; border:1px solid #e8e8e8; padding: 8px 10px; border-radius: 10px; cursor:pointer; background:${status==='default'?'#f0f0f0':'#fafafa'};">
-                        <input type="radio" name="${rowId}" value="default" ${status==='default'?'checked':''} />
-                        <span style="font-weight:700; font-size: 12px;">افتراضي</span>
-                    </label>
-                    <label style="display:inline-flex; align-items:center; gap:6px; border:1px solid #e8e8e8; padding: 8px 10px; border-radius: 10px; cursor:pointer; background:#fafafa;">
-                        <input type="radio" name="${rowId}" value="present" />
-                        <span style="font-weight:700; font-size: 12px;">حاضر</span>
-                    </label>
-                    <label style="display:inline-flex; align-items:center; gap:6px; border:1px solid #e8e8e8; padding: 8px 10px; border-radius: 10px; cursor:pointer; background:#fafafa;">
-                        <input type="radio" name="${rowId}" value="absent" />
-                        <span style="font-weight:700; font-size: 12px;">غائب</span>
-                    </label>
-                    <label style="display:inline-flex; align-items:center; gap:6px; border:1px solid #e8e8e8; padding: 8px 10px; border-radius: 10px; cursor:pointer; background:#fafafa;">
-                        <input type="radio" name="${rowId}" value="vacation" />
-                        <span style="font-weight:700; font-size: 12px;">إجازة</span>
-                    </label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+                    ${isLocked ? lockedBadge : `
+                        ${makeRadio('default')}
+                        ${makeRadio('present')}
+                        ${makeRadio('absent')}
+                        ${makeRadio('vacation')}
+                    `}
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
 
@@ -239,9 +320,20 @@ window.saveAttendance = async function() {
 
         let totalPayrollAdded = 0;
 
+        // نجيب السجلات الموجودة لهذا اليوم لنتجنب التكرار
+        const existingRecords = await loadAttendanceForDate(businessDate);
+        const existingIds = new Set(existingRecords.map(r => String(r.employeeId ?? r.employee_id ?? '')));
+
+        // جيب بيانات مستخدمي النظام من localStorage (للراتب)
+        let sysUsersCache = [];
+        try { sysUsersCache = JSON.parse(localStorage.getItem('users') || '[]'); } catch(_) {}
+
         for (const emp of employees) {
             const empId = String(emp.id ?? '');
             if (!empId) continue;
+
+            // موظف مسجّل مسبقاً → تخطى تماماً (لا تعيد الكتابة ولا تخصم يومية مرة ثانية)
+            if (existingIds.has(empId)) continue;
 
             const radioName = `att_${encodeURIComponent(empId)}`;
             const checked = document.querySelector(`input[name="${radioName}"]:checked`);
@@ -249,9 +341,31 @@ window.saveAttendance = async function() {
 
             if (status === 'default') continue;
 
+            // ── مستخدمو النظام: أضفهم في جدول employees أولاً عشان يعدي الـ FK ──
+            let effectiveSalary = parseFloat(emp.salary || 0);
+            if (emp.isSystemUser && window.DBService) {
+                try {
+                    const sysUser = sysUsersCache.find(u =>
+                        String(u.id || u.uid || u.username || '') === empId
+                    );
+                    if (sysUser?.salary) effectiveSalary = parseFloat(sysUser.salary) || 0;
+                    // أدخل/حدّث السجل في جدول employees عشان يعدي الـ FK constraint
+                    await window.DBService.saveEmployee({
+                        id:     empId,
+                        name:   emp.name  || '',
+                        role:   emp.role  || '',
+                        phone:  sysUser?.phone  || '',
+                        salary: effectiveSalary,
+                    });
+                } catch (fkErr) {
+                    console.warn('[saveAttendance] ensure system user in employees table:', fkErr.message);
+                }
+            } else {
+                effectiveSalary = parseFloat(emp.salary || 0);
+            }
+
             // حساب اليومية
-            const salary = parseFloat(emp.salary || 0);
-            const dailyWage = salary > 0 ? parseFloat((salary / 30).toFixed(2)) : 0;
+            const dailyWage = effectiveSalary > 0 ? parseFloat((effectiveSalary / 30).toFixed(2)) : 0;
             const attendanceId = `${businessDate}_${empId}`;
             
             const attendanceRecord = {
@@ -262,11 +376,14 @@ window.saveAttendance = async function() {
                 status, 
                 dailyWage: dailyWage,
                 markedBy,
-                markedAt: new Date().toISOString()
+                markedAt: egyptNow()
             };
 
-            // حفظ الحضور
+            // حفظ الحضور — localStorage + SQLite
             upsertLocalArray('attendance', attendanceRecord);
+            if (window.DBService) {
+                try { await window.DBService.saveAttendance(attendanceRecord); } catch(e) { console.warn('[saveAttendance] SQLite:', e.message); }
+            }
             if (window.SyncManager) {
                 window.SyncManager.addToSyncQueue('attendance', 'add', attendanceRecord, `local_${attendanceId}`);
             }
@@ -288,9 +405,12 @@ window.saveAttendance = async function() {
                     _synced: false // 👈 علامة إنه لسه مرفعش
                 };
 
-                // 1. حفظه محلياً في المصاريف والأرشيف
+                // 1. حفظه في localStorage + SQLite
                 upsertLocalArray('expenses', payrollExpense);
                 upsertLocalArray('expensesHistory', payrollExpense);
+                if (window.DBService) {
+                    try { await window.DBService.saveExpense(payrollExpense); } catch(e) { console.warn('[saveAttendance] saveExpense SQLite:', e.message); }
+                }
 
                 // 2. 🔥 السطر السحري: إعطاء أمر مزامنة للمصروف
                 if (window.SyncManager) {
@@ -436,6 +556,7 @@ window.addItemToCart = function(item) {
                     icon: item.icon,
                     categoryId: item.categoryId,
                     price: firstVariant.price,
+                    cost: firstVariant.costPrice || firstVariant.cost || item.cost || 0,
                     variant: firstVariant.name,
                     quantity: 1
                 };
@@ -452,6 +573,7 @@ window.addItemToCart = function(item) {
                 icon: item.icon,
                 categoryId: item.categoryId,
                 price: item.price || 0,
+                cost: item.cost || 0, // 👈 السطر ده كان ناقص وهو اللي بيصفر التكلفة!
                 variant: '',
                 quantity: 1
             };
@@ -564,14 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('خطأ أثناء استئناف الطلب المعلق:', e);
     }
     
-    // التحقق من جلسة الدرج النقدي - بعد تأخير بسيط لضمان تحميل البيانات
-    setTimeout(async () => {
-        try {
-            await checkCashDrawerSession();
-        } catch (e) {
-            console.error("خطأ في التحقق من الدرج النقدي:", e);
-        }
-    }, 300);
+
     
     // ═════════════════════════════════════════════════════════════════
     // 🚀 Offline-First Menu Engine
@@ -586,13 +701,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         return Array.from(seen.values());
     };
 
-    function _renderMenuFromCache() {
-        // قراءة localStorage فوراً
+    async function _renderMenuFromCache() {
+        // قراءة SQLite أولاً ثم localStorage كـ fallback
         try {
-            const raw = localStorage.getItem('categories');
-            const parsed = (raw && raw !== '[]' && raw !== 'null') ? JSON.parse(raw) : [];
+            let parsed = [];
+            if (window.DBService) {
+                try {
+                    parsed = await window.DBService.getCategories() || [];
+                } catch (e) {
+                    console.warn('_renderMenuFromCache: DBService.getCategories failed:', e);
+                    parsed = [];
+                }
+            } else {
+                parsed = [];
+            }
             const clean = _dedupById(parsed);
-            if (clean.length !== parsed.length) localStorage.setItem('categories', JSON.stringify(clean));
+            if (clean.length !== parsed.length && window.DBService) {
+                for (const cat of clean) {
+                    try { await window.DBService.saveCategory(cat); } catch(_) {}
+                }
+            }
             if (!window.menuData) window.menuData = {};
             window.menuData.categories = clean;
         } catch (e) {
@@ -600,9 +728,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.menuData.categories = [];
         }
         // رسم الفئات والمنتجات فوراً
-        initCategories();
+        await initCategories();
         const categoryTabs = document.getElementById('categoryTabs');
-        if (!categoryTabs || categoryTabs.children.length === 0) initMenu();
+        if (!categoryTabs || categoryTabs.children.length === 0) await initMenu();
     }
 
     let _menuSynced = false;
@@ -628,14 +756,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const prevCatLen = (window.menuData && window.menuData.categories) ? window.menuData.categories.length : 0;
             if (Array.isArray(fbCats) && fbCats.length > 0) {
                 const clean = _dedupById(fbCats);
-                localStorage.setItem('categories', JSON.stringify(clean));
+                if (window.DBService) {
+                    for (const cat of clean) {
+                        try { await window.DBService.saveCategory(cat); } catch(_) {}
+                    }
+                }
                 if (!window.menuData) window.menuData = {};
                 window.menuData.categories = clean;
                 if (clean.length !== prevCatLen) changed = true;
             }
             if (Array.isArray(fbItems) && fbItems.length > 0) {
                 const clean = _dedupById(fbItems);
-                localStorage.setItem('menuItems', JSON.stringify(clean));
+                if (window.DBService) {
+                    for (const item of clean) {
+                        try { await window.DBService.saveMenuItem(item); } catch(_) {}
+                    }
+                }
                 if (changed || !window.menuData.items || window.menuData.items.length !== clean.length) {
                     if (!window.menuData) window.menuData = {};
                     window.menuData.items = clean;
@@ -643,16 +779,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             if (changed) {
-                initCategories();
+                await initCategories();
                 const categoryTabs = document.getElementById('categoryTabs');
-                if (!categoryTabs || categoryTabs.children.length === 0) initMenu();
+                if (!categoryTabs || categoryTabs.children.length === 0) await initMenu();
             }
         } catch (e) {
             console.warn('Menu Firebase sync failed:', e);
         }
     }
 
-    // المرحلة 1: عرض فوري من localStorage
+    // المرحلة 1: عرض فوري من SQLite/localStorage
     _renderMenuFromCache();
 
     // المرحلة 2: sync فوري لو UID موجود، أو بعد saas-ready
@@ -705,8 +841,10 @@ function initOrderType() {
                 item.price = item.originalPrice;
             }
         });
-        window.orderGlobalDiscount = 0; 
+        window.orderGlobalDiscount = 0;
         window.orderGlobalSurcharge = 0;
+        // إعادة رسم المنتجات بالأسعار الأصلية
+        if (typeof initCategories === 'function') initCategories();
     };
     
     if (takeawayBtn) {
@@ -867,8 +1005,8 @@ async function initDashboard() {
              const prevSession = sortedSessions[currentSessionIndex + 1]; 
              const prevSessionId = prevSession.id; 
   
-             const prevOrders = orders.filter(o => (o.shift_id || o.shiftId) === prevSessionId); 
-             const prevExpensesList = expenses.filter(e => (e.shift_id || e.shiftId) === prevSessionId); 
+             const prevOrders = orders.filter(o => (o.session_id || o.shift_id || o.shiftId) === prevSessionId); 
+             const prevExpensesList = expenses.filter(e => (e.session_id || e.shift_id || e.shiftId) === prevSessionId); 
   
              prevOrdersCount = prevOrders.length; 
               
@@ -901,13 +1039,32 @@ async function initDashboard() {
      } 
  }
 // Categories Init
-function initCategories() {
-    // 1. لازم نعرف الفئات ونسحبها الأول قبل أي حاجة 
+async function initCategories() {
+    // 0. تحميل كاش الخامات (عشان حساب المخزون من الوصفات)
+    if (!window._ingredientsCache || window._ingredientsCacheAge < Date.now() - 30000) {
+        try {
+            if (window.DBService && window.DBService.getIngredients) {
+                window._ingredientsCache = await window.DBService.getIngredients() || [];
+                window._ingredientsCacheAge = Date.now();
+            }
+        } catch(e) { window._ingredientsCache = []; }
+    }
+
+    // 1. لازم نعرف الفئات ونسحبها الأول قبل أي حاجة
     let categories = [];
     if (typeof window.menuData !== 'undefined' && window.menuData.categories && window.menuData.categories.length > 0) {
         categories = window.menuData.categories;
     } else {
-        categories = JSON.parse(localStorage.getItem('categories') || '[]');
+        try {
+            if (window.DBService) {
+                categories = await window.DBService.getCategories() || [];
+            }
+        } catch (e) {
+            console.warn('initCategories: DBService.getCategories failed:', e);
+        }
+        if (!categories || categories.length === 0) {
+            categories = []; // SQLite هو المصدر الوحيد
+        }
     }
 
     // 2. دلوقتي نقدر نرتبها بأمان لأن السيستم عرفها خلاص 
@@ -964,49 +1121,63 @@ function initCategories() {
 }
 
 // Menu Init
-function initMenu() {
+async function initMenu() {
     const menuGrid = document.getElementById('menuGrid');
     if (!menuGrid) {
         return;
     }
-    
+
     let data = null;
     if (typeof menuData !== 'undefined' && menuData) data = menuData;
     else if (typeof window.menuData !== 'undefined' && window.menuData) data = window.menuData;
     else if (typeof globalMenuData !== 'undefined' && globalMenuData) data = globalMenuData;
     if (!data) {
         try {
-            const catRaw = localStorage.getItem('categories');
-            const itemsRaw = localStorage.getItem('menuItems');
-            if (catRaw && itemsRaw) {
-                data = { categories: JSON.parse(catRaw), items: JSON.parse(itemsRaw) };
+            let dbCats = [], dbItems = [];
+            if (window.DBService) {
+                dbCats = await window.DBService.getCategories() || [];
+                dbItems = await window.DBService.getMenuItems() || [];
+            }
+            if (dbCats.length > 0 && dbItems.length > 0) {
+                data = { categories: dbCats, items: dbItems };
+            } else {
+                // Fallback to localStorage
+                // SQLite هو المصدر الوحيد — لا نقرأ من localStorage
+                data = { categories: [], items: [] };
             }
         } catch (e) {
-            console.warn('initMenu: fallback from localStorage failed', e);
+            console.warn('initMenu: fallback from DBService/localStorage failed', e);
         }
     }
     if (!data) {
         menuGrid.innerHTML = '<div class="empty-state">⚠️ خطأ في تحميل البيانات</div>';
         return;
     }
-    
+
     let items = [];
     const firstRunCompleted = localStorage.getItem('first_run_completed');
-    if (localStorage.getItem('menuItems')) {
+    // Try DBService first for menuItems
+    let dbMenuItems = null;
+    if (window.DBService) {
         try {
-            items = JSON.parse(localStorage.getItem('menuItems'));
-        } catch (e) {
-            items = [];
-        }
+            dbMenuItems = await window.DBService.getMenuItems();
+        } catch(_) {}
+    }
+    if (dbMenuItems && dbMenuItems.length > 0) {
+        items = dbMenuItems;
     } else if (!firstRunCompleted && data && data.items) {
         // استخدام البيانات الافتراضية فقط إذا لم يكن أول تشغيل قد تم
         items = data.items || [];
-        localStorage.setItem('menuItems', JSON.stringify(items));
+        if (window.DBService) {
+            for (const item of items) {
+                try { await window.DBService.saveMenuItem(item); } catch(_) {}
+            }
+        }
     } else {
         // إذا كان أول تشغيل تم وليس هناك menuItems، نستخدم مصفوفة فارغة
         items = [];
     }
-    
+
     if (!items || items.length === 0) {
         menuGrid.innerHTML = '<div class="empty-state">لا توجد منتجات</div>';
         return;
@@ -1023,18 +1194,21 @@ function initMenu() {
         }
     });
     items = uniqueItems; // استخدام المنتجات الصافية فقط
-    
+    window._allMenuItems = items; // ← خزّن كل المنتجات عشان البحث العام
+
     menuGrid.innerHTML = '';
-    
-    // تحميل الفئات من localStorage لتحديد selectedCategory
+
+    // تحميل الفئات من SQLite/localStorage لتحديد selectedCategory
     let categories = [];
     // firstRunCompleted تم تعريفه أعلاه في نفس الدالة
-    if (localStorage.getItem('categories')) {
+    let dbCatsForMenu = null;
+    if (window.DBService) {
         try {
-            categories = JSON.parse(localStorage.getItem('categories'));
-        } catch (e) {
-            console.warn('Error loading categories in initMenu:', e);
-        }
+            dbCatsForMenu = await window.DBService.getCategories();
+        } catch(_) {}
+    }
+    if (dbCatsForMenu && dbCatsForMenu.length > 0) {
+        categories = dbCatsForMenu;
     } else if (!firstRunCompleted) {
         // استخدام الفئات الافتراضية فقط إذا لم يكن أول تشغيل قد تم
         if (data && data.categories) {
@@ -1058,69 +1232,86 @@ function initMenu() {
         menuGrid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">لا توجد منتجات في هذه الفئة</div>';
         return;
     }
-    
-    filteredItems.forEach((item, index) => {
+
+    // ── Helper: ينشئ زرار المنتج الواحد ──────────────────────────────────────
+    function _buildMenuItemBtn(item, visualIndex) {
         const menuItemBtn = document.createElement('button');
         menuItemBtn.className = 'menu-item-btn ripple';
-        
-        // السر هنا: الـ index بيبدأ من صفر للمنتجات المرئية بس، فهتظهر فوراً بدون تأخير
-        menuItemBtn.style.animationDelay = `${index * 0.05}s`;
+        // الـ delay الأقصى 0.15 ثانية عشان المنتجات تظهر فوراً مهما كان عددهم
+        menuItemBtn.style.animationDelay = `${Math.min(visualIndex * 0.02, 0.15)}s`;
         menuItemBtn.dataset.category = item.categoryId || '';
-        
+
+        // عرض سعر الـ aggregator لو مفعّل
+        let effectivePrice = item.price || 0;
+        if (activeAggregator && item.aggregatorPrices) {
+            const aggName = activeAggregator.companyName || activeAggregator.name || activeAggregator.title || '';
+            if (item.aggregatorPrices[aggName]) {
+                effectivePrice = parseFloat(item.aggregatorPrices[aggName]);
+            }
+        }
         const displayPrice = item.variants && item.variants.length > 0
             ? `من ${Utils.formatCurrency(Math.min(...item.variants.map(v => v.price)))}`
-            : (item.price ? Utils.formatCurrency(item.price) : '');
-        
-        // Get stock info
+            : (effectivePrice ? Utils.formatCurrency(effectivePrice) : '');
+
         const itemType = item.type || 'physical';
         let stockInfo = '';
         if (itemType === 'physical') {
-            const stock = item.stock || 0;
+            // حساب المخزون من الوصفة (أقصى عدد وجبات ممكنة)
+            let stock = item.stock || 0;
+            const recipe = item.recipe || [];
+            if (recipe.length > 0 && window._ingredientsCache) {
+                let maxServings = Infinity;
+                for (const ri of recipe) {
+                    const ingId = ri.ingredientId || ri.ingredient_id || ri.id;
+                    const needed = parseFloat(ri.quantity || ri.amount || 0);
+                    if (!ingId || needed <= 0) continue;
+                    const ing = window._ingredientsCache.find(i => String(i.id) === String(ingId));
+                    if (ing) {
+                        const available = parseFloat(ing.quantity || ing.stock || ing.current_stock || 0);
+                        maxServings = Math.min(maxServings, Math.floor(available / needed));
+                    } else {
+                        maxServings = 0;
+                    }
+                }
+                if (maxServings !== Infinity && maxServings >= 0) {
+                    stock = maxServings;
+                }
+            }
             const minStockLimit = item.minStockLimit || 5;
             const criticalStockLimit = item.criticalStockLimit !== undefined ? item.criticalStockLimit : 0;
-            
-            let quantityBgColor = 'linear-gradient(135deg, #27AE60 0%, #229954 100%)'; // Green
+            let quantityBgColor = 'linear-gradient(135deg, #27AE60 0%, #229954 100%)';
             if (stock <= criticalStockLimit) {
-                quantityBgColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Red
+                quantityBgColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
             } else if (stock <= minStockLimit) {
-                quantityBgColor = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)'; // Yellow
+                quantityBgColor = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
             }
-            
-            stockInfo = `
-                <div class="menu-item-stock-info">
-                    <div class="menu-item-stock-quantity" style="background: ${quantityBgColor};">
-                        ${stock}
-                    </div>
-                </div>
-            `;
+            stockInfo = `<div class="menu-item-stock-info"><div class="menu-item-stock-quantity" style="background:${quantityBgColor};">${stock}</div></div>`;
         } else {
-            // For services, show infinity symbol
-            stockInfo = `
-                <div class="menu-item-stock-info">
-                    <div class="menu-item-stock-quantity" style="background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%); font-size: 16px;">
-                        ∞
-                    </div>
-                </div>
-            `;
+            stockInfo = `<div class="menu-item-stock-info"><div class="menu-item-stock-quantity" style="background:linear-gradient(135deg,#3498DB 0%,#2980B9 100%);font-size:16px;">∞</div></div>`;
         }
-        
+
         menuItemBtn.innerHTML = `
             ${stockInfo}
             <div class="menu-item-name">${item.name}</div>
-            ${displayPrice ? `<div style="font-size: 13px; color: #333; margin-top: 8px; font-weight: bold;">${displayPrice}</div>` : ''}
+            ${displayPrice ? `<div style="font-size:13px;color:#333;margin-top:8px;font-weight:bold;">${displayPrice}</div>` : ''}
         `;
-        
+
         if (item.variants && item.variants.length > 0) {
             menuItemBtn.addEventListener('click', () => showVariantModal(item));
         } else {
             menuItemBtn.addEventListener('click', () => {
-                const itemToAdd = { ...item, price: Utils.roundToTwoDecimals(item.price || 0) };
-                addToCart(itemToAdd);
+                addToCart({ ...item, price: Utils.roundToTwoDecimals(item.price || 0) });
             });
         }
-        
-        menuGrid.appendChild(menuItemBtn);
+        return menuItemBtn;
+    }
+
+    // ── Full Render (DocumentFragment = append واحد = أسرع) ──────────────────
+    const frag = document.createDocumentFragment();
+    filteredItems.forEach((item, i) => {
+        frag.appendChild(_buildMenuItemBtn(item, i));
     });
+    menuGrid.appendChild(frag);
 }
 
 // Show Variant Modal
@@ -1157,12 +1348,12 @@ const addVariantBtn = document.getElementById('addVariantBtn');
          if (!selectedVariant || !selectedItemForVariant) return;
          
          const item = {
-             ...selectedItemForVariant,
-             price: selectedVariant.price,
-             variant: selectedVariant.name,
-             // 🔥 السطر السحري: بناخد أسعار التوصيل الخاصة بالمتغير ونرفقها معاه في السلة
-             aggregatorPrices: selectedVariant.aggregatorPrices || {}
-         };
+            ...selectedItemForVariant,
+            price: selectedVariant.price,
+            cost: selectedVariant.costPrice || selectedVariant.cost || selectedItemForVariant.cost || 0, // 👈 costPrice من menu.html
+            variant: selectedVariant.name,
+            aggregatorPrices: selectedVariant.aggregatorPrices || {}
+        };
          
          addToCart(item);
          document.getElementById('variantModal').classList.remove('active');
@@ -1222,24 +1413,33 @@ function _flashCartBadge() {
 window.addToCart = addToCart;
 
 // Update Cart UI
-window.updateCart = function() {
-    const cartItems = document.getElementById('cartItems');
-    const cartSummary = document.getElementById('cartSummary');
-    const orderTypeSelection = document.getElementById('orderTypeSelection');
-    const aggregatorMarkupRow = document.getElementById('aggregatorMarkupRow');
-    const aggregatorMarkupLabel = document.getElementById('aggregatorMarkupLabel');
-    const aggregatorMarkupDisplay = document.getElementById('aggregatorMarkupDisplay');
+window.updateCart = function() { 
+    const cartItems = document.getElementById('cartItems'); 
+    const cartSummary = document.getElementById('cartSummary'); 
+    const orderTypeSelection = document.getElementById('orderTypeSelection'); 
+    const priceAdjustmentContainer = document.getElementById('priceAdjustmentContainer'); // 👈 عرفنا الزرار هنا 
 
-    if (!cartItems || !cartSummary) return;
+    if (!cartItems || !cartSummary) return; 
     
-    if (cart.length === 0) {
-        cartItems.innerHTML = '<div class="empty-state">السلة فارغة</div>';
-        cartSummary.style.display = 'none';
-        if (orderTypeSelection) orderTypeSelection.style.display = 'none';
+    if (cart.length === 0) { 
+        // 🛡️ إزالة الخصم/الزيادة تلقائياً لما السلة تفضى 
+        window.orderGlobalDiscount = 0; 
+        window.orderGlobalSurcharge = 0; 
+        const discRow = document.getElementById('discountRow'); 
+        if (discRow) discRow.style.display = 'none'; 
+        cartItems.innerHTML = '<div class="empty-state">السلة فارغة</div>'; 
+        cartSummary.style.display = 'none'; 
+        if (orderTypeSelection) orderTypeSelection.style.display = 'none'; 
+        if (priceAdjustmentContainer) priceAdjustmentContainer.style.display = 'none';
+        const notesContainer = document.getElementById('orderNotesContainer');
+        if (notesContainer) notesContainer.style.display = 'none';
         return;
     }
-    
+
     if (orderTypeSelection) orderTypeSelection.style.display = 'block';
+    if (priceAdjustmentContainer) priceAdjustmentContainer.style.display = 'block';
+    const notesContainer = document.getElementById('orderNotesContainer');
+    if (notesContainer) notesContainer.style.display = 'block';
     
     cartItems.innerHTML = cart.map((item, index) => `
         <div class="cart-item">
@@ -1252,7 +1452,11 @@ window.updateCart = function() {
             <div class="cart-item-footer">
                 <div class="cart-item-quantity">
                     <button class="quantity-btn" onclick="updateQuantity(${index}, -1)">-</button>
-                    <span class="quantity-value">${item.quantity}</span>
+                    <input type="number" class="quantity-value" value="${item.quantity}" min="1"
+                        onchange="setQuantity(${index}, this.value)"
+                        onclick="this.select()"
+                        style="width: 48px; text-align: center; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; font-weight: 700; padding: 4px 0; background: #fff; color: #000; -moz-appearance: textfield; outline: none;"
+                    >
                     <button class="quantity-btn" onclick="updateQuantity(${index}, 1)">+</button>
                 </div>
                 <div class="cart-item-price">${Utils.formatCurrency(item.price * item.quantity)}</div>
@@ -1289,13 +1493,15 @@ window.updateCart = function() {
     const serviceChargeRate = taxServiceSettings.serviceChargeRate != null ? parseFloat(taxServiceSettings.serviceChargeRate) : 0;
     
     const netSubtotal = Utils.roundToTwoDecimals(subtotal + markupAmount + surcharge - discount);
-    const taxAmount = Utils.roundToTwoDecimals(taxRate > 0 ? (subtotal - discount) * (taxRate / 100) : 0);
-    
+    // الضريبة لا تُطبق على أوردرات شركات التوصيل (Talabat, etc.)
+    const isAggregatorOrder = !!activeAggregator;
+    const taxAmount = Utils.roundToTwoDecimals(!isAggregatorOrder && taxRate > 0 ? (subtotal - discount) * (taxRate / 100) : 0);
+
     let serviceChargeAmount = 0;
-    if (orderType === 'dinein' && serviceChargeRate > 0) {
+    if (orderType === 'dinein' && serviceChargeRate > 0 && !isAggregatorOrder) {
         serviceChargeAmount = Utils.roundToTwoDecimals((subtotal - discount) * (serviceChargeRate / 100));
     }
-    
+
     const total = Utils.roundToTwoDecimals(netSubtotal + serviceChargeAmount + taxAmount + deliveryFee);
 
     if (orderType === 'delivery') {
@@ -1341,6 +1547,17 @@ window.updateQuantity = function(index, change) {
     if (cart[index].quantity <= 0) {
         removeFromCart(index);
     } else {
+        updateCart();
+    }
+};
+
+// Set Quantity directly (from input)
+window.setQuantity = function(index, value) {
+    const qty = parseInt(value, 10);
+    if (!qty || qty <= 0) {
+        removeFromCart(index);
+    } else {
+        cart[index].quantity = qty;
         updateCart();
     }
 };
@@ -1562,40 +1779,45 @@ window.handleDeliverySubmit = async function(event) {
 async function decreaseStockForOrder(orderItems) {
     try {
         let menuItems = [];
-        const firstRunCompleted = localStorage.getItem('first_run_completed');
-        if (localStorage.getItem('menuItems')) {
+        // Try DBService first
+        if (window.DBService) {
             try {
-                menuItems = JSON.parse(localStorage.getItem('menuItems'));
+                menuItems = await window.DBService.getMenuItems() || [];
             } catch (e) {
-                console.error('Error parsing menuItems:', e);
+                console.warn('decreaseStockForOrder: DBService.getMenuItems failed:', e);
                 menuItems = [];
             }
-        } else {
-            // إذا كان أول تشغيل تم، نستخدم مصفوفة فارغة بدلاً من البيانات الافتراضية
+        }
+        if (!menuItems || menuItems.length === 0) {
+            // SQLite هو المصدر الوحيد
             menuItems = [];
         }
-        
+
         orderItems.forEach(orderItem => {
             const menuItem = menuItems.find(item => item.id === orderItem.id);
             if (!menuItem) {
                 return;
             }
-            
+
             const itemType = menuItem.type || 'physical';
             if (itemType === 'service') {
                 return; // Service items don't have stock
             }
-            
+
             const quantity = orderItem.quantity || 1;
             const currentStock = menuItem.stock || 0;
             const newStock = Math.max(0, currentStock - quantity);
 
             menuItem.stock = newStock;
         });
-        
-        // Save updated menuItems to localStorage
-        localStorage.setItem('menuItems', JSON.stringify(menuItems));
-        
+
+        // Save updated menuItems to SQLite
+        if (window.DBService) {
+            for (const item of menuItems) {
+                try { await window.DBService.saveMenuItem(item); } catch(_) {}
+            }
+        }
+
         // Refresh menu display in index.html
         if (typeof initMenu === 'function') {
             initMenu();
@@ -1628,17 +1850,15 @@ async function decreaseIngredientsStockForOrder(orderItems) {
             window.FirestoreService &&
             typeof window.FirestoreService.getAllIngredients === 'function';
 
-        // Load ingredients (local mirror first)
+        // Load ingredients (SQLite first, then localStorage fallback)
         let ingredients = [];
-        if (localStorage.getItem('ingredients')) {
+        if (window.DBService) {
             try {
-                ingredients = JSON.parse(localStorage.getItem('ingredients')) || [];
+                ingredients = await window.DBService.getIngredients() || [];
             } catch (e) {
-                console.error('Error parsing ingredients:', e);
-                ingredients = [];
+                console.warn('decreaseIngredientsStockForOrder: DBService.getIngredients failed:', e);
             }
         }
-
         // Mixed mode: if local mirror is empty, fetch from Firebase so we can both
         // decrement Firestore and keep a local mirror for reports/offline.
         if ((!ingredients || ingredients.length === 0) && canFetchFirebaseIngredients) {
@@ -1655,7 +1875,11 @@ async function decreaseIngredientsStockForOrder(orderItems) {
                         current_stock: qty
                     };
                 });
-                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                if (window.DBService) {
+                    for (const ing of ingredients) {
+                        try { await window.DBService.saveIngredient(ing); } catch(_) {}
+                    }
+                }
             } catch (e) {
                 console.warn('Could not fetch ingredients from Firebase:', e);
             }
@@ -1666,14 +1890,14 @@ async function decreaseIngredientsStockForOrder(orderItems) {
 
         // Load menu items to resolve recipes (source of truth)
         let menuItems = [];
-        if (localStorage.getItem('menuItems')) {
+        if (window.DBService) {
             try {
-                menuItems = JSON.parse(localStorage.getItem('menuItems')) || [];
+                menuItems = await window.DBService.getMenuItems() || [];
             } catch (e) {
-                console.error('Error parsing menuItems in decreaseIngredientsStockForOrder:', e);
-                menuItems = [];
+                console.warn('decreaseIngredientsStockForOrder: DBService.getMenuItems failed:', e);
             }
         }
+        // menuItems فارغة — SQLite هو المصدر الوحيد
 
         // Aggregate consumption per ingredient id
         const consumptionByIngredientId = new Map();
@@ -1731,33 +1955,29 @@ async function decreaseIngredientsStockForOrder(orderItems) {
             });
         });
 
-        // 1) Decrement in Firebase (source of truth in mixed/online mode)
-        if (canUseFirebaseIngredients && consumptionByIngredientId.size > 0) {
-            for (const [ingredientId, qty] of consumptionByIngredientId.entries()) {
-                try {
-                    await window.FirestoreService.updateStock(String(ingredientId), -Number(qty || 0));
-                } catch (e) {
-                    console.warn('Failed to decrement ingredient stock in Firebase:', ingredientId, e);
-                }
-            }
-        }
-
-        // 2) Update local mirror for reports/offline continuity
-        if (Array.isArray(ingredients) && ingredients.length > 0 && consumptionByIngredientId.size > 0) {
-            for (const [ingredientId, qty] of consumptionByIngredientId.entries()) {
-                const ingredient = ingredients.find(ing => String(ing.id) === String(ingredientId));
-                if (!ingredient) continue;
-
-                const consume = Number(qty || 0) || 0;
-                const currentStock = parseFloat(ingredient.stock ?? ingredient.quantity ?? ingredient.current_stock) || 0;
-                const newStock = Math.max(0, currentStock - consume);
-
-                ingredient.stock = newStock;
-                ingredient.quantity = newStock;
-                ingredient.current_stock = newStock;
-            }
-            localStorage.setItem('ingredients', JSON.stringify(ingredients));
-        }
+        // 🚀 الحل الجذري لمشكلة المخزون اللي بيرجع يزيد 
+         ingredients.forEach(ing => { 
+             const consumed = consumptionByIngredientId.get(ing.id); 
+             if (consumed && consumed > 0) { 
+                 const currentStock = Number(ing.stock ?? ing.quantity ?? 0); 
+                 const newStock = Math.max(0, currentStock - consumed); 
+                 ing.stock = newStock; 
+                 ing.quantity = newStock; 
+                 ing.current_stock = newStock; 
+                 
+                 // إجبار الفايربيز يقبل الخصم عشان ميرجعش يملى المخزون تاني لما تعمل ريفريش 
+                 if (window.SyncManager) { 
+                     window.SyncManager.addToSyncQueue('ingredients', 'update', ing, `local_${ing.id}`); 
+                 } else if (window.FirestoreService && typeof window.FirestoreService.updateIngredient === 'function') { 
+                     window.FirestoreService.updateIngredient(ing); 
+                 } 
+             } 
+         }); 
+         if (window.DBService) {
+             for (const ing of ingredients) {
+                 try { await window.DBService.saveIngredient(ing); } catch(_) {}
+             }
+         }
     } catch (e) {
         console.error('Error decreasing ingredients stock:', e);
     }
@@ -1810,13 +2030,15 @@ async function processOrder(paymentMethod = 'cash') {
             deliveryFee = Utils.roundToTwoDecimals(parseFloat(deliveryFeeInputEl.value) || 0); 
         } 
      
-        const taxServiceSettings = JSON.parse(localStorage.getItem('taxServiceSettings') || '{}'); 
-        const taxRate = parseFloat(taxServiceSettings.taxRate) || 0; 
-        const serviceChargeRate = parseFloat(taxServiceSettings.serviceChargeRate) || 0; 
-        const taxId = taxServiceSettings.taxId || ''; 
-        const taxAmount = Utils.roundToTwoDecimals(taxRate > 0 ? (baseSubtotal - discount + surcharge) * (taxRate / 100) : 0);
+        const taxServiceSettings = JSON.parse(localStorage.getItem('taxServiceSettings') || '{}');
+        const taxRate = parseFloat(taxServiceSettings.taxRate) || 0;
+        const serviceChargeRate = parseFloat(taxServiceSettings.serviceChargeRate) || 0;
+        const taxId = taxServiceSettings.taxId || '';
+        // الضريبة لا تُطبق على أوردرات شركات التوصيل
+        const isAggregatorOrder = !!activeAggregator;
+        const taxAmount = Utils.roundToTwoDecimals(!isAggregatorOrder && taxRate > 0 ? (baseSubtotal - discount + surcharge) * (taxRate / 100) : 0);
         let serviceChargeAmount = 0;
-        if (orderType === 'dinein' && serviceChargeRate > 0) {
+        if (orderType === 'dinein' && serviceChargeRate > 0 && !isAggregatorOrder) {
             serviceChargeAmount = Utils.roundToTwoDecimals((baseSubtotal - discount + surcharge) * (serviceChargeRate / 100));
         }
 
@@ -1831,6 +2053,19 @@ async function processOrder(paymentMethod = 'cash') {
         const tableNumberInput = document.getElementById('tableNumber');
         const tableNumber = (orderType === 'dinein' && tableNumberInput) ? tableNumberInput.value : null;
         const businessDate = DataManager.getBusinessDate();
+
+        // 🚀 الحل الجذري لحساب تكلفة الخامات (COGS)
+         const totalCost = cart.reduce((sum, item) => {
+             let itemCost = parseFloat(item.cost) || parseFloat(item.costPrice) || 0;
+             // لو التكلفة صفر، هنجيبها بالعافية من المنيو
+             if (itemCost === 0 && window.globalMenuData && window.globalMenuData.items) {
+                 const originalItem = window.globalMenuData.items.find(i => String(i.id) === String(item.id));
+                 if (originalItem) {
+                     itemCost = parseFloat(originalItem.cost) || parseFloat(originalItem.costPrice) || parseFloat(originalItem.buyingPrice) || 0;
+                 }
+             }
+             return sum + (itemCost * item.quantity);
+         }, 0);
         
         const order = {
             id: 'ORD' + String(Date.now()).slice(-6),
@@ -1855,9 +2090,11 @@ async function processOrder(paymentMethod = 'cash') {
             taxId: taxId,
             tableNumber: tableNumber || undefined,
             shift_id: todaySession.id || null,
-            orderSource: activeAggregator ? activeAggregator.companyName : 'direct',
+            totalCost: Utils.roundToTwoDecimals(totalCost), // 👈 حفظ التكلفة عشان التقارير تقرأها
+            orderSource: activeAggregator ? (activeAggregator.companyName || activeAggregator.name || activeAggregator.title || activeAggregator.en_name || activeAggregator.ar_name || 'شركة توصيل') : 'direct',
             aggregatorMarkup: markupAmount,
             expectedCommission: activeAggregator ? Utils.roundToTwoDecimals(orderTotal * (activeAggregator.commissionPercentage / 100)) : 0,
+            notes: (document.getElementById('orderNotes')?.value || '').trim() || undefined,
         };
 
         // ── الأوردر والبيع — لازم await عشان الـ ID يتولد ──
@@ -1867,9 +2104,14 @@ async function processOrder(paymentMethod = 'cash') {
             id: 'SALE-' + order.id,
             orderId: order.id,
             amount: Utils.roundToTwoDecimals(orderTotal),
-            date: now.toISOString(),
+            date: egyptNow(),
             businessDate: businessDate
         });
+
+        // ── إرسال الأوردر للمطبخ KDS (في الخلفية) ──
+        if (typeof window.sendOrderToKDS === 'function') {
+            window.sendOrderToKDS(order).catch(e => console.warn('KDS send err', e));
+        }
 
         // ── المخزون والنقاط — في الخلفية عشان متأخرش الـ UI ──
         Promise.all([
@@ -1878,12 +2120,37 @@ async function processOrder(paymentMethod = 'cash') {
         ]);
 
         // ── تحديث نقاط العميل في الخلفية (لا await) ──
-        if (window.currentOrderCustomer && window.FirestoreService) {
+        // 🔧 دعم الدليفري: لو مفيش currentOrderCustomer بس في deliveryInfo.phone → نبحث بالرقم
+        const _customerPhone = window.currentOrderCustomer?.phone || deliveryInfo?.phone;
+        if (_customerPhone) {
             (async () => {
                 try {
-                    const phone = window.currentOrderCustomer.phone;
-                    const dbCustomer = await window.FirestoreService.getCustomerByPhone(phone);
-                    if (!dbCustomer) return;
+                    let dbCustomer = null;
+                    // بحث بالرقم — SQLite أولاً (Offline-First) ثم Firebase
+                    if (window.DBService && window.DBService.getCustomerByPhone) {
+                        dbCustomer = await window.DBService.getCustomerByPhone(_customerPhone);
+                    }
+                    if (!dbCustomer && window.FirestoreService && window.FirestoreService.getCustomerByPhone) {
+                        dbCustomer = await window.FirestoreService.getCustomerByPhone(_customerPhone);
+                    }
+                    // لو العميل مش موجود وفيه بيانات دليفري → أنشئ كارت جديد
+                    if (!dbCustomer) {
+                        if (deliveryInfo && deliveryInfo.phone) {
+                            dbCustomer = {
+                                phone:       deliveryInfo.phone,
+                                name:        deliveryInfo.customerName || 'عميل دليفري',
+                                address:     deliveryInfo.address || '',
+                                tier:        'regular',
+                                points:      0,
+                                ordersCount: 0,
+                                totalSpent:  0,
+                                createdAt:   egyptNow(),
+                            };
+                            console.log('🆕 إنشاء كارت عميل جديد من الدليفري:', deliveryInfo.phone);
+                        } else {
+                            return;
+                        }
+                    }
                     const loyalty = await _loadLoyaltySettings();
                     const egpPerPoint = parseInt(loyalty.egpPerPoint) || 10;
                     const silverTier = parseInt(loyalty.silver)    || 100;
@@ -1892,16 +2159,22 @@ async function processOrder(paymentMethod = 'cash') {
                     const newPoints  = Math.floor(orderTotal / egpPerPoint);
                     const updatedData = {
                         ...dbCustomer,
-                        ordersCount:     (dbCustomer.ordersCount  || 0) + 1,
+                        ordersCount:     (dbCustomer.ordersCount  || dbCustomer.total_orders || 0) + 1,
                         points:          (dbCustomer.points       || 0) + newPoints,
-                        totalSpent:      (dbCustomer.totalSpent   || 0) + orderTotal,
-                        lastOrderDate:   new Date().toISOString(),
+                        totalSpent:      (dbCustomer.totalSpent   || dbCustomer.total_spent || 0) + orderTotal,
+                        lastOrderDate:   egyptNow(),
                         lastOrderAmount: orderTotal,
                     };
                     if      (updatedData.points >= vipTier)    updatedData.tier = 'vip';
                     else if (updatedData.points >= goldTier)   updatedData.tier = 'gold';
                     else if (updatedData.points >= silverTier) updatedData.tier = 'silver';
-                    await window.FirestoreService.saveCustomer(updatedData);
+                    // حفظ في SQLite أولاً (Offline-First) ثم Firebase في الخلفية
+                    if (window.DBService) {
+                        await window.DBService.saveCustomer(updatedData);
+                    }
+                    if (window.FirestoreService && window.FirestoreService.saveCustomer) {
+                        window.FirestoreService.saveCustomer(updatedData).catch(e => console.warn('Firebase customer sync:', e.message));
+                    }
                     console.log(`✅ نقاط العميل: +${newPoints}`);
                 } catch (err) { console.error('loyalty err', err); }
             })();
@@ -1941,12 +2214,14 @@ async function processOrder(paymentMethod = 'cash') {
         if (typeof closeDeliveryModal === 'function') closeDeliveryModal();
         
         cart = [];
-        window.orderGlobalDiscount = 0; 
-        window.orderGlobalSurcharge = 0; 
+        window.orderGlobalDiscount = 0;
+        window.orderGlobalSurcharge = 0;
         orderType = 'takeaway';
         deliveryInfo = null;
         deliveryFee = 0;
-        activeAggregator = null; 
+        activeAggregator = null;
+        const notesEl = document.getElementById('orderNotes');
+        if (notesEl) notesEl.value = '';
         if (deliveryFeeInputEl) deliveryFeeInputEl.value = '0';
         
         const tableNumberInputEl = document.getElementById('tableNumber');
@@ -2160,98 +2435,88 @@ window.printReceipt = async function() {
 };
 
 // Cash Drawer Logic
-async function checkCashDrawerSession() {
-    if (!getDataManager()) return;
+ let _isCheckingSession = false; 
+ let _sessionCheckedOnce = false; 
+ 
+ // ════════════════════════════════════════════════════════════════════════════
+ // نظام الشيفت — مبني من الصفر على SQLite كمصدر وحيد للحقيقة
+ // ════════════════════════════════════════════════════════════════════════════
 
-    // التأكد من تحميل الجلسات أولاً
-    await DataManager.getCashSessions();
+ async function checkCashDrawerSession() {
+     if (_isCheckingSession) return;
+     _isCheckingSession = true;
+     try {
+         // SQLite هو المرجع الوحيد — مش DataManager ومش Firebase
+         const openShift = window.DBService ? await window.DBService.getOpenSession() : null;
+         const closeDayBtn = document.getElementById('closeDayBtn');
+         const openModal   = document.getElementById('openCashDrawerModal');
 
-    const todaySession = await DataManager.getTodayCashSession();
-    const closeDayBtn = document.getElementById('closeDayBtn');
-
-    // 🚀 التأكد أن الشيفت "مفتوح" وليس مجرد موجود
-    if (todaySession && todaySession.status === 'open') {
-        if (closeDayBtn) closeDayBtn.style.display = 'flex';
-        const modal = document.getElementById('openCashDrawerModal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        }
-    } else {
-        if (closeDayBtn) closeDayBtn.style.display = 'none';
-        setTimeout(() => {
-            const modal = document.getElementById('openCashDrawerModal');
-            if (modal && !modal.classList.contains('active')) {
-                modal.classList.add('active');
-                modal.style.display = 'flex';
-            }
-        }, 500);
-    }
-}
-window.checkCashDrawerSession = checkCashDrawerSession;
+         if (openShift) {
+             if (closeDayBtn) closeDayBtn.style.display = 'flex';
+             if (openModal)  { openModal.classList.remove('active'); openModal.style.display = 'none'; }
+         } else {
+             if (closeDayBtn) closeDayBtn.style.display = 'none';
+             if (openModal)  { openModal.classList.add('active');    openModal.style.display = 'flex'; }
+         }
+     } catch(e) {
+         console.error('[checkCashDrawerSession]', e);
+     } finally {
+         _isCheckingSession = false;
+     }
+ }
+ window.checkCashDrawerSession = checkCashDrawerSession;
+ 
 
 window.handleOpenCashDrawer = async function(event) {
     event.preventDefault();
+    const btn = event.submitter || event.target.querySelector('[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'جاري الفتح...'; }
 
-    const openingAmount = Utils.roundToTwoDecimals(parseFloat(document.getElementById('openingAmount').value) || 0);
-    
-    if (openingAmount < 0) {
-        if (typeof Notification !== 'undefined') Notification.error('يرجى إدخال مبلغ صحيح');
-        return;
-    }
-    
-    const businessDate = DataManager.getBusinessDate();
-    const now = new Date();
-    const currentUser = Auth ? Auth.getUsername() : (localStorage.getItem('username') || 'المستخدم');
-    
-    // إغلاق أي شيفت مفتوح لنفس اليوم قبل فتح شيفت جديد (شيفت مفتوح واحد فقط لكل يوم)
-    const sessions = await DataManager.getCashSessions();
-    const openSameDay = (sessions || []).filter(s => s.status === 'open');
-    for (const s of openSameDay) {
-        if (s.id) {
-            await DataManager.updateCashSession(s.id, {
-                status: 'closed',
-                closedAt: now.toISOString(),
-                closedBy: currentUser
-            });
+    try {
+        const openingBalance = Math.max(0, parseFloat(document.getElementById('openingAmount').value) || 0);
+        const currentUser = (typeof Auth !== 'undefined' && Auth.getUsername) ? Auth.getUsername() : (localStorage.getItem('username') || 'Admin');
+        const now = (typeof egyptNow === 'function') ? egyptNow() : new Date().toISOString();
+        const today = now.slice(0, 10).replace(/-/g, '');
+        const shiftId = `SHIFT-${today}-${Date.now().toString().slice(-6)}`;
+
+        // 1. حفظ في SQLite أولاً (المصدر الوحيد للحقيقة)
+        await window.DBService.saveCashSession({
+            id: shiftId,
+            opened_by: currentUser,
+            opening_balance: openingBalance,
+            status: 'open',
+            opened_at: now,
+        });
+
+        // 2. مزامنة Firebase في الخلفية
+        if (window.SyncManager) {
+            window.SyncManager.addToSyncQueue('shifts', 'add', {
+                id: shiftId,
+                opened_by: currentUser,
+                opening_balance: openingBalance,
+                status: 'open',
+                opened_at: now,
+            }, shiftId);
         }
-    }
-    
-    const session = { 
-         id: `SHIFT_${Date.now()}`, 
-         openingAmount: openingAmount, 
-         status: 'open', 
-         date: businessDate, 
-         businessDate: businessDate, 
-         openedBy: currentUser, 
-         createdAt: now.toISOString(), 
-         openedAt: now.toISOString() 
-     }; 
- 
-     // 👈 التثبيت الإجباري في ذاكرة المتصفح عشان الشيفت يلزق فوراً 
-     const currentSessions = JSON.parse(localStorage.getItem('cashSessions') || '[]'); 
-     currentSessions.unshift(session); 
-     localStorage.setItem('cashSessions', JSON.stringify(currentSessions)); 
- 
-     await DataManager.saveCashSession(session);
 
-    closeOpenCashDrawerModal();
-    
-    if (typeof Notification !== 'undefined') Notification.success('تم فتح الدرج النقدي بنجاح');
-    
-    const closeDayBtn = document.getElementById('closeDayBtn');
-    if (closeDayBtn) closeDayBtn.style.display = 'flex';
-    
-    setTimeout(async () => await initDashboard(), 300);
+        closeOpenCashDrawerModal();
+        if (typeof Notification !== 'undefined') Notification.success('تم فتح الشيفت بنجاح');
+        const closeDayBtn = document.getElementById('closeDayBtn');
+        if (closeDayBtn) closeDayBtn.style.display = 'flex';
+        setTimeout(async () => await initDashboard(), 300);
+    } catch(e) {
+        console.error('[handleOpenCashDrawer]', e);
+        if (typeof Notification !== 'undefined') Notification.error('فشل فتح الشيفت');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'فتح الدرج'; }
+    }
 };
 
 window.closeOpenCashDrawerModal = function() {
     const modal = document.getElementById('openCashDrawerModal');
-    if (modal) {
-        modal.classList.remove('active');
-        modal.style.display = 'none';
-    }
-    document.getElementById('openCashDrawerForm').reset();
+    if (modal) { modal.classList.remove('active'); modal.style.display = 'none'; }
+    const form = document.getElementById('openCashDrawerForm');
+    if (form) form.reset();
 };
 
 // ===========================
@@ -2279,7 +2544,7 @@ function _toBusinessDateString(value) {
     }
     const d = _safeToDate(value);
     if (!d || Number.isNaN(d.getTime())) return null;
-    return d.toISOString().split('T')[0];
+    return egyptNow().split('T')[0];
 }
 
 function _getExpenseBusinessDate(expense) {
@@ -2357,357 +2622,275 @@ function _getOrderGrossTotal(order) {
 
 window.openCloseCashDrawerModal = async function() {
     try {
-        const todaySession = await DataManager.getTodayCashSession();
-        if (!todaySession) {
-            if (typeof Notification !== 'undefined') Notification.error('لا توجد جلسة مفتوحة اليوم');
+        // SQLite أولاً
+        const openShift = window.DBService ? await window.DBService.getOpenSession() : null;
+        if (!openShift) {
+            if (typeof Notification !== 'undefined') Notification.error('لا يوجد شيفت مفتوح');
             return;
         }
+        const sessionId = openShift.id;
 
-        const sessionId = todaySession.id;
-
+        // جلب الأوردرات والمصاريف والمنصات من SQLite
         const [orders, allExpenses, aggregators] = await Promise.all([
-            DataManager.getOrders() || [],
-            DataManager.getExpenses() || [],
-            DataManager.getAggregators() || []
+            window.DBService.getOrders({ session_id: sessionId }),
+            window.DBService.getExpenses(),
+            window.DBService.getAggregators(),
         ]);
 
-        const sessionOrders = orders.filter(order => (order.shift_id || order.shiftId) === sessionId);
-        const sessionExpenses = allExpenses.filter(expense => (expense.shift_id || expense.shiftId) === sessionId);
+        const sessionOrders   = orders;  // getOrders already filtered by session_id
+        const sessionExpenses = allExpenses.filter(e => (e.session_id || e.shift_id || e.shiftId) === sessionId);
 
-        let cashRevenue = 0; 
-        let cardRevenue = 0; 
-        let totalDiscounts = 0; 
-        const aggregatorSales = {}; 
-        if (aggregators && aggregators.length > 0) { 
-            aggregators.forEach(agg => { 
-                aggregatorSales[agg.companyName] = 0; 
-            }); 
-        } 
- 
-        let grossCashRevenue = 0; // To store gross cash sales
+        // بناء خريطة منصات التوصيل (id → name)
+        const aggMap = {};
+        aggregators.forEach(a => { if (a.id) aggMap[a.id] = a.name || a.companyName || a.id; });
 
-        sessionOrders.forEach((order) => { 
-            const orderTotal = _getOrderTotal(order); // Net total
-            const paymentMethod = _getOrderPaymentMethod(order); 
-            const orderSource = order.orderSource || 'direct'; 
-            const orderDiscount = parseFloat(order.discount) || 0; 
-            const orderGrossTotal = _getOrderGrossTotal(order); // Gross total
+        // ═══ حساب المبيعات ═══
+        let grossCash = 0, netCash = 0, grossCard = 0, netCard = 0;
+        const aggMap2 = {}; // { name: { count, total } }
 
-            // جمع الخصومات 
-            totalDiscounts += orderDiscount; 
+        sessionOrders.forEach((order) => {
+            const orderTotal = _getOrderTotal(order);
+            const orderGross = _getOrderGrossTotal(order);
+            const paymentMethod = _getOrderPaymentMethod(order);
+            const orderSource = order.orderSource || 'direct';
+            const orderDiscount = parseFloat(order.discount) || 0;
+            const orderGrossTotal = _getOrderGrossTotal(order); // إجمالي قبل الخصم
 
-            if (_isCashPaymentMethod(paymentMethod)) { 
-                cashRevenue += orderTotal; // Net cash sales
-                grossCashRevenue += orderGrossTotal; // Gross cash sales
-            } else { 
-                cardRevenue += orderTotal; 
-            } 
+            const src = order.orderSource || order.order_source || 'direct';
+            const aggId = order.aggregator_id || order.aggregatorId || '';
+            const companyName = aggId ? (aggMap[aggId] || aggId) : (src !== 'direct' ? src : null);
 
-            if (orderSource !== 'direct' && aggregatorSales.hasOwnProperty(orderSource)) { 
-                aggregatorSales[orderSource] += orderTotal; 
-            } 
-        });
-
-        const netCashSales = Utils.roundToTwoDecimals(cashRevenue);
-        const grossCashSales = Utils.roundToTwoDecimals(grossCashRevenue);
-        const cardSales = Utils.roundToTwoDecimals(cardRevenue);
-
-        let cashExpenses = 0;
-        let salaryExpenses = 0;
-        sessionExpenses.forEach((exp) => {
-            const amount = parseFloat(exp.amount) || 0;
-            // All expenses are deducted from cash drawer
-            if (_isSalaryExpense(exp)) {
-                salaryExpenses += amount;
+            // كل أوردر بيتحسب في الكاش أو الفيزا بناءً على طريقة الدفع — حتى لو من شركة توصيل
+            if (_isCashPaymentMethod(paymentMethod)) {
+                grossCash += orderGross;
+                netCash   += orderTotal;
             } else {
-                cashExpenses += amount;
+                grossCard += orderGross;
+                netCard   += orderTotal;
+            }
+
+            // شركات التوصيل بتتتبع بشكل منفصل لقسم التوصيل (بغض النظر عن طريقة الدفع)
+            if (companyName) {
+                if (!aggMap2[companyName]) aggMap2[companyName] = { count: 0, total: 0 };
+                aggMap2[companyName].count++;
+                aggMap2[companyName].total += orderTotal;
             }
         });
 
-        cashExpenses = Utils.roundToTwoDecimals(cashExpenses);
-        salaryExpenses = Utils.roundToTwoDecimals(salaryExpenses);
-        const totalCashExpenses = Utils.roundToTwoDecimals(cashExpenses + salaryExpenses);
+        const cashDiscount  = Utils.roundToTwoDecimals(grossCash - netCash);
+        const cardDiscount  = Utils.roundToTwoDecimals(grossCard - netCard);
+        const totalExpenses = Utils.roundToTwoDecimals(
+            sessionExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0)
+        );
+        const openingBal    = parseFloat(openShift.opening_balance || openShift.openingAmount || 0);
+        const expectedAmount = Utils.roundToTwoDecimals(openingBal + netCash - totalExpenses);
 
-        // Expected amount in drawer should ONLY consider cash sales, not card or aggregator sales
-        const expectedAmount = Utils.roundToTwoDecimals((todaySession.openingAmount || 0) + netCashSales - totalCashExpenses);
-
-        // Render Aggregator Sales into its dedicated container
-        const aggregatorSalesContainer = document.getElementById('aggregatorSalesContainer');
-        if (aggregatorSalesContainer) {
-            let aggregatorHtml = '';
-            let totalAggregatorSales = 0;
-            for (const [name, total] of Object.entries(aggregatorSales)) {
-                 totalAggregatorSales += total;
-                if (total > 0) {
-                    aggregatorHtml += `
-                        <div class="summary-row">
-                            <span>مبيعات ${name}</span>
-                            <span class="summary-value">${Utils.formatCurrency(total)}</span>
-                        </div>`;
-                }
+        // ═══ عرض قسم التوصيل بعدد الأوردرات جوا المودال ═══
+        const aggContainer = document.getElementById('aggregatorSalesContainer');
+        if (aggContainer) {
+            const aggEntries = Object.entries(aggMap2).filter(([,v]) => v.count > 0);
+            if (aggEntries.length > 0) {
+                const totalAgg = aggEntries.reduce((s,[,v]) => s + v.total, 0);
+                aggContainer.innerHTML = `
+                    <div style="font-weight:700; color:#c2410c; font-size:13px; margin-bottom:10px;">🛵 مبيعات التوصيل</div>
+                    ${aggEntries.map(([name, {total}]) => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="color:#78350f; font-size:13px;">${name}</span>
+                            <strong class="_ms-val" style="color:#c2410c; font-size:13px;">${Utils.formatCurrency(total)}</strong>
+                        </div>`).join('')}
+                    <div style="border-top:1px dashed #fed7aa; margin-top:8px; padding-top:8px; display:flex; justify-content:space-between;">
+                        <span style="font-weight:700; color:#92400e;">الإجمالي:</span>
+                        <strong class="_ms-val" style="color:#92400e;">${Utils.formatCurrency(totalAgg)}</strong>
+                    </div>`;
+                aggContainer.style.display = 'block';
+            } else {
+                aggContainer.style.display = 'none';
             }
-             if(totalAggregatorSales > 0){
-                  aggregatorSalesContainer.innerHTML = aggregatorHtml;
-                  aggregatorSalesContainer.style.display = 'block';
-             } else {
-                  aggregatorSalesContainer.style.display = 'none';
-             }
-           
         }
 
-        // Update modal fields 
-        const closeTotalDiscountsEl = document.getElementById('closeTotalDiscounts'); 
-        if (closeTotalDiscountsEl) closeTotalDiscountsEl.textContent = Utils.formatCurrency(totalDiscounts); 
-         
-        document.getElementById('closeOpeningAmount').textContent = Utils.formatCurrency(todaySession.openingAmount || 0);
-        document.getElementById('closeCashSales').textContent = Utils.formatCurrency(grossCashSales);
-        document.getElementById('closeVisaSalesDisplay').textContent = Utils.formatCurrency(cardSales);
-        document.getElementById('closeTotalExpenses').textContent = Utils.formatCurrency(totalCashExpenses); // This should be all cash expenses
+        // ═══ عرض باقي البيانات ═══
+        document.getElementById('closeOpeningAmount').textContent = Utils.formatCurrency(openingBal);
+        document.getElementById('closeCashGross').textContent     = Utils.formatCurrency(grossCash);
+        const cashDiscRow = document.getElementById('closeCashDiscountRow');
+        if (cashDiscRow) cashDiscRow.style.display = cashDiscount > 0 ? 'flex' : 'none';
+        document.getElementById('closeCashDiscount').textContent  = Utils.formatCurrency(cashDiscount);
+        document.getElementById('closeCashNet').textContent       = Utils.formatCurrency(netCash);
+        document.getElementById('closeVisaGross').textContent     = Utils.formatCurrency(grossCard);
+        const visaDiscRow = document.getElementById('closeVisaDiscountRow');
+        if (visaDiscRow) visaDiscRow.style.display = cardDiscount > 0 ? 'flex' : 'none';
+        document.getElementById('closeVisaDiscount').textContent  = Utils.formatCurrency(cardDiscount);
+        document.getElementById('closeVisaNet').textContent       = Utils.formatCurrency(netCard);
+        const netSummaryEl = document.getElementById('closeCashNetSummary');
+        if (netSummaryEl) netSummaryEl.textContent = Utils.formatCurrency(netCash);
+        document.getElementById('closeTotalExpenses').textContent = Utils.formatCurrency(totalExpenses);
         document.getElementById('closeExpectedAmount').textContent = Utils.formatCurrency(expectedAmount);
-        document.getElementById('closingAmount').value = expectedAmount.toFixed(2);
-        
+        document.getElementById('closingAmount').value = Math.max(0, expectedAmount).toFixed(2);
+
         calculateDifference();
-        
         const modal = document.getElementById('closeCashDrawerModal');
-        if (modal) {
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-        }
-    } catch (error) {
-        console.error("Error opening close cash drawer modal:", error);
-        if (typeof Notification !== 'undefined') Notification.error('حدث خطأ أثناء عرض شاشة إغلاق الدرج');
+        if (modal) { modal.classList.add('active'); modal.style.display = 'flex'; }
+
+        // تطبيق التشفير على الأرقام الحساسة بعد ما اتملت
+        if (typeof window._applyModalSecure === 'function') window._applyModalSecure();
+
+    } catch(error) {
+        console.error('[openCloseCashDrawerModal]', error);
+        if (typeof Notification !== 'undefined') Notification.error('حدث خطأ في شاشة الإغلاق');
     }
 };
 
 window.calculateDifference = function() {
-    const closingAmount = Utils.roundToTwoDecimals(parseFloat(document.getElementById('closingAmount').value) || 0);
-    const expectedAmountText = document.getElementById('closeExpectedAmount').textContent;
-    const expectedAmount = Utils.roundToTwoDecimals(parseFloat(expectedAmountText.replace(/[^\d.-]/g, '')) || 0);
-    const difference = Utils.roundToTwoDecimals(closingAmount - expectedAmount);
-    
-    const differenceEl = document.getElementById('closeDifference');
-    if (differenceEl) {
-        differenceEl.textContent = Utils.formatCurrency(difference);
-        if (Math.abs(difference) < 0.01) {
-            differenceEl.style.color = '#000000';
-        } else if (difference < 0) {
-            differenceEl.style.color = '#e74c3c';
-        } else {
-            differenceEl.style.color = '#27ae60';
-        }
+    const closingAmount  = parseFloat(document.getElementById('closingAmount').value) || 0;
+    // اقرأ القيمة الحقيقية (data-real-ms) لو الأرقام مشفرة
+    const expEl = document.getElementById('closeExpectedAmount');
+    const expRaw = expEl ? (expEl.dataset.realMs || expEl.textContent || '0') : '0';
+    const expectedAmount = parseFloat(expRaw.replace(/[^\d.-]/g, '')) || 0;
+    const diff = Utils.roundToTwoDecimals(closingAmount - expectedAmount);
+    const el = document.getElementById('closeDifference');
+    if (el) {
+        const formatted = Utils.formatCurrency(diff);
+        el.dataset.realMs = formatted;
+        el.textContent = (window._modalSecureUnlocked === false) ? '****' : formatted;
+        el.style.color = Math.abs(diff) < 0.01 ? '#000' : diff < 0 ? '#e74c3c' : '#27ae60';
     }
 };
 
-window.handleCloseCashDrawer = async function(event) {
-    if (event) event.preventDefault();
-    if (window._closingCashDrawer) return;
-    window._closingCashDrawer = true;
-    
-    const submitBtn = document.getElementById('closeDaySubmitBtn');
-    const submitBtnDefaultText = submitBtn ? submitBtn.textContent : 'إغلاق اليوم';
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'جاري الإغلاق...';
-    }
-    const restoreBtn = () => {
-        window._closingCashDrawer = false;
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = submitBtnDefaultText;
-        }
-    };
+window.handleCloseCashDrawer = async function(e) {
+    if (e) e.preventDefault();
+    const btn = document.querySelector('#closeCashDrawerModal [type=submit], #closeCashDrawerModal .btn-primary');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإغلاق...'; }
 
     try {
-        const closingAmount = Utils.roundToTwoDecimals(parseFloat(document.getElementById('closingAmount').value) || 0);
-        const closingNotes = document.getElementById('closingNotes')?.value.trim() || '';
-
-        if (closingAmount < 0) {
-            restoreBtn();
-            if (typeof Notification !== 'undefined') Notification.error('يرجى إدخال مبلغ صحيح');
+        // SQLite أولاً
+        const openShift = window.DBService ? await window.DBService.getOpenSession() : null;
+        if (!openShift) {
+            if (typeof Notification !== 'undefined') Notification.error('لا يوجد شيفت مفتوح');
             return;
         }
-    
-        const todaySession = await DataManager.getTodayCashSession();
-        if (!todaySession) {
-            restoreBtn();
-            if (typeof Notification !== 'undefined') Notification.error('لا توجد جلسة مفتوحة');
-            return;
-        }
-        
-        const currentSessionId = todaySession.id;
 
-        const [orders, allExpenses, aggregators] = await Promise.all([
-            DataManager.getOrders() || [],
-            DataManager.getExpenses() || [],
-            DataManager.getAggregators() || []
-        ]);
-        
-        const sessionOrders = orders.filter(o => (o.shift_id || o.shiftId) === currentSessionId);
-        const sessionExpenses = allExpenses.filter(e => (e.shift_id || e.shiftId) === currentSessionId);
-    
-        let cashRevenue = 0;
-        let cardRevenue = 0;
-        let totalDiscounts = 0;
-        const aggregatorSales = {}; 
+        const closingBalance = parseFloat(document.getElementById('closingAmount')?.value) || 0;
+        const notes = document.getElementById('closingNotes')?.value || '';
+        const now = (typeof egyptNow === 'function') ? egyptNow() : new Date().toISOString();
 
-        if (aggregators && aggregators.length > 0) {
-            aggregators.forEach(agg => {
-                aggregatorSales[agg.companyName] = 0;
+        // ═══ احسب الأرقام النهائية من الأوردرات واحفظها — عشان الشيفت يبقى ثابت ومش بيتحسب من جديد ═══
+        let finalCashSales = 0, finalVisaSales = 0, finalAggSales = 0, finalExpenses = 0;
+        let finalCashDiscount = 0;       // للطباعة فقط
+        const soldItemsMap = {};         // { itemName: totalQty }       للطباعة فقط
+        const aggregatorForPrint = {};   // { companyName: totalAmount }  للطباعة فقط
+        try {
+            const [shiftOrders, shiftExpenses, aggregators] = await Promise.all([
+                window.DBService.getOrders({ session_id: openShift.id }),
+                window.DBService.getExpenses(),
+                window.DBService.getAggregators(),
+            ]);
+            const aggMapClose = {};
+            aggregators.forEach(a => { if (a.id) aggMapClose[a.id] = a.name || a.id; });
+            const sessionExp = shiftExpenses.filter(e => (e.session_id || e.shift_id || e.shiftId) === openShift.id);
+            finalExpenses = sessionExp.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+            shiftOrders.forEach(o => {
+                const total = _getOrderTotal(o);
+                const gross = _getOrderGrossTotal(o);
+                const pm = String(_getOrderPaymentMethod(o)).toLowerCase();
+                if (pm.includes('visa') || pm.includes('card')) {
+                    finalVisaSales += total;
+                } else {
+                    finalCashSales += total;
+                    finalCashDiscount += Math.max(0, gross - total);
+                }
+                const src = o.orderSource || o.order_source || 'direct';
+                const aggId = o.aggregator_id || o.aggregatorId || '';
+                if (aggId || src !== 'direct') {
+                    finalAggSales += total;
+                    const cName = aggId ? (aggMapClose[aggId] || aggId) : src;
+                    aggregatorForPrint[cName] = (aggregatorForPrint[cName] || 0) + total;
+                }
+                // جرد المنتجات لتقرير الطباعة
+                (o.items || []).forEach(item => {
+                    const iName = item.name || item.itemName || '—';
+                    const iQty  = parseInt(item.quantity || item.qty || 1);
+                    soldItemsMap[iName] = (soldItemsMap[iName] || 0) + iQty;
+                });
             });
+        } catch(calcErr) {
+            console.warn('[handleCloseCashDrawer] totals calc failed:', calcErr);
         }
 
-        sessionOrders.forEach((order) => {
-            const orderTotal = _getOrderTotal(order); 
-            const orderDiscount = parseFloat(order.discount) || 0;
-            const paymentMethod = _getOrderPaymentMethod(order);
-            const orderSource = order.orderSource || 'direct';
-
-            totalDiscounts += orderDiscount;
-
-            if (_isCashPaymentMethod(paymentMethod)) {
-                cashRevenue += orderTotal;
-            } else {
-                cardRevenue += orderTotal;
-            }
-
-            if (orderSource !== 'direct' && aggregatorSales.hasOwnProperty(orderSource)) {
-                aggregatorSales[orderSource] += orderTotal;
-            }
-        });
-
-        const cashSales = Utils.roundToTwoDecimals(cashRevenue);
-        const cardSales = Utils.roundToTwoDecimals(cardRevenue);
-        
-        let cashExpenses = 0;
-        let salaryExpenses = 0;
-        sessionExpenses.forEach((e) => {
-            const amount = parseFloat(e.amount) || 0;
-            if (_isSalaryExpense(e)) {
-                salaryExpenses += amount;
-            } else {
-                cashExpenses += amount;
-            }
-        });
-
-        const totalCashExpensesForClose = Utils.roundToTwoDecimals(cashExpenses + salaryExpenses);
-        const expectedAmount = Utils.roundToTwoDecimals((todaySession.openingAmount || 0) + cashSales - totalCashExpensesForClose);
-        
-        const totalSalesForClose = Utils.roundToTwoDecimals(cashSales + cardSales + Object.values(aggregatorSales).reduce((a, b) => a + b, 0));
-        const netProfitForClose = Utils.roundToTwoDecimals(totalSalesForClose - totalDiscounts - totalCashExpensesForClose);
-        const differenceForClose = Utils.roundToTwoDecimals(closingAmount - expectedAmount);
-
-        let amountStatusForClose = 'مطابق';
-        let diffTextForPrint = 'مطابق ✅ 0 ج.م';
-        
-        if (Math.abs(differenceForClose) >= 0.01) {
-            amountStatusForClose = differenceForClose > 0 ? 'زيادة' : 'عجز';
-            diffTextForPrint = differenceForClose > 0 ? `زيادة 🔵 ${differenceForClose} ج.م` : `عجز ❌ ${Math.abs(differenceForClose)} ج.م`;
-        }
-
-        const expensesBreakdownForClose = {};
-        sessionExpenses.forEach((e) => {
-            const category = e.category || e.type || 'other';
-            expensesBreakdownForClose[category] = (expensesBreakdownForClose[category] || 0) + (parseFloat(e.amount) || 0);
-        });
-
-        // 🔥 التعديل السحري: جرد المنتجات المباعة في الشيفت 
-         const soldItemsMap = new Map(); 
-         sessionOrders.forEach(order => { 
-             if (order.status !== 'cancelled' && order.items && Array.isArray(order.items)) { 
-                 order.items.forEach(item => { 
-                     const itemName = item.variant ? `${item.name} (${item.variant})` : item.name; 
-                     const qty = parseFloat(item.quantity) || 1; 
-                     soldItemsMap.set(itemName, (soldItemsMap.get(itemName) || 0) + qty); 
-                 }); 
-             } 
-         }); 
-         const soldItemsList = Array.from(soldItemsMap.entries()) 
-             .map(([name, qty]) => ({ name, qty })) 
-             .sort((a, b) => b.qty - a.qty); 
-
-        const dailyLogRow = {
-            sessionId: todaySession.id,
-            businessDate: todaySession.date,
-            openedBy: todaySession.openedBy,
-            openedAt: todaySession.createdAt,
-            closedAt: new Date().toISOString(),
+        const updateData = {
             status: 'closed',
-            ordersCount: sessionOrders.length,
-            totalSales: totalSalesForClose,
-            totalDiscounts: totalDiscounts,
-            totalExpenses: totalCashExpensesForClose,
-            netProfit: netProfitForClose,
-            openingAmount: todaySession.openingAmount || 0,
-            expectedAmount: expectedAmount,
-            closingAmount: closingAmount,
-            difference: differenceForClose,
-            amountStatus: amountStatusForClose,
-            notes: closingNotes,
-            cashSales: cashSales,
-            visaSales: cardSales,
-            aggregatorSales: aggregatorSales, 
-            expensesBreakdown: expensesBreakdownForClose,
+            closing_balance: closingBalance,
+            closed_at: now,
+            notes: notes,
+            cash_sales: Math.round(finalCashSales * 100) / 100,
+            visa_sales: Math.round(finalVisaSales * 100) / 100,
+            aggregator_sales: Math.round(finalAggSales * 100) / 100,
+            total_expenses: Math.round(finalExpenses * 100) / 100,
         };
-        
-        upsertLocalArray('daily_log', dailyLogRow);
 
+        // 1. SQLite
+        await window.DBService.updateCashSession(openShift.id, updateData);
+
+        // ═══ طباعة تقرير الشيفت (Z-Report) ═══
+        try {
+            const openingBal   = parseFloat(openShift.opening_balance || openShift.openingAmount || 0);
+            const expectedCash = Utils.roundToTwoDecimals(openingBal + finalCashSales - finalExpenses);
+            const diff         = Utils.roundToTwoDecimals(closingBalance - expectedCash);
+            const diffText     = diff === 0 ? '✅ مطابق'
+                               : diff > 0   ? `↑ زيادة ${Utils.formatCurrency(diff)}`
+                               :              `↓ عجز ${Utils.formatCurrency(Math.abs(diff))}`;
+
+            const openedAt = _safeToDate(openShift.opened_at || openShift.openedAt || openShift.createdAt);
+            const closedAt = _safeToDate(now);
+            const _stoName = (() => {
+                try {
+                    const _s = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+                    const _f = JSON.parse(localStorage.getItem('settings') || '{}');
+                    return localStorage.getItem('solo_store_name') || _f.storeName || _s.storeName || 'Solo POS';
+                } catch(_e) { return 'Solo POS'; }
+            })();
+            const _fmt = (d, opts) => d ? d.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', ...opts }) : '—';
+
+            const shiftReportData = {
+                storeName:       _stoName,
+                date:            _fmt(openedAt, { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                cashierName:     openShift.cashier_name || openShift.cashierName || '—',
+                startTime:       _fmt(openedAt, { hour: '2-digit', minute: '2-digit' }),
+                endTime:         _fmt(closedAt, { hour: '2-digit', minute: '2-digit' }),
+                openingAmount:   openingBal,
+                cashSales:       Math.round(finalCashSales   * 100) / 100,
+                discounts:       Math.round(finalCashDiscount * 100) / 100,
+                expenses:        Math.round(finalExpenses     * 100) / 100,
+                expectedCash:    expectedCash,
+                actualCash:      closingBalance,
+                differenceText:  diffText,
+                visaSales:       Math.round(finalVisaSales * 100) / 100,
+                aggregatorSales: aggregatorForPrint,
+                soldItems:       Object.entries(soldItemsMap).map(([name, qty]) => ({ name, qty })),
+            };
+            if (typeof window.printShiftReceipt === 'function') {
+                setTimeout(() => window.printShiftReceipt(shiftReportData), 500);
+            }
+        } catch(printErr) {
+            console.warn('[handleCloseCashDrawer] Z-Report print failed:', printErr);
+        }
+
+        // 2. Firebase في الخلفية
         if (window.SyncManager) {
-            window.SyncManager.addToSyncQueue('daily_log', 'update', { id: todaySession.id, ...dailyLogRow });
+            window.SyncManager.addToSyncQueue('shifts', 'update', { id: openShift.id, ...updateData }, openShift.id);
         }
-        
-        await DataManager.updateCashSession(todaySession.id, {
-            status: 'closed',
-            closedAt: new Date().toISOString(),
-            closedBy: Auth.getUsername(),
-            closingAmount: closingAmount,
-            notes: closingNotes
-        });
-
-        // ==========================================
-        // 🖨️ كود تجهيز وإرسال الفاتورة للطباعة
-        // ==========================================
-        const shiftReportData = { 
-             cashierName: Auth.getUsername() || localStorage.getItem('username') || 'المستخدم', 
-             date: todaySession.date || DataManager.getBusinessDate(), 
-             startTime: new Date(todaySession.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), 
-             endTime: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), 
-             openingAmount: todaySession.openingAmount || 0, 
-             cashSales: cashSales, 
-             discounts: totalDiscounts, 
-             expenses: totalCashExpensesForClose, 
-             expectedCash: expectedAmount, 
-             actualCash: closingAmount, 
-             differenceText: diffTextForPrint, 
-             visaSales: cardSales, 
-             aggregatorSales: aggregatorSales, 
-             soldItems: soldItemsList // 👈👈 ده السطر اللي إنت نسيته يا هندسة! 
-         };
-        
-        // استدعاء دالة الطباعة (اللي هنضيفها في الخطوة 2)
-        if (typeof printShiftReceipt === 'function') {
-            printShiftReceipt(shiftReportData);
-        }
-        // ==========================================
 
         closeCloseCashDrawerModal();
-        document.getElementById('closeDayBtn').style.display = 'none';
-        if (typeof Notification !== 'undefined') {
-            Notification.success('تم إغلاق الدرج النقدي بنجاح وجاري طباعة التقرير');
-        }
-        
-        // تأخير إعادة تحميل الصفحة ثانية واحدة للسماح للطابعة بالتقاط الأمر قبل ما الصفحة تفصل
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+        const closeDayBtn = document.getElementById('closeDayBtn');
+        if (closeDayBtn) closeDayBtn.style.display = 'none';
+        if (typeof Notification !== 'undefined') Notification.success('تم إغلاق الشيفت بنجاح');
 
-    } catch (error) {
-        restoreBtn();
-        console.error('Error closing cash drawer:', error);
-        if (typeof Notification !== 'undefined') {
-            Notification.error('حدث خطأ أثناء إغلاق الدرج النقدي: ' + error.message);
-        } else {
-            alert('حدث خطأ أثناء إغلاق الدرج النقدي: ' + error.message);
-        }
+        setTimeout(() => window.location.reload(), 1500);
+
+    } catch(error) {
+        console.error('[handleCloseCashDrawer]', error);
+        if (typeof Notification !== 'undefined') Notification.error('حدث خطأ في الإغلاق');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = 'إغلاق اليوم'; }
     }
 };
 
@@ -2721,30 +2904,32 @@ window.closeCloseCashDrawerModal = function() {
 };
 
 // Add Expense Modal Functions
-window.openAddExpenseModal = async function() {
-    const todaySession = await DataManager.getTodayCashSession();
-    if (!todaySession || todaySession.status !== 'open') {
-        if (typeof Notification !== 'undefined') {
-            Notification.error('يجب فتح شيفت نقدي أولاً');
-        } else {
-            alert('يجب فتح شيفت نقدي أولاً');
-        }
-        return;
-    }
+window.openAddExpenseModal = async function() { 
+    const todaySession = await  DataManager.getTodayCashSession(); 
+    if (!todaySession || todaySession.status !== 'open' ) { 
+        if (typeof Notification !== 'undefined' ) { 
+            Notification.error('يجب فتح شيفت نقدي أولاً' ); 
+        } else  { 
+            alert('يجب فتح شيفت نقدي أولاً' ); 
+        } 
+        return ; 
+    } 
     
-    const modal = document.getElementById('addExpenseModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('addExpenseForm').reset();
-    }
+    const modal = document.getElementById('addExpenseModal' ); 
+    if  (modal) { 
+        modal.style.display = 'flex' ; 
+        modal.classList.add('active'); // 👈 السطر السحري اللي هيظهر المودال ويشيل الفريز 
+        document.getElementById('addExpenseForm' ).reset(); 
+    } 
 };
 
-window.closeAddExpenseModal = function() {
-    const modal = document.getElementById('addExpenseModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-    document.getElementById('addExpenseForm').reset();
+window.closeAddExpenseModal = function() { 
+    const modal = document.getElementById('addExpenseModal' ); 
+    if  (modal) { 
+        modal.style.display = 'none' ; 
+        modal.classList.remove('active'); // 👈 لازم نشيله وإحنا بنقفل عشان ميخرفش بعدين 
+    } 
+    document.getElementById('addExpenseForm' ).reset(); 
 };
 
 window.handleAddExpenseSubmit = async function(event) {
@@ -2797,7 +2982,7 @@ window.handleAddExpenseSubmit = async function(event) {
         date: businessDate, // استخدام businessDate
         description: expenseDescription,
         createdBy: currentUser,
-        createdAt: now.toISOString(), // استخدام التوقيت المحلي
+        createdAt: egyptNow(), // استخدام التوقيت المحلي
         sessionDate: businessDate, // تاريخ الجلسة
         shift_id: todaySession.id || null // ربط المصروف بالشيفت الحالي فقط
     };
@@ -2835,21 +3020,69 @@ document.addEventListener('DOMContentLoaded', () => {
 // Search Logic
 function initSearch() {
     const searchInput = document.getElementById('menuSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const menuItems = document.querySelectorAll('.menu-item-btn');
-            
-            menuItems.forEach(btn => {
-                const name = btn.querySelector('.menu-item-name').textContent.toLowerCase();
-                if (name.includes(searchTerm)) {
-                    btn.style.display = '';
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.trim().toLowerCase();
+        const menuGrid = document.getElementById('menuGrid');
+        if (!menuGrid) return;
+
+        // لو مفيش نص → رجّع الفئة الحالية
+        if (!searchTerm) {
+            initMenu();
+            return;
+        }
+
+        // ابحث في كل المنتجات (مش بس الفئة الحالية)
+        const allItems = window._allMenuItems || [];
+        const matched = allItems.filter(item =>
+            (item.name || '').toLowerCase().includes(searchTerm)
+        );
+
+        menuGrid.innerHTML = '';
+        if (matched.length === 0) {
+            menuGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px;color:#999;">لا توجد نتائج</div>';
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        matched.forEach((item, i) => {
+            // نفس بناء الزرار المستخدم في initMenu
+            const btn = document.createElement('button');
+            btn.className = 'menu-item-btn ripple';
+            btn.style.animationDelay = `${Math.min(i * 0.02, 0.15)}s`;
+            btn.dataset.category = item.categoryId || '';
+
+            let effectivePrice = item.price || 0;
+            if (activeAggregator && item.aggregatorPrices) {
+                const aggName = activeAggregator.companyName || activeAggregator.name || activeAggregator.title || '';
+                if (item.aggregatorPrices[aggName]) effectivePrice = parseFloat(item.aggregatorPrices[aggName]);
+            }
+            const displayPrice = item.variants && item.variants.length > 0
+                ? `من ${Utils.formatCurrency(Math.min(...item.variants.map(v => v.price)))}`
+                : (effectivePrice ? Utils.formatCurrency(effectivePrice) : '');
+
+            const hasImage = item.image && item.image !== 'null' && item.image !== '';
+            btn.innerHTML = `
+                <div class="menu-item-image" style="${hasImage ? `background-image:url('${item.image}');background-size:cover;background-position:center;` : 'background:#f5f5f5;'}">
+                    ${!hasImage ? `<div class="menu-item-placeholder"><i class="fas fa-utensils" style="font-size:28px;color:#ccc;"></i></div>` : ''}
+                </div>
+                <div class="menu-item-info">
+                    <div class="menu-item-name">${item.name || ''}</div>
+                    <div class="menu-item-price">${displayPrice}</div>
+                </div>`;
+
+            btn.addEventListener('click', () => {
+                if (item.variants && item.variants.length > 0) {
+                    showVariantModal(item);
                 } else {
-                    btn.style.display = 'none';
+                    addToCart(item);
                 }
             });
+            frag.appendChild(btn);
         });
-    }
+        menuGrid.appendChild(frag);
+    });
 }
 
 // Init Cart (Initial call)
@@ -2864,8 +3097,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     setTimeout(async () => {
         try {
-            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-            const history = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
+            let expenses = [];
+            let history = [];
+            if (window.DBService) {
+                try {
+                    expenses = await window.DBService.getExpenses() || [];
+                    history = await window.DBService.getExpensesHistory() || [];
+                } catch (e) {
+                    console.warn('Self-healing: DBService failed:', e);
+                    expenses = [];
+                    history = [];
+                }
+            } else {
+                expenses = [];
+                history = [];
+            }
             const historyIds = new Set(history.map(e => e.id));
             
             let repairedCount = 0;
@@ -2891,14 +3137,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAggregatorsForPOS() { 
      try { 
          // 1. تحميل الداتا 
-         let rawData = JSON.parse(localStorage.getItem('aggregators') || '[]'); 
-         
-         if (navigator.onLine && window.FirestoreService) { 
-             const firestoreData = await window.FirestoreService.getCollection('aggregators'); 
-             if (firestoreData && firestoreData.length > 0) { 
-                 rawData = firestoreData; 
-                 localStorage.setItem('aggregators', JSON.stringify(firestoreData)); 
-             } 
+         let rawData = [];
+         if (window.DBService) {
+             try {
+                 rawData = await window.DBService.getAggregators() || [];
+             } catch (e) {
+                 console.warn('loadAggregatorsForPOS: DBService.getAggregators failed:', e);
+             }
+         }
+         // SQLite هو المصدر الوحيد — لا نقرأ من localStorage
+
+         if (navigator.onLine && window.FirestoreService) {
+             const firestoreData = await window.FirestoreService.getCollection('aggregators');
+             if (firestoreData && firestoreData.length > 0) {
+                 rawData = firestoreData;
+                 if (window.DBService) {
+                     for (const agg of firestoreData) {
+                         try { await window.DBService.saveAggregator(agg); } catch(_) {}
+                     }
+                 }
+             }
          } 
  
          // 2. 🔥 فلترة المكرر قبل العرض في الـ POS 
@@ -2975,10 +3233,12 @@ function renderAggregatorButtons() {
              if (delFeeInput) delFeeInput.style.display = 'none'; 
              if (tableNumInput) tableNumInput.style.display = 'none'; 
              
-             updateCart(); 
-         }); 
-         container.appendChild(btn); 
-     }); 
+             updateCart();
+             // إعادة رسم المنتجات عشان تظهر بأسعار الـ aggregator
+             if (typeof initCategories === 'function') initCategories();
+         });
+         container.appendChild(btn);
+     });
  }
  window.orderGlobalDiscount = 0; 
 window.orderGlobalSurcharge = 0; 
@@ -3016,7 +3276,10 @@ window.openPriceAdjustmentModal = function() {
     }); 
     document.getElementById('adjValue').value = '0'; 
     document.getElementById('adjPreview').innerHTML = 'اكتب القيمة لرؤية الحسبة النهائية...'; 
-    document.getElementById('priceAdjustModal').style.display = 'flex'; 
+    
+    const modal = document.getElementById('priceAdjustModal'); 
+    modal.style.display = 'flex'; 
+    modal.classList.add('active'); // 👈 السطر السحري اللي كان ناقص 
 }; 
 
 // 3. دالة حساب المعاينة (الرقم اللي بيظهر تحت)
@@ -3163,10 +3426,10 @@ window.printShiftReceipt = function(shiftData) {
              </style> 
         </head> 
         <body> 
-            <div class="header"> 
-                <h2>مطعم ريان</h2> 
-                <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">تقرير إغلاق شيفت</div> 
-            </div> 
+            <div class="header">
+                <h2>${shiftData.storeName || 'Solo POS'}</h2>
+                <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">تقرير إغلاق شيفت</div>
+            </div>
             
             <div class="section"> 
                 <div class="row"><span>التاريخ:</span> <span class="bold">${shiftData.date}</span></div> 
@@ -3284,32 +3547,34 @@ window.printShiftReceipt = function(shiftData) {
              this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; 
              this.disabled = true; 
              
-             const newCustomer = { 
-                 id: 'CUST_' + Date.now(), 
-                 phone: phone, 
-                 name: name, 
-                 address: address, 
-                 tier: 'regular', 
-                 points: 0, 
-                 ordersCount: 0, 
-                 totalSpent: 0, 
-                 createdAt: new Date().toISOString() 
-             }; 
-             
+             // 🔍 البحث عن العميل أولاً بالرقم — لو موجود نحدّثه بدل ما نعمل كارت جديد
+             let existingCustomer = null;
+             try {
+                 if (window.FirestoreService && window.FirestoreService.getCustomerByPhone) {
+                     existingCustomer = await window.FirestoreService.getCustomerByPhone(phone);
+                 } else if (window.DBService && window.DBService.getCustomerByPhone) {
+                     existingCustomer = await window.DBService.getCustomerByPhone(phone);
+                 }
+             } catch(_) {}
+
+             const newCustomer = existingCustomer
+                 ? { ...existingCustomer, name: name || existingCustomer.name, address: address || existingCustomer.address }
+                 : { phone, name, address, tier: 'regular', points: 0, ordersCount: 0, totalSpent: 0, createdAt: egyptNow() };
+
              try {
                 if (window.FirestoreService && window.FirestoreService.saveCustomer) {
                     await window.FirestoreService.saveCustomer(newCustomer);
-                    // saveCustomer بيحدّث localStorage تلقائياً
                 } else {
-                    try {
-                        const loc = JSON.parse(localStorage.getItem('customers') || '[]');
-                        const idx2 = loc.findIndex(c => c.phone === newCustomer.phone);
-                        if (idx2 >= 0) loc[idx2] = newCustomer; else loc.push(newCustomer);
-                        localStorage.setItem('customers', JSON.stringify(loc));
-                    } catch(_) {}
+                    if (window.DBService) {
+                        try {
+                            await window.DBService.saveCustomer(newCustomer);
+                        } catch (e) {
+                            console.warn('saveCustomer to DBService failed:', e);
+                        }
+                    }
                 }
 
-                // تحديث بيانات السلة بالعميل الجديد
+                // تحديث بيانات السلة بالعميل
                 window.currentOrderCustomer = newCustomer; 
                  
                  const searchState = document.getElementById('searchCustomerState'); 
