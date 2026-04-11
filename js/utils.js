@@ -12,35 +12,44 @@ const Utils = {
     return `${Utils.roundToTwoDecimals(amount)} ج.م`;
   },
   
-  // تنسيق التاريخ بالتوقيت المحلي للجهاز
+  // تنسيق التاريخ بتوقيت مصر
   formatDate: (date) => {
+    if (!date) return '—';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
     const formatted = d.toLocaleDateString('ar-EG', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Africa/Cairo'
     });
     return formatted;
   },
-  
-  // تنسيق الوقت فقط بالتوقيت المحلي للجهاز
+
+  // تنسيق الوقت فقط بتوقيت مصر
   formatTime: (date) => {
+    if (!date) return '—';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
     return d.toLocaleTimeString('ar-EG', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Africa/Cairo'
     });
   },
-  
-  // تنسيق التاريخ فقط بالتوقيت المحلي للجهاز
+
+  // تنسيق التاريخ فقط بتوقيت مصر
   formatDateOnly: (date) => {
+    if (!date) return '—';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('ar-EG', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Africa/Cairo'
     });
   },
   
@@ -70,7 +79,9 @@ const Utils = {
      const _fs = JSON.parse(localStorage.getItem('settings') || '{}');
      const storeName    = localStorage.getItem('solo_store_name') || _fs.storeName || _ss.storeName || 'Solo POS';
      const storeAddress = _ss.address || _fs.address || localStorage.getItem('solo_user_address') || '';
-     const storePhone   = _ss.phone   || _fs.phone   || localStorage.getItem('solo_user_phone')   || ''; 
+     const _firstPhone  = _ss.phone   || _fs.phone   || localStorage.getItem('solo_user_phone')   || '';
+     const _extraPhones = JSON.parse(localStorage.getItem('solo_user_extra_phones') || '[]');
+     const allPhones    = [...new Set([_firstPhone, ..._extraPhones].filter(Boolean))];
      const totals = Utils.calculateOrderTotal(order.items); 
      
      const htmlContent = ` 
@@ -105,15 +116,15 @@ const Utils = {
        </head> 
        <body> 
          <div class="header"> 
-           <div class="store-name">${storeName}</div> 
-           <div class="store-address">${storeAddress}</div> 
-           <div class="store-phone">Tel: ${storePhone}</div> 
+           <div class="store-name">${storeName}</div>
+           ${storeAddress ? `<div class="store-address">${storeAddress}</div>` : ''}
+           ${allPhones.map(p => `<div class="store-phone">Tel: ${p}</div>`).join('')}
          </div> 
          
          <div class="order-number">فاتورة رقم: ${order.id}</div> 
          
          <div class="info"> 
-           <div class="info-item"><strong>التاريخ:</strong> ${Utils.formatDate(order.date)}</div> 
+           <div class="info-item"><strong>التاريخ:</strong> ${Utils.formatDate(order.date || order.created_at || order.createdAt)}</div> 
            <div class="info-item"><strong>نوع الطلب:</strong> ${order.orderType === 'delivery' ? 'دليفري 🛵' : order.orderType === 'dinein' ? 'Dine In - الصالة 🍽️' : 'تيك أواي 🛍️'}</div> 
            ${order.tableNumber ? `<div class="info-item"><strong>رقم الطاولة:</strong> ${order.tableNumber}</div>` : ''} 
          </div> 
@@ -163,16 +174,28 @@ const Utils = {
              <div class="total-value">-${Utils.formatCurrency(order.discount)}</div> 
            </div> 
            ` : ''} 
-           ${order.orderType === 'delivery' && order.deliveryFee ? ` 
-           <div class="total-row"> 
-             <div class="total-label">سعر التوصيل:</div> 
-             <div class="total-value">+${Utils.formatCurrency(order.deliveryFee)}</div> 
-           </div> 
-           ` : ''} 
-           
-           <div class="total-row grand-total"> 
-             <div class="total-label">الإجمالي الكلي:</div> 
-             <div class="total-value">${Utils.formatCurrency(order.total || totals.total)}</div> 
+           ${order.tax && parseFloat(order.tax) > 0 ? `
+           <div class="total-row">
+             <div class="total-label">ضريبة القيمة المضافة:</div>
+             <div class="total-value">+${Utils.formatCurrency(order.tax)}</div>
+           </div>
+           ` : ''}
+           ${order.serviceCharge && parseFloat(order.serviceCharge) > 0 ? `
+           <div class="total-row">
+             <div class="total-label">رسوم الخدمة:</div>
+             <div class="total-value">+${Utils.formatCurrency(order.serviceCharge)}</div>
+           </div>
+           ` : ''}
+           ${order.deliveryFee && parseFloat(order.deliveryFee) > 0 ? `
+           <div class="total-row">
+             <div class="total-label">سعر التوصيل:</div>
+             <div class="total-value">+${Utils.formatCurrency(order.deliveryFee)}</div>
+           </div>
+           ` : ''}
+
+           <div class="total-row grand-total">
+             <div class="total-label">الإجمالي الكلي:</div>
+             <div class="total-value">${Utils.formatCurrency(order.total || totals.total)}</div>
            </div> 
          </div> 
          

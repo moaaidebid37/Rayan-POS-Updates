@@ -2848,10 +2848,28 @@ window.handleCloseCashDrawer = async function(e) {
                     return localStorage.getItem('solo_store_name') || _f.storeName || _s.storeName || 'Solo POS';
                 } catch(_e) { return 'Solo POS'; }
             })();
+            const _stoAddr = (() => {
+                try {
+                    const _s = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+                    const _f = JSON.parse(localStorage.getItem('settings') || '{}');
+                    return _s.address || _f.address || localStorage.getItem('solo_user_address') || '';
+                } catch(_e) { return ''; }
+            })();
+            const _stoPhones = (() => {
+                try {
+                    const _s = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+                    const _f = JSON.parse(localStorage.getItem('settings') || '{}');
+                    const first = _s.phone || _f.phone || localStorage.getItem('solo_user_phone') || '';
+                    const extras = JSON.parse(localStorage.getItem('solo_user_extra_phones') || '[]');
+                    return [...new Set([first, ...extras].filter(Boolean))];
+                } catch(_e) { return []; }
+            })();
             const _fmt = (d, opts) => d ? d.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', ...opts }) : '—';
 
             const shiftReportData = {
                 storeName:       _stoName,
+                storeAddress:    _stoAddr,
+                storePhones:     _stoPhones,
                 date:            _fmt(openedAt, { year: 'numeric', month: '2-digit', day: '2-digit' }),
                 cashierName:     openShift.cashier_name || openShift.cashierName || '—',
                 startTime:       _fmt(openedAt, { hour: '2-digit', minute: '2-digit' }),
@@ -3428,6 +3446,8 @@ window.printShiftReceipt = function(shiftData) {
         <body> 
             <div class="header">
                 <h2>${shiftData.storeName || 'Solo POS'}</h2>
+                ${shiftData.storeAddress ? `<div style="font-size: 12px; margin-top: 3px;">${shiftData.storeAddress}</div>` : ''}
+                ${(shiftData.storePhones || []).map(p => `<div style="font-size: 12px;">Tel: ${p}</div>`).join('')}
                 <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">تقرير إغلاق شيفت</div>
             </div>
             
