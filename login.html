@@ -394,12 +394,17 @@
 
         // ── 1b. فحص محلي للـ Cashiers من مصفوفة users (offline-safe) ────────
         try {
+            const currentRestaurantId = localStorage.getItem('_saasUid') || localStorage.getItem('userId');
             const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const matchedUser = localUsers.find(u =>
-                u.active !== false &&
-                u.deleted !== true &&
-                String(u.pin) === String(enteredPIN)
-            );
+            const matchedUser = localUsers.find(u => {
+                const isActive = u.active !== false && u.deleted !== true;
+                const isPinMatch = String(u.pin) === String(enteredPIN);
+                
+                // 🛡️ درع الحماية: لو الموظف عنده restaurantId، لازم يطابق المطعم المفتوح حالياً
+                const isTenantMatch = !u.restaurantId || !currentRestaurantId || u.restaurantId === currentRestaurantId;
+                
+                return isActive && isPinMatch && isTenantMatch;
+            });
             if (matchedUser) {
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('userRole', matchedUser.role || 'cashier');

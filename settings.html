@@ -140,13 +140,14 @@
         
         .user-card {
             background: #ffffff;
-            border-radius: 12px;
-            padding: var(--spacing-md);
+            border-radius: 16px;
+            padding: 20px;
             border: 1px solid #f0f0f0;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            min-width: 280px;
         }
         
         .user-card::before {
@@ -176,7 +177,8 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            gap: var(--spacing-sm);
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         .user-avatar {
@@ -264,9 +266,11 @@
         
         .user-actions {
             display: flex;
-            gap: 4px;
-            margin-top: var(--spacing-sm);
-            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+            justify-content: flex-start;
         }
         
         .btn-icon {
@@ -319,19 +323,19 @@
         }
         
         .cashier-stats {
-            margin-top: var(--spacing-sm);
-            padding-top: var(--spacing-sm);
+            margin-top: 12px;
+            padding-top: 12px;
             border-top: 1px solid #f0f0f0;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
+            gap: 8px;
         }
-        
+
         .stat-item {
             text-align: center;
-            padding: 4px 2px;
+            padding: 8px 4px;
             background: #fafafa;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
         
@@ -562,8 +566,12 @@
                     <a href="#" class="settings-nav-item" data-section="tax" onclick="switchSettingsSection('tax', this); return false;">الضريبة ورسوم الخدمة</a>
                     <a href="#" class="settings-nav-item" data-section="invoice" onclick="switchSettingsSection('invoice', this); return false;">إعدادات الفاتورة</a>
                     <a href="#" class="settings-nav-item" data-section="subscription" onclick="switchSettingsSection('subscription', this); return false;">الاشتراك</a>
+                    <a href="#" class="settings-nav-item" data-section="kds" id="nav-kds-item" onclick="switchSettingsSection('kds', this); return false;">
+                        شاشة المطبخ KDS
+                        <i id="nav-kds-lock" class="fas fa-lock" style="font-size:11px;color:#e74c3c;margin-right:6px;display:none;filter:drop-shadow(0 0 2px rgba(231,76,60,0.4));"></i>
+                    </a>
                     <a href="#" class="settings-nav-item" data-section="aggregators" onclick="switchSettingsSection('aggregators', this); return false;"
-                       id="nav-aggregators-item">شركات التوصيل <span id="nav-aggregators-lock" style="font-size:10px;opacity:.5;margin-right:4px;display:none;">🔒</span></a>
+                       id="nav-aggregators-item">شركات التوصيل <i id="nav-aggregators-lock" class="fas fa-lock" style="font-size:11px;color:#e74c3c;margin-right:6px;display:none;filter:drop-shadow(0 0 2px rgba(231,76,60,0.4));"></i></a>
                     <a href="#" class="settings-nav-item" data-section="danger" onclick="switchSettingsSection('danger', this); return false;" style="color: #e74c3c;">
                         <i class="fas fa-exclamation-triangle" style="margin-left: 8px;"></i>
                         منطقة الخطر
@@ -792,6 +800,98 @@
                     </div>
                 </div>
 
+                <!-- KDS Settings -->
+                <div class="settings-section" id="kdsSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h3 style="margin-bottom: 4px;">شاشة المطبخ KDS</h3>
+                            <p style="color: #666666; font-size: 14px; margin: 0;">اربط تابلت المطبخ لاستقبال الطلبات لحظياً</p>
+                        </div>
+                    </div>
+
+                    <!-- Connection Info -->
+                    <div style="background: linear-gradient(135deg, #1a1d27, #2c2f3a); border-radius: 20px; padding: 30px; margin-bottom: 24px; color: #fff; text-align: center;">
+                        <div style="font-size: 16px; font-weight: 600; color: #ffd60a; margin-bottom: 16px;">امسح الـ QR Code من تابلت المطبخ</div>
+                        <div style="background: #fff; border-radius: 16px; display: inline-block; padding: 16px; margin-bottom: 16px;">
+                            <img id="kdsSettingsQR" src="" style="width: 200px; height: 200px; display: block;" alt="QR">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 20px; display: inline-flex; align-items: center; gap: 10px;">
+                                <span id="kdsSettingsUrl" style="font-family: monospace; font-size: 15px; direction: ltr;">جاري التحميل...</span>
+                                <button onclick="copyKdsSettingsUrl()" style="background: #ffd60a; color: #000; border: none; border-radius: 8px; padding: 6px 14px; font-family: 'Cairo'; font-weight: 700; font-size: 12px; cursor: pointer;">نسخ</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 24px; margin-top: 16px;">
+                            <div>
+                                <div style="font-size: 28px; font-weight: 900;" id="kdsSettingsDevices">0</div>
+                                <div style="font-size: 12px; color: #8e8e93;">أجهزة متصلة</div>
+                            </div>
+                            <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 900;" id="kdsSettingsPort">3002</div>
+                                <div style="font-size: 12px; color: #8e8e93;">المنفذ (Port)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div style="background: #fffbeb; border: 1px solid #ffd60a; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                        <div style="font-weight: 700; font-size: 15px; margin-bottom: 12px; color: #b8860b;">📋 خطوات الربط</div>
+                        <ol style="padding-right: 20px; color: #666; font-size: 14px; line-height: 2;">
+                            <li>تأكد إن التابلت والكمبيوتر على <strong>نفس شبكة الواي فاي</strong></li>
+                            <li>افتح الكاميرا في التابلت وامسح الـ QR Code</li>
+                            <li>أو افتح المتصفح في التابلت واكتب الرابط اللي فوق</li>
+                            <li>الطلبات هتظهر تلقائياً في شاشة المطبخ 🎉</li>
+                        </ol>
+                    </div>
+
+                    <!-- Prep Time Setting -->
+                    <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-weight: 700; font-size: 16px; color: #111;">⏱️ مدة التحضير القصوى</div>
+                                <div style="font-size: 13px; color: #888; margin-top: 4px;">لو الطلب تجاوز المدة دي هيظهر باللون الأحمر ويرن جرس تنبيه</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <input type="range" id="kdsPrepTimeRange" min="5" max="60" step="5" value="15"
+                                style="flex: 1; accent-color: #ff9500; height: 6px;"
+                                oninput="document.getElementById('kdsPrepTimeValue').textContent = this.value">
+                            <div style="min-width: 80px; text-align: center; background: #f8f8f8; border-radius: 10px; padding: 8px 12px;">
+                                <span id="kdsPrepTimeValue" style="font-size: 24px; font-weight: 900; color: #ff9500;">15</span>
+                                <span style="font-size: 12px; color: #888; display: block;">دقيقة</span>
+                            </div>
+                            <button id="kdsPrepTimeSaveBtn" onclick="saveKdsPrepTime(this)" style="padding: 10px 24px; background: #000; color: #fff; border: none; border-radius: 10px; font-family: 'Cairo'; font-weight: 700; font-size: 13px; cursor: pointer;">
+                                حفظ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Features -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: #f0faf3; border-radius: 12px; padding: 16px; text-align: center;">
+                            <div style="font-size: 28px; margin-bottom: 6px;">🔔</div>
+                            <div style="font-weight: 700; font-size: 14px; color: #2d8a4e;">صوت تنبيه</div>
+                            <div style="font-size: 12px; color: #666;">جرس عند كل طلب جديد</div>
+                        </div>
+                        <div style="background: #f0f4fa; border-radius: 12px; padding: 16px; text-align: center;">
+                            <div style="font-size: 28px; margin-bottom: 6px;">📱</div>
+                            <div style="font-weight: 700; font-size: 14px; color: #2d6dba;">بدون تثبيت</div>
+                            <div style="font-size: 12px; color: #666;">يعمل من المتصفح مباشرة</div>
+                        </div>
+                        <div style="background: #faf0f0; border-radius: 12px; padding: 16px; text-align: center;">
+                            <div style="font-size: 28px; margin-bottom: 6px;">⚡</div>
+                            <div style="font-weight: 700; font-size: 14px; color: #ba2d2d;">لحظي</div>
+                            <div style="font-size: 12px; color: #666;">تحديث فوري بدون تأخير</div>
+                        </div>
+                        <div style="background: #faf0f0; border-radius: 12px; padding: 16px; text-align: center;">
+                            <div style="font-size: 28px; margin-bottom: 6px;">🚨</div>
+                            <div style="font-weight: 700; font-size: 14px; color: #ba2d2d;">تنبيه التأخير</div>
+                            <div style="font-size: 12px; color: #666;">جرس + تأثير أحمر عند التأخر</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Aggregators Settings -->
                 <div class="settings-section" id="aggregatorsSection">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-lg); border-bottom: 2px solid #f0f0f0;">
@@ -848,6 +948,41 @@
                             مسح البيانات التشغيلية فقط
                         </button>
                     </div>
+
+                    <!-- حذف الحساب بالكامل -->
+                    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 20px; padding: var(--spacing-xl); border: 2px solid #e74c3c; margin-bottom: var(--spacing-lg); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);">
+                        <div style="background: rgba(231, 76, 60, 0.1); border-right: 4px solid #ff4757; border-radius: 16px; padding: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+                            <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: var(--spacing-md);">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas fa-skull-crossbones" style="color: #ffffff; font-size: 24px;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h4 style="color: #ff4757; font-weight: 700; font-size: 18px; margin-bottom: var(--spacing-md);">حذف الحساب نهائياً</h4>
+                                    <p style="color: #cccccc; font-size: 15px; line-height: 1.8; margin: 0;">
+                                        سيتم حذف <strong style="color: #ff4757;">كل شيء</strong> بشكل نهائي ولا يمكن التراجع:
+                                    </p>
+                                    <ul style="color: #cccccc; font-size: 15px; line-height: 2; margin: var(--spacing-md) 0 0 0; padding-right: var(--spacing-md);">
+                                        <li>🗂️ جميع الفئات والمنتجات</li>
+                                        <li>📊 جميع الأوردرات والمبيعات</li>
+                                        <li>💸 جميع المصاريف</li>
+                                        <li>📦 المخزون والخامات</li>
+                                        <li>👥 الموظفين والموردين والعملاء</li>
+                                        <li>⚙️ جميع الإعدادات</li>
+                                        <li>🔐 الاشتراك وحساب Firebase</li>
+                                        <li>💾 جميع البيانات المحلية</li>
+                                    </ul>
+                                    <p style="color: #ff4757; font-size: 14px; font-weight: 700; margin-top: var(--spacing-md);">
+                                        ⚠️ هذا الإجراء نهائي ولا يمكن التراجع عنه. ستحتاج لإنشاء حساب جديد.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn" id="deleteAccountBtn" onclick="deleteAccountCompletely()" style="width: 100%; padding: 18px 32px; font-weight: 800; font-size: 18px; border-radius: 12px; background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%); color: #ffffff; border: none; box-shadow: 0 4px 16px rgba(255, 71, 87, 0.4); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(255, 71, 87, 0.5)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(255, 71, 87, 0.4)';">
+                            <i class="fas fa-trash-alt" style="margin-left: 10px; font-size: 20px;"></i>
+                            حذف الحساب نهائياً
+                        </button>
+                    </div>
                 </div>
                 
             </div>
@@ -890,7 +1025,31 @@
                     <div style="font-size:11px;color:#888;margin-bottom:8px;">
                         الصفحات التي يمكن للمستخدم رؤيتها (حسب باقتك)
                     </div>
+                    <!-- زر تحديد الكل -->
+                    <label id="select-all-perms" style="display:flex;align-items:center;gap:8px;padding:9px 12px;
+                      background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;cursor:pointer;font-size:13px;
+                      font-weight:700;color:#92400e;margin-bottom:8px;border:1px solid #f59e0b;transition:all .2s;">
+                      <input type="checkbox" id="selectAllPermsCheckbox" onchange="_toggleAllPerms(this.checked)"
+                        style="width:18px;height:18px;accent-color:#f59e0b;">
+                      <i class="fas fa-check-double" style="font-size:14px;"></i>
+                      تحديد الكل
+                    </label>
                     <div id="user-perms-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+                </div>
+
+                <!-- صلاحيات إضافية -->
+                <div class="form-group" id="extra-perms-group" style="margin-top:12px;">
+                    <label class="label">
+                        <i class="fas fa-lock-open" style="margin-left:5px;color:#ef4444;"></i>
+                        صلاحيات إضافية
+                    </label>
+                    <label id="perm-canViewShiftNumbers-label" style="display:flex;align-items:center;gap:8px;padding:10px 12px;
+                        background:#fff5f5;border:1px solid #fecaca;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;">
+                        <input type="checkbox" id="perm-canViewShiftNumbers"
+                            style="width:16px;height:16px;accent-color:#ef4444;">
+                        <span>عرض أرقام الشيفت المشفرة</span>
+                        <span style="color:#aaa;font-size:11px;margin-right:auto;">يسمح للكاشير بكشف الأرقام برقم PIN الخاص به</span>
+                    </label>
                 </div>
 
                 <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
@@ -928,6 +1087,43 @@
                         إلغاء
                     </button>
                     <button id="deleteConfirmBtn" onclick="_confirmDelete()" style="flex:1;padding:12px;border:none;border-radius:12px;background:#e74c3c;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+                        <i class="fas fa-trash" style="margin-left:6px;"></i> حذف نهائي
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div class="modal" id="deleteAccountModal">
+        <div class="modal-content" style="max-width:440px;text-align:center;">
+            <div style="padding:32px 24px 24px;">
+                <div style="width:72px;height:72px;background:linear-gradient(135deg,#ff4757,#c0392b);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+                    <i class="fas fa-skull-crossbones" style="font-size:30px;color:#fff;"></i>
+                </div>
+                <h3 style="margin:0 0 10px;font-size:20px;font-weight:800;color:#ff4757;">حذف الحساب نهائياً</h3>
+                <p style="color:#666;font-size:13px;margin:0 0 20px;line-height:1.8;">
+                    سيتم حذف <strong style="color:#ff4757;">كل شيء</strong> بشكل نهائي:<br>
+                    المنيو، الأوردرات، المخزون، الموظفين، الإعدادات، الاشتراك، وحساب Firebase
+                </p>
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:8px;">
+                        للتأكيد اكتب <span style="color:#ff4757;font-weight:900;">"حذف حسابي"</span> بالظبط:
+                    </label>
+                    <input type="text" id="deleteAccountConfirmInput" placeholder='اكتب "حذف حسابي" هنا'
+                        style="width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:15px;
+                        font-family:inherit;text-align:center;outline:none;transition:border-color .2s;"
+                        oninput="var b=document.getElementById('deleteAccountConfirmBtn');var ok=this.value==='حذف حسابي';b.disabled=!ok;b.style.opacity=ok?'1':'0.5'"
+                        onfocus="this.style.borderColor='#ff4757'" onblur="this.style.borderColor='#e0e0e0'">
+                </div>
+                <div style="display:flex;gap:12px;justify-content:center;">
+                    <button onclick="document.getElementById('deleteAccountModal').classList.remove('active')"
+                        style="flex:1;padding:12px;border:2px solid #e0e0e0;border-radius:12px;background:#fff;color:#666;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+                        إلغاء
+                    </button>
+                    <button id="deleteAccountConfirmBtn" disabled onclick="_executeAccountDeletion()"
+                        style="flex:1;padding:12px;border:none;border-radius:12px;background:#e74c3c;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.5;transition:opacity .2s;"
+                        onmouseenter="if(!this.disabled)this.style.background='#c0392b'" onmouseleave="this.style.background='#e74c3c'">
                         <i class="fas fa-trash" style="margin-left:6px;"></i> حذف نهائي
                     </button>
                 </div>
@@ -1063,9 +1259,17 @@
             console.log('switchSettingsSection called:', section);
 
             // ── فحص الصلاحيات أولاً قبل أي تغيير في الـ UI ──
+            if (section === 'kds') {
+                const canUseKDS = window.SaaS && window.SaaS.canUse && window.SaaS.canUse('kds');
+                console.log('KDS gate check — canUse:', canUseKDS, 'plan:', window.SaaS?.getState?.()?.plan);
+                if (!canUseKDS) {
+                    if (window.SaaS && window.SaaS.requireFeature) window.SaaS.requireFeature('kds');
+                    return;
+                }
+            }
             if (section === 'aggregators') {
-                if (window.SaaS && !window.SaaS.canUse('aggregators')) {
-                    window.SaaS.requireFeature('aggregators');
+                if (!window.SaaS || !window.SaaS.canUse('aggregators')) {
+                    if (window.SaaS) window.SaaS.requireFeature('aggregators');
                     return;
                 }
             }
@@ -1109,6 +1313,11 @@
 
             if (section === 'aggregators') {
                 loadAggregators();
+            }
+
+            // تحميل إعدادات KDS
+            if (section === 'kds') {
+                loadKDSSettings();
             }
 
             // تحميل المستخدمين عند فتح قسم إدارة المستخدمين - بدون شرط Role
@@ -1229,9 +1438,16 @@
                     const section = this.dataset.section;
 
                     // ── فحص الصلاحيات قبل أي تغيير في الـ UI ──
+                    if (section === 'kds') {
+                        const canUseKDS = window.SaaS && window.SaaS.canUse && window.SaaS.canUse('kds');
+                        if (!canUseKDS) {
+                            if (window.SaaS && window.SaaS.requireFeature) window.SaaS.requireFeature('kds');
+                            return;
+                        }
+                    }
                     if (section === 'aggregators') {
-                        if (window.SaaS && !window.SaaS.canUse('aggregators')) {
-                            window.SaaS.requireFeature('aggregators');
+                        if (!window.SaaS || !window.SaaS.canUse('aggregators')) {
+                            if (window.SaaS) window.SaaS.requireFeature('aggregators');
                             return;
                         }
                     }
@@ -1275,6 +1491,10 @@
                         loadAggregators();
                     }
 
+                    if (section === 'kds') {
+                        loadKDSSettings();
+                    }
+
                     if (section === 'subscription') {
                         _loadSubscriptionSection();
                     }
@@ -1312,15 +1532,15 @@
         
         // ── خريطة صفحات الصلاحيات ────────────────────────────────────
         const USER_PAGE_MAP = [
-          { feature: 'pos',       label: 'نقطة البيع',   file: 'index.html' },
-          { feature: 'orders',    label: 'الطلبات',      file: 'orders.html' },
-          { feature: 'kitchen',   label: 'شاشة المطبخ',  file: 'kitchen.html' },
-          { feature: 'reports',   label: 'التقارير',     file: 'reports.html' },
-          { feature: 'inventory', label: 'المخزون',      file: 'inventory.html' },
-          { feature: 'customers', label: 'العملاء',      file: 'customers.html' },
-          { feature: 'marketing', label: 'التسويق',      file: 'marketing.html' },
-          { feature: 'suppliers', label: 'الموردين',     file: 'suppliers.html' },
-          { feature: 'settings',  label: 'الإعدادات',    file: 'settings.html' },
+          { feature: 'pos',       label: 'الكاشير',    file: 'index.html' },
+          { feature: 'orders',    label: 'الطلبات',    file: 'orders.html' },
+          { feature: 'kitchen',   label: 'المطبخ',     file: 'kitchen.html' },
+          { feature: 'reports',   label: 'التقارير',   file: 'reports.html' },
+          { feature: 'inventory', label: 'المخزون',    file: 'inventory.html' },
+          { feature: 'customers', label: 'العملاء',    file: 'customers.html' },
+          { feature: 'marketing', label: 'التسويق',    file: 'marketing.html' },
+          { feature: 'suppliers', label: 'الموردين',   file: 'suppliers.html' },
+          { feature: 'settings',  label: 'الإعدادات',  file: 'settings.html' },
         ];
 
         function _getAvailableUserPages() {
@@ -1339,21 +1559,44 @@
           const pages = _getAvailableUserPages();
           const list = document.getElementById('user-perms-list');
           if (!list) return;
+          // لو المستخدم owner أو permissions = ['all'] — نعلم كل حاجة
+          const isAll = selected.includes('all');
           list.innerHTML = pages.map(p => `
             <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;
               background:#f9f9f9;border-radius:8px;cursor:pointer;font-size:13px;">
               <input type="checkbox" name="user-perm" value="${p.feature}"
-                ${selected.includes(p.feature) ? 'checked' : ''}
+                ${(isAll || selected.includes(p.feature)) ? 'checked' : ''}
+                onchange="_updateSelectAllState()"
                 style="width:16px;height:16px;accent-color:#f59e0b;">
               ${p.label}
               <span style="color:#aaa;font-size:11px;margin-right:auto;">${p.file}</span>
             </label>
           `).join('');
+          // تحديث حالة "تحديد الكل"
+          setTimeout(_updateSelectAllState, 0);
         }
 
         function _getSelectedUserPerms() {
           return [...document.querySelectorAll('input[name="user-perm"]:checked')]
             .map(el => el.value);
+        }
+
+        // ── تحديد / إلغاء تحديد كل الصلاحيات ──
+        window._toggleAllPerms = function(checked) {
+          document.querySelectorAll('input[name="user-perm"]').forEach(cb => {
+            cb.checked = checked;
+          });
+        };
+
+        // ── تحديث حالة "تحديد الكل" عند تغيير أي checkbox فردي ──
+        function _updateSelectAllState() {
+          const all = document.querySelectorAll('input[name="user-perm"]');
+          const checked = document.querySelectorAll('input[name="user-perm"]:checked');
+          const selectAllCb = document.getElementById('selectAllPermsCheckbox');
+          if (selectAllCb) {
+            selectAllCb.checked = all.length > 0 && all.length === checked.length;
+            selectAllCb.indeterminate = checked.length > 0 && checked.length < all.length;
+          }
         }
 
         // إدارة المستخدمين
@@ -1383,16 +1626,6 @@
 
             usersList.innerHTML = '';
 
-            // 🚀 جلب كل البيانات مرة واحدة بدل N مرة (منع التهنيج)
-            let allSessions = [];
-            let allOrders = [];
-            try {
-                if (typeof DataManager !== 'undefined') {
-                    allSessions = await DataManager.getCashSessions() || [];
-                    allOrders   = await DataManager.getOrders()       || [];
-                }
-            } catch(e) {}
-
             for (const user of users) {
                 const userCard = document.createElement('div');
                 userCard.className = 'user-card';
@@ -1402,55 +1635,35 @@
                 const userRole    = user.role || 'cashier';
                 let roleLabel, roleDisplayClass, roleIcon;
 
-                // 🚀 حساب سريع من المصفوفة المجلوبة فوق (0 قراءات إضافية من DB)
-                const userSessions  = allSessions.filter(s =>
-                    s.openedBy === username || s.closedBy === username || s.cashier === username
-                ).length;
-                const userOrdersArr = allOrders.filter(o =>
-                    o.cashier === username || o.createdBy === username ||
-                    o.userName === username || o.openedBy === username
-                );
-                const userRev = userOrdersArr.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
-
-                if (userRole === 'owner' || userRole === 'admin') {
-                    roleLabel = 'مدير'; roleDisplayClass = 'owner'; roleIcon = '👑';
+                if (userRole === 'owner') {
+                    roleLabel = 'مالك'; roleDisplayClass = 'owner'; roleIcon = '👑';
+                } else if (userRole === 'admin') {
+                    roleLabel = 'مدير'; roleDisplayClass = 'admin'; roleIcon = '🛡️';
                 } else if (userRole === 'cashier') {
                     roleLabel = 'كاشير'; roleDisplayClass = 'cashier'; roleIcon = '💼';
                 } else {
                     roleLabel = userRole; roleDisplayClass = 'custom'; roleIcon = '👤';
                 }
 
+                const isOwner = userRole === 'owner';
                 const uid = user.id || user.uid || user.email;
                 userCard.innerHTML = `
                     <div class="user-card-header">
-                        <div class="user-avatar">${firstLetter}</div>
+                        <div class="user-avatar" style="${isOwner ? 'background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;' : ''}">${firstLetter}</div>
                         <div class="user-info">
                             <div class="user-name">${username}</div>
                             <div class="user-email">${user.email || ''}</div>
                         </div>
-                        <span class="user-role ${roleDisplayClass}">${roleIcon} ${roleLabel}</span>
+                        <span class="user-role ${roleDisplayClass}" style="${isOwner ? 'background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;' : ''}">${roleIcon} ${roleLabel}</span>
                     </div>
-                    <div class="cashier-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${userSessions}</div>
-                            <div class="stat-label">جلسات</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${userOrdersArr.length}</div>
-                            <div class="stat-label">طلبات</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${typeof Utils !== 'undefined' ? Utils.formatCurrency(userRev) : userRev}</div>
-                            <div class="stat-label">مبيعات</div>
-                        </div>
-                    </div>
+                    ${isOwner ? '<div style="text-align:center;font-size:12px;color:#92400e;background:#fef9c3;padding:8px 12px;border-radius:8px;margin:0 0 12px;font-weight:600;">كل الصلاحيات — لا يمكن حذفه</div>' : ''}
                     <div class="user-actions">
                         <button class="btn-icon" data-tooltip="تعديل" onclick="editUser('${uid}')">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon" data-tooltip="حذف" onclick="deleteUser('${uid}', '${username}')" style="color: #e74c3c;">
+                        ${isOwner ? '' : `<button class="btn-icon" data-tooltip="حذف" onclick="deleteUser('${uid}', '${username}')" style="color: #e74c3c;">
                             <i class="fas fa-trash"></i>
-                        </button>
+                        </button>`}
                     </div>
                 `;
                 usersList.appendChild(userCard);
@@ -1485,16 +1698,17 @@
                 // ── مرحلة 2: جلب من Firestore في الخلفية وتحديث لو في فرق ──
                 if (navigator.onLine && window.FirestoreService && window.FirestoreService.getAllUsers) {
                     try {
-                        const fetchedUsers = (await window.FirestoreService.getAllUsers())
+                        const rawFetched = await window.FirestoreService.getAllUsers();
+                        const fetchedUsers = (rawFetched || [])
                             .filter(u => u.deleted !== true && u.active !== false);
 
                         // حفظ النسخة الجديدة في الكاش
                         localStorage.setItem('users', JSON.stringify(fetchedUsers));
 
-                        // إعادة الرسم فقط لو في فرق فعلي (مش مجرد render تاني بدون سبب)
+                        // إعادة الرسم لو في فرق أو لو الكاش كان فاضي (عشان نشيل الـ spinner)
                         const localStr  = JSON.stringify(localUsers.map(u => u.id).sort());
                         const serverStr = JSON.stringify(fetchedUsers.map(u => u.id).sort());
-                        if (localStr !== serverStr || localUsers.length !== fetchedUsers.length) {
+                        if (localStr !== serverStr || localUsers.length !== fetchedUsers.length || localUsers.length === 0) {
                             await _renderUsers(fetchedUsers);
                         }
                     } catch (firestoreError) {
@@ -1552,13 +1766,34 @@
             editingUserId = null;
             document.getElementById('userModalTitle').textContent = 'إضافة مستخدم جديد';
             document.getElementById('userForm').reset();
-            document.getElementById('user-perms-group').style.display = 'none';
+            // إعادة تفعيل الـ role select (ممكن يكون متقفل من تعديل المالك)
+            const roleSelect = document.getElementById('userRole');
+            roleSelect.disabled = false;
+            const ownerOpt = [...roleSelect.options].find(o => o.value === 'owner');
+            if (ownerOpt) ownerOpt.remove();
+            // إعادة تفعيل الصلاحيات
+            const selectAllEl = document.getElementById('select-all-perms');
+            if (selectAllEl) selectAllEl.style.display = '';
+            // اعرض الصفحات فوراً بدل ما تستنى المستخدم يغير الرول
+            document.getElementById('user-perms-group').style.display = '';
+            _renderUserPermissions([]);
+            // إعادة ضبط checkbox صلاحية الأرقام المشفرة
+            const canViewCb = document.getElementById('perm-canViewShiftNumbers');
+            if (canViewCb) { canViewCb.checked = false; canViewCb.disabled = false; }
             document.getElementById('userModal').classList.add('active');
         }
-        
+
         function closeUserModal() {
             document.getElementById('userModal').classList.remove('active');
             document.getElementById('userForm').reset();
+            // إعادة تفعيل الحقول اللي ممكن تكون متقفلة من تعديل المالك
+            document.getElementById('userRole').disabled = false;
+            document.querySelectorAll('input[name="user-perm"]').forEach(cb => { cb.disabled = false; });
+            // إعادة تفعيل checkbox الصلاحيات الإضافية
+            const canViewCb = document.getElementById('perm-canViewShiftNumbers');
+            if (canViewCb) { canViewCb.checked = false; canViewCb.disabled = false; }
+            const selectAllEl = document.getElementById('select-all-perms');
+            if (selectAllEl) selectAllEl.style.display = '';
             editingUserId = null;
         }
         
@@ -1582,16 +1817,44 @@
                 }
                 
                 editingUserId = userId;
-                document.getElementById('userModalTitle').textContent = 'تعديل المستخدم';
+                const isOwner = user.role === 'owner';
+                document.getElementById('userModalTitle').textContent = isOwner ? 'تعديل حساب المالك' : 'تعديل المستخدم';
                 document.getElementById('userDisplayName').value = user.displayName || user.name || user.username || '';
                 document.getElementById('userPin').value = user.pin || '';
                 document.getElementById('userPin').required = false;
                 document.getElementById('userPin').placeholder = 'أدخل PIN جديد إذا أردت التغيير';
-                const roleVal = user.role === 'admin' ? 'admin' : 'cashier';
-                document.getElementById('userRole').value = roleVal;
+
+                const roleSelect = document.getElementById('userRole');
+                if (isOwner) {
+                  // المالك — نضيف خيار "مالك" ونقفله
+                  if (![...roleSelect.options].some(o => o.value === 'owner')) {
+                    roleSelect.insertAdjacentHTML('afterbegin', '<option value="owner">مالك (صاحب المطعم)</option>');
+                  }
+                  roleSelect.value = 'owner';
+                  roleSelect.disabled = true;
+                } else {
+                  // مش مالك — نشيل خيار "مالك" لو موجود ونرجّع القائمة لطبيعتها
+                  const ownerOpt = [...roleSelect.options].find(o => o.value === 'owner');
+                  if (ownerOpt) ownerOpt.remove();
+                  roleSelect.value = user.role === 'admin' ? 'admin' : 'cashier';
+                  roleSelect.disabled = false;
+                }
+
                 // تحميل الصلاحيات (دايماً ظاهرة)
                 document.getElementById('user-perms-group').style.display = '';
-                _renderUserPermissions(user.permissions || []);
+                _renderUserPermissions(isOwner ? ['all'] : (user.permissions || []));
+                // المالك — الصلاحيات مقفولة
+                const selectAllEl = document.getElementById('select-all-perms');
+                if (selectAllEl) selectAllEl.style.display = isOwner ? 'none' : '';
+                if (isOwner) {
+                  document.querySelectorAll('input[name="user-perm"]').forEach(cb => { cb.disabled = true; });
+                }
+                // تحميل صلاحية عرض أرقام الشيفت المشفرة
+                const canViewCb = document.getElementById('perm-canViewShiftNumbers');
+                if (canViewCb) {
+                    canViewCb.checked = isOwner ? true : (user.canViewShiftNumbers === true);
+                    canViewCb.disabled = isOwner; // المالك دايماً عنده الصلاحية
+                }
                 document.getElementById('userModal').classList.add('active');
             } catch (error) {
                 console.error('Error editing user:', error);
@@ -1776,13 +2039,11 @@
             }
             
             try {
-                // حذف من localStorage
-                localStorage.setItem('orders', JSON.stringify([]));
-                localStorage.setItem('ordersOnHold', JSON.stringify([]));
-                localStorage.setItem('salesHistory', JSON.stringify([]));
-                
-                // البيانات محذوفة من localStorage فقط (لا يوجد Firebase)
-                
+                // حذف من DBService
+                if (window.DBService && typeof window.DBService.clearOperationalData === 'function') {
+                    await window.DBService.clearOperationalData();
+                }
+
                 Notification.success('تم حذف جميع الطلبات بنجاح');
             } catch (error) {
                 console.error('Error clearing orders:', error);
@@ -1796,8 +2057,11 @@
             
             const username = document.getElementById('userDisplayName').value.trim();
             const pin = document.getElementById('userPin').value.trim();
-            const role = document.getElementById('userRole').value;
-            const permissions = role === 'cashier' ? _getSelectedUserPerms() : [];
+            const roleSelect = document.getElementById('userRole');
+            const role = roleSelect.disabled ? 'owner' : roleSelect.value;
+            const permissions = role === 'owner' ? ['all'] : _getSelectedUserPerms();
+            const canViewShiftNumbers = role === 'owner' ? true
+                : (document.getElementById('perm-canViewShiftNumbers')?.checked === true);
             
             if (!username) {
                 Notification.error('يرجى إدخال اسم المستخدم');
@@ -1825,21 +2089,22 @@
                             username: username,
                             role: role,
                             permissions,
+                            canViewShiftNumbers,
                             updatedAt: new Date().toISOString()
                         };
-                        
+
                         // تحديث PIN إذا تم إدخاله، وإلا احتفظ بالقيمة الحالية
                         if (pin && pin.trim() !== '') {
                             updateData.pin = String(pin); // تحويل PIN لـ String
                         }
-                        
+
                         console.log('🔄 Updating user in Firestore:', editingUserId, updateData);
                         await window.FirestoreService.updateUser(editingUserId, updateData);
-                        
+
                         // تحديث فوري في LocalStorage بعد نجاح Firestore
                         let localUsers = JSON.parse(localStorage.getItem('users') || '[]');
                         const localIndex = localUsers.findIndex(u => (u.uid || u.username || u.displayName || u.id) === editingUserId);
-                        
+
                         if (localIndex !== -1) {
                             localUsers[localIndex] = {
                                 ...localUsers[localIndex],
@@ -1847,14 +2112,15 @@
                                 displayName: username,
                                 username: username,
                                 role: role, // حفظ الدور كما هو بدون تحويل
+                                canViewShiftNumbers,
                                 updatedAt: updateData.updatedAt
                             };
-                            
+
                             // تحديث PIN فقط إذا تم إدخاله
                             if (pin && pin.trim() !== '') {
                                 localUsers[localIndex].pin = String(pin);
                             }
-                            
+
                             localStorage.setItem('users', JSON.stringify(localUsers));
                             console.log('✅ LocalStorage updated successfully');
                         }
@@ -1874,6 +2140,7 @@
                                 username: username,
                                 name: username,
                                 role: role, // حفظ الدور كما هو بدون تحويل
+                                canViewShiftNumbers,
                                 updatedAt: new Date().toISOString()
                             };
                             // تحديث PIN فقط إذا تم إدخاله
@@ -1890,16 +2157,17 @@
                     // 🚀 إضافة مستخدم جديد (لحظي محلياً ثم رفع في الخلفية)
                     const tempId  = 'USER-' + Date.now();
                     const newUser = {
-                        id:          tempId,
-                        uid:         tempId,
-                        name:        username,
-                        displayName: username,
-                        username:    username,
-                        pin:         pin ? String(pin) : undefined,
-                        role:        role,
-                        permissions: permissions,
-                        createdAt:   new Date().toISOString(),
-                        active:      true
+                        id:                   tempId,
+                        uid:                  tempId,
+                        name:                 username,
+                        displayName:          username,
+                        username:             username,
+                        pin:                  pin ? String(pin) : undefined,
+                        role:                 role,
+                        permissions:          permissions,
+                        canViewShiftNumbers:  canViewShiftNumbers,
+                        createdAt:            new Date().toISOString(),
+                        active:               true
                     };
 
                     // 1. تحديث الكاش والواجهة فوراً (0ms تأخير)
@@ -1947,8 +2215,8 @@
                 // const expenses = await DataManager.getExpenses(); // ❌ محذوف - لا نستخدمه
                 
                 const sessions = await DataManager.getCashSessions() || [];
-                const employees = JSON.parse(localStorage.getItem('employees') || '[]');
-                const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                const employees = (window.DBService ? await window.DBService.getEmployees() : []) || [];
+                const menuItems = (window.DBService ? await window.DBService.getMenuItems() : []) || [];
                 
                 // إنشاء ملف Excel متعدد الأوراق (CSV متعدد)
                 let csv = '';
@@ -2450,7 +2718,7 @@
                 { id:'pro',   label:'Pro',     price:'799', color:'#9b59b6' },
                 { id:'mega',  label:'Mega 🚀', price:'999', color:'#e74c3c', badge:'الأكثر مبيعاً 🔥' },
             ],
-            WA: '201096515078',
+            WA: '15514263488',
         };
 
         // ── مُحوِّل تاريخ يقبل كل الصيغ الممكنة ──────────────────────────────
@@ -2687,15 +2955,55 @@
             }, { once: true });
         }
 
-        // إظهار 🔒 على "شركات التوصيل" لغير Mega بعد ما SaaS يجهز
+        // إظهار قفل أحمر على "شركات التوصيل" لغير Mega — نفس ستايل الـ sidebar
         function _updateAggregatorNavLock() {
-            const lockEl = document.getElementById('nav-aggregators-lock');
-            if (!lockEl) return;
+            const lockEl  = document.getElementById('nav-aggregators-lock');
+            const navItem = document.getElementById('nav-aggregators-item');
+            if (!lockEl || !navItem) return;
+
             const canUse = !window.SaaS || window.SaaS.canUse('aggregators');
-            lockEl.style.display = canUse ? 'none' : 'inline';
+            if (canUse) {
+                lockEl.style.display = 'none';
+                navItem.style.cssText = navItem.style.cssText
+                    .replace(/cursor:[^;]+;?/g, '')
+                    .replace(/background:[^;]+;?/g, '')
+                    .replace(/border-right:[^;]+;?/g, '')
+                    .replace(/color:[^;]+;?/g, '');
+            } else {
+                lockEl.style.display = 'inline';
+                // نفس ستايل الـ sidebar المقفول تماماً
+                navItem.style.cursor      = 'not-allowed';
+                navItem.style.background  = 'rgba(231,76,60,0.06)';
+                navItem.style.borderRight = '3px solid #e74c3c';
+                navItem.style.color       = '#c0392b';
+            }
         }
         _updateAggregatorNavLock();
         window.addEventListener('saas-ready', _updateAggregatorNavLock);
+
+        // إظهار قفل أحمر على "KDS" لغير Mega
+        function _updateKDSNavLock() {
+            const lockEl  = document.getElementById('nav-kds-lock');
+            const navItem = document.getElementById('nav-kds-item');
+            if (!lockEl || !navItem) return;
+            const canUse = !window.SaaS || window.SaaS.canUse('kds');
+            if (canUse) {
+                lockEl.style.display = 'none';
+                navItem.style.cssText = navItem.style.cssText
+                    .replace(/cursor:[^;]+;?/g, '')
+                    .replace(/background:[^;]+;?/g, '')
+                    .replace(/border-right:[^;]+;?/g, '')
+                    .replace(/color:[^;]+;?/g, '');
+            } else {
+                lockEl.style.display = 'inline';
+                navItem.style.cursor      = 'not-allowed';
+                navItem.style.background  = 'rgba(231,76,60,0.06)';
+                navItem.style.borderRight = '3px solid #e74c3c';
+                navItem.style.color       = '#c0392b';
+            }
+        }
+        _updateKDSNavLock();
+        window.addEventListener('saas-ready', _updateKDSNavLock);
 
         document.addEventListener('DOMContentLoaded', _loadSubscriptionSection);
 
@@ -2956,12 +3264,22 @@ async function clearOperationalDataOnly() {
             'daily_log'         // اليومية 
         ]; 
 
-        // 3. مسح البيانات من LocalStorage 
-        operationalCollections.forEach(key => { 
-            localStorage.removeItem(key); 
-            // تفريغ المصفوفة عشان الشاشة متضربش 
-            localStorage.setItem(key, JSON.stringify([])); 
-        }); 
+        // 3. مسح البيانات من LocalStorage
+        operationalCollections.forEach(key => {
+            localStorage.removeItem(key);
+            // تفريغ المصفوفة عشان الشاشة متضربش
+            localStorage.setItem(key, JSON.stringify([]));
+        });
+
+        // 3.5. مسح البيانات من SQLite (الأوردرات، المصاريف، الشيفتات، الحضور)
+        if (window.DBService && typeof window.DBService.clearOperationalData === 'function') {
+            try {
+                await window.DBService.clearOperationalData();
+                console.log('✅ SQLite: تم مسح البيانات التشغيلية بنجاح');
+            } catch (e) {
+                console.error('❌ SQLite clearOperationalData خطأ:', e);
+            }
+        }
 
         // 4. تنظيف طابور المزامنة (عشان السيستم ميرفعش أوردرات قديمة كانت معلقة) 
         let syncQueue = JSON.parse(localStorage.getItem('_syncQueue') || '[]'); 
@@ -3012,6 +3330,128 @@ async function clearOperationalDataOnly() {
     } 
 }
     
+// ══════════════════════════════════════════════════════════════════
+// 🗑️ حذف الحساب بالكامل
+// ══════════════════════════════════════════════════════════════════
+async function deleteAccountCompletely() {
+    // فتح مودال التأكيد بدل confirm/prompt (Electron مش بيدعمهم)
+    const modal = document.getElementById('deleteAccountModal');
+    const input = document.getElementById('deleteAccountConfirmInput');
+    const confirmBtn = document.getElementById('deleteAccountConfirmBtn');
+    if (input) { input.value = ''; }
+    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.5'; }
+    modal.classList.add('active');
+    setTimeout(() => { if (input) input.focus(); }, 300);
+    return; // الحذف الفعلي في _executeAccountDeletion
+}
+
+async function _executeAccountDeletion() {
+    // إغلاق المودال
+    document.getElementById('deleteAccountModal').classList.remove('active');
+
+    const btn = document.getElementById('deleteAccountBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 10px;"></i> جاري حذف الحساب...';
+    btn.disabled = true;
+
+    try {
+        // 1. جيب الـ UID
+        const uid = localStorage.getItem('userId') || localStorage.getItem('_saasUid');
+        if (!uid) {
+            alert('❌ لم يتم العثور على معرّف الحساب. حاول تسجيل الدخول مرة أخرى.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        console.log('🗑️ Starting complete account deletion for UID:', uid);
+
+        // 2. مسح من Firebase عبر Admin SDK (main process)
+        if (window.require) {
+            const { ipcRenderer } = window.require('electron');
+            const result = await ipcRenderer.invoke('delete-account-completely', uid);
+            if (!result.success) {
+                alert('❌ فشل حذف الحساب: ' + (result.error || 'خطأ غير معروف'));
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            console.log('✅ Firebase data deleted via Admin SDK:', result.deletedCollections);
+        } else {
+            // Web mode — مسح من Firestore client-side (محدود بالـ rules)
+            if (window.FirestoreService && window.FirestoreService.clearCollection) {
+                const allCollections = [
+                    'categories', 'menuItems', 'orders', 'expenses', 'expensesHistory',
+                    'ingredients', 'employees', 'suppliers', 'customers', 'shifts',
+                    'salesHistory', 'aggregators', 'attendance', 'daily_log',
+                    'performance', 'performance_snapshots', 'notifications', 'users',
+                    'settings', 'tables'
+                ];
+                for (const col of allCollections) {
+                    try { await window.FirestoreService.clearCollection(col); } catch(e) {}
+                }
+            }
+        }
+
+        // 3. مسح SQLite بالكامل
+        if (window.DBService) {
+            const sqliteTables = [
+                'categories', 'menu_items', 'orders', 'expenses', 'expense_history',
+                'ingredients', 'employees', 'suppliers', 'customers', 'shifts',
+                'sales_history', 'attendance', 'daily_log', 'notifications',
+                'users', 'settings', 'tables', 'sync_queue'
+            ];
+            for (const table of sqliteTables) {
+                try {
+                    if (window.require) {
+                        const { ipcRenderer } = window.require('electron');
+                        await ipcRenderer.invoke('db-run', `DELETE FROM ${table}`, []);
+                    }
+                } catch(e) { console.warn(`SQLite clear ${table}:`, e.message); }
+            }
+        }
+
+        // 4. مسح كل localStorage
+        const keysToKeep = []; // مش هنحتفظ بأي حاجة
+        localStorage.clear();
+
+        // 5. مسح sessionStorage
+        sessionStorage.clear();
+
+        // 6. Sign out من Firebase Auth
+        try {
+            if (window.firebase && window.firebase.auth) {
+                await window.firebase.auth().signOut();
+            }
+        } catch(e) { console.warn('Sign out error:', e); }
+
+        // 7. رسالة نجاح وإعادة توجيه
+        btn.innerHTML = '<i class="fas fa-check" style="margin-left: 10px;"></i> تم حذف الحساب بنجاح!';
+        btn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+
+        alert('✅ تم حذف حسابك بالكامل.\n\nسيتم إعادة تشغيل التطبيق الآن.');
+
+        // إعادة تشغيل التطبيق
+        if (window.require) {
+            const { ipcRenderer } = window.require('electron');
+            // محاولة إعادة تشغيل الـ Electron app
+            try {
+                ipcRenderer.send('restart-app');
+            } catch(e) {}
+            // Fallback: إعادة تحميل الصفحة
+            setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+        } else {
+            setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+        }
+
+    } catch (error) {
+        console.error('❌ Account deletion error:', error);
+        alert('❌ حدث خطأ أثناء حذف الحساب: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
     // Telegram Settings & Accordion Logic
     document.addEventListener('DOMContentLoaded', function () {
         // --- Accordion Logic ---
@@ -3120,6 +3560,109 @@ async function clearOperationalDataOnly() {
         function closeAggregatorModal() {
             document.getElementById('aggregatorModal').classList.remove('active');
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 🍳 KDS Settings Functions
+        // ══════════════════════════════════════════════════════════════════
+        async function loadKDSSettings() {
+            console.log('>>> loadKDSSettings() START');
+
+            // ── Step 1: جلب المعلومات من IPC أولاً ──
+            let kdsUrl = '';
+            let prepTime = 15;
+            let connectedDevices = 0;
+            let qrDataUrl = null;
+
+            try {
+                const { ipcRenderer } = require('electron');
+                const info = await ipcRenderer.invoke('kds-get-info');
+                console.log('>>> KDS info from IPC:', JSON.stringify(info));
+                kdsUrl = info.url || '';
+                prepTime = info.prepTimeLimit || 15;
+                connectedDevices = info.connectedDevices || 0;
+                qrDataUrl = info.qrCode || null;
+                if (info.port) document.getElementById('kdsSettingsPort').textContent = info.port;
+            } catch(e) {
+                console.warn('>>> KDS IPC failed:', e.message);
+            }
+
+            // ── Step 2: لو IPC فشل، نجيب IP يدوي ──
+            if (!kdsUrl) {
+                let localIP = '127.0.0.1';
+                try {
+                    const os = require('os');
+                    const ifaces = os.networkInterfaces();
+                    outer: for (const name of Object.keys(ifaces)) {
+                        for (const iface of ifaces[name]) {
+                            if (iface.family === 'IPv4' && !iface.internal) {
+                                localIP = iface.address;
+                                break outer;
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('>>> OS IP failed:', e); }
+                kdsUrl = 'http://' + localIP + ':3002/kds';
+            }
+
+            console.log('>>> KDS URL:', kdsUrl);
+
+            // ── Step 3: عرض البيانات ──
+            document.getElementById('kdsSettingsUrl').textContent = kdsUrl;
+            document.getElementById('kdsSettingsDevices').textContent = connectedDevices;
+
+            // مدة التحضير
+            const range = document.getElementById('kdsPrepTimeRange');
+            const value = document.getElementById('kdsPrepTimeValue');
+            if (range) range.value = prepTime;
+            if (value) value.textContent = prepTime;
+
+            // ── Step 4: QR Code ──
+            const qrImg = document.getElementById('kdsSettingsQR');
+            if (qrDataUrl) {
+                qrImg.src = qrDataUrl;
+            } else {
+                qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(kdsUrl);
+            }
+            qrImg.onerror = function() {
+                this.style.display = 'none';
+                const p = this.parentElement;
+                if (!p.querySelector('.qr-fallback')) {
+                    const d = document.createElement('div');
+                    d.className = 'qr-fallback';
+                    d.style.cssText = 'width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border-radius:12px;color:#666;font-size:14px;text-align:center;padding:20px;';
+                    d.innerHTML = '<div>📋 الرابط:<br><br><strong style="direction:ltr;display:block;word-break:break-all;color:#000;">' + kdsUrl + '</strong></div>';
+                    p.appendChild(d);
+                }
+            };
+
+            console.log('>>> loadKDSSettings() DONE');
+        }
+
+        window.saveKdsPrepTime = async function(btn) {
+            try {
+                const { ipcRenderer } = require('electron');
+                const minutes = parseInt(document.getElementById('kdsPrepTimeRange').value) || 15;
+                const result = await ipcRenderer.invoke('kds-set-prep-time', minutes);
+                if (result && result.success) {
+                    if (!btn) btn = document.getElementById('kdsPrepTimeSaveBtn');
+                    const orig = btn.textContent;
+                    btn.textContent = '✓ تم الحفظ';
+                    btn.style.background = '#34c759';
+                    setTimeout(() => { btn.textContent = orig; btn.style.background = '#000'; }, 2000);
+                }
+            } catch(e) {
+                console.error('Save prep time error:', e);
+            }
+        };
+
+        window.copyKdsSettingsUrl = function() {
+            const urlEl = document.getElementById('kdsSettingsUrl');
+            navigator.clipboard.writeText(urlEl.textContent).then(() => {
+                const origText = urlEl.textContent;
+                urlEl.textContent = '✓ تم النسخ!';
+                setTimeout(() => { urlEl.textContent = origText; }, 2000);
+            });
+        };
 
         async function loadAggregators() {
             const aggregatorsList = document.getElementById('aggregatorsList');
@@ -3232,6 +3775,7 @@ async function clearOperationalDataOnly() {
     <script src="activation.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>

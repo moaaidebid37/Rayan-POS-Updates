@@ -234,23 +234,76 @@ async function deleteOrder(id) {
     return true;
 }
 
+// ⚠️ FIRESTORE INDEX REQUIRED:
+// لازم تعمل Composite Index في Firebase Console على collection "orders":
+//   Field 1: restaurantId  (Ascending)
+//   Field 2: date          (Ascending)
+// الرابط بيظهر تلقائياً في الـ Console Error أول مرة تشغّل الكود
+
 async function getAllOrders() {
     const localKey = 'orders';
-    
-    // 1. Instant Offline Return
+    const uid = _getCurrentUid();
+
+    // آخر 3 أيام بس — بدل ما يجيب كل التاريخ
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 3);
+    const cutoffStr = cutoff.toISOString().split('T')[0]; // "YYYY-MM-DD"
+
+    // 1. Instant Offline Return — من SQLite
     if (!navigator.onLine) {
-        console.log(`💤 Offline: Returning ${localKey} from local storage instantly.`);
-        return JSON.parse(localStorage.getItem(localKey) || '[]');
+        try {
+            if (window.DBService) return await window.DBService.getOrders();
+        } catch(e) {}
+        return [];
     }
-    
+
     try {
         const db = await window.firestoreReady;
-        const snap = await db.collection("orders").get();
+        let q = db.collection('orders').where('date', '>=', cutoffStr);
+        if (uid) q = q.where('restaurantId', '==', uid);
+        const snap = await q.get();
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return data;
+    } catch (error) {
+        console.warn('⚠️ getAllOrders: Firebase failed, falling back to SQLite.', error);
+        try {
+            if (window.DBService) return await window.DBService.getOrders();
+        } catch(e) {}
+        return [];
+    }
+}
+
+// ────────────────────────────────────────────────────────────────
+// 📊 getOrdersByDateRange — للتقارير فقط (بدون localStorage)
+// startDate / endDate: string "YYYY-MM-DD"
+// ⚠️ نفس الـ Composite Index المذكور أعلاه مطلوب هنا كمان
+// ────────────────────────────────────────────────────────────────
+async function getOrdersByDateRange(startDate, endDate) {
+    if (!startDate || !endDate) return [];
+    const uid = _getCurrentUid();
+
+    // Offline: اقرأ من SQLite
+    if (!navigator.onLine) {
+        try {
+            if (window.DBService) return await window.DBService.getOrdersByDateRange(startDate, endDate);
+        } catch(e) {}
+        return [];
+    }
+
+    try {
+        const db = await window.firestoreReady;
+        let q = db.collection('orders')
+            .where('date', '>=', startDate)
+            .where('date', '<=', endDate);
+        if (uid) q = q.where('restaurantId', '==', uid);
+        const snap = await q.get();
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
-        // 2. Fallback if Firebase is unreachable
-        console.warn(`⚠️ Firebase fetch failed for ${localKey}, falling back to local storage.`, error);
-        return JSON.parse(localStorage.getItem(localKey) || '[]');
+        console.warn('⚠️ getOrdersByDateRange: Firebase failed, falling back to SQLite.', error);
+        try {
+            if (window.DBService) return await window.DBService.getOrdersByDateRange(startDate, endDate);
+        } catch(e) {}
+        return [];
     }
 }
 
@@ -417,21 +470,30 @@ async function updateNotificationsCollection(item, type) { return true; } // Pla
 // ============================================================
 async function getAllUsers() {
     const localKey = 'users';
-    
+
     // 1. Instant Offline Return
     if (!navigator.onLine) {
         console.log(`💤 Offline: Returning ${localKey} from local storage instantly.`);
-        return JSON.parse(localStorage.getItem(localKey) || '[]');
+        const cached = JSON.parse(localStorage.getItem(localKey) || '[]');
+        const uid = _getCurrentUid();
+        // 🔒 فلتر بالـ restaurantId عشان ميظهرش يوزرز من مطاعم تانية
+        return uid ? cached.filter(u => !u.restaurantId || u.restaurantId === uid) : cached;
     }
-    
+
     try {
         const db = await window.firestoreReady;
-        const snap = await db.collection("users").get();
+        const uid = _getCurrentUid();
+        // 🔒 جلب يوزرز المطعم الحالي فقط
+        let query = db.collection("users");
+        if (uid) query = query.where('restaurantId', '==', uid);
+        const snap = await query.get();
         return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (error) {
         // 2. Fallback if Firebase is unreachable
         console.warn(`⚠️ Firebase fetch failed for ${localKey}, falling back to local storage.`, error);
-        return JSON.parse(localStorage.getItem(localKey) || '[]');
+        const cached = JSON.parse(localStorage.getItem(localKey) || '[]');
+        const uid = _getCurrentUid();
+        return uid ? cached.filter(u => !u.restaurantId || u.restaurantId === uid) : cached;
     }
 }
 
@@ -679,46 +741,65 @@ async function getShifts() {
     }
 }
 
-async function verifyPin(pin) {
-    const db = await window.firestoreReady;
-    try {
-        const pinString = String(pin).trim();
-        const uid = _getCurrentUid();
-        // 🔒 البحث عن الـ PIN داخل موظفي نفس المطعم فقط
-        let q = db.collection("users").where("pin", "==", pinString).where("active", "==", true);
-        if (uid) q = q.where("restaurantId", "==", uid);
-        let snap = await q.get();
+async function verifyPin(pin) { 
+    const db = await window.firestoreReady; 
+    try { 
+        const pinString = String(pin).trim(); 
+        const uid = _getCurrentUid(); // بيجيب ID المطعم المفتوح حالياً 
+        
+        let q = db.collection("users").where("pin", "==", pinString).where("active", "==", true); 
+        
+        // 🛡️ لو مفيش UID (المطعم لسه متسجلش دخول كمدير)، نرفض الدخول فوراً 
+        // عشان نمنع تسريب بيانات من مطاعم تانية 
+        if (!uid) { 
+            console.error("❌ لا يمكن التحقق من الموظفين بدون تسجيل دخول المدير أولاً (Missing Tenant ID)"); 
+            return null; 
+        } 
 
-        // 🔄 Fallback للبيانات القديمة اللي مالهاش restaurantId بعد
-        // (يحصل مع أول تسجيل دخول بعد تفعيل نظام المالتي تينانسي)
-        if (snap.empty && uid) {
-            const fallbackSnap = await db.collection("users")
-                .where("pin", "==", pinString)
-                .where("active", "==", true)
-                .get();
-            if (!fallbackSnap.empty) {
-                snap = fallbackSnap;
-                // Migrate: ختّم restaurantId على الـ docs القديمة بشكل صامت
-                fallbackSnap.docs.forEach(doc => {
-                    if (!doc.data().restaurantId) {
-                        doc.ref.update({ restaurantId: uid }).catch(() => {});
-                    }
-                });
-            }
-        }
+        // 🔒 حصر البحث داخل المطعم الحالي فقط 
+        q = q.where("restaurantId", "==", uid); 
+        let snap = await q.get(); 
 
-        if (snap.empty) return null;
+        // 🔄 التعامل مع الحسابات القديمة اللي قبل التحديث (بدون restaurantId) 
+        if (snap.empty) { 
+            const fallbackSnap = await db.collection("users") 
+                .where("pin", "==", pinString) 
+                .where("active", "==", true) 
+                .get(); 
+            
+            // هنا الخطورة: لو لقينا حساب، لازم نتأكد إنه مش تبع مطعم تاني! 
+            if (!fallbackSnap.empty) { 
+                const userDoc = fallbackSnap.docs[0]; 
+                const userData = userDoc.data(); 
+                
+                // لو الموظف عنده restaurantId بس مش مطابق، ارفض فوراً 
+                if (userData.restaurantId && userData.restaurantId !== uid) { 
+                    console.warn(`🛑 محاولة دخول مشبوهة: الموظف ${userData.name} يتبع مطعم آخر!`); 
+                    return null; 
+                } 
 
-        const user = { id: snap.docs[0].id, ...snap.docs[0].data() };
+                // لو الموظف معندوش أصلاً، اعتبره قديم واربطه بالمطعم الحالي (Migration) 
+                if (!userData.restaurantId) { 
+                    snap = fallbackSnap; 
+                    fallbackSnap.docs.forEach(doc => { 
+                        doc.ref.update({ restaurantId: uid }).catch(() => {}); 
+                    }); 
+                } 
+            } 
+        } 
 
-        if (window.PinCrypto && typeof window.PinCrypto.storePin === 'function') {
-            window.PinCrypto.storePin(pinString);
-        }
-        return user;
-    } catch (e) {
-        console.error("Login Error:", e);
-        return null;
-    }
+        if (snap.empty) return null; 
+
+        const user = { id: snap.docs[0].id, ...snap.docs[0].data() }; 
+
+        if (window.PinCrypto && typeof window.PinCrypto.storePin === 'function') { 
+            window.PinCrypto.storePin(pinString); 
+        } 
+        return user; 
+    } catch (e) { 
+        console.error("Login Error:", e); 
+        return null; 
+    } 
 }
 
 // ============================================================
@@ -808,54 +889,47 @@ async function saveCustomer(customerData) {
     const docId = uid ? `${uid}_${customerData.phone}` : customerData.phone;
     const dataToSave = { ...customerData, updatedAt: new Date().toISOString() };
     if (uid) dataToSave.restaurantId = uid;
-    // حدّث localStorage بنفس الـ object عشان getCustomerByPhone يلقاه فوراً
+    // حدّث SQLite بنفس الـ object عشان getCustomerByPhone يلقاه فوراً
+    if (uid && !dataToSave.restaurantId) dataToSave.restaurantId = uid;
     try {
-        const local = JSON.parse(localStorage.getItem('customers') || '[]');
-        const idx = local.findIndex(c => c.phone === customerData.phone);
-        if (idx >= 0) local[idx] = { ...local[idx], ...dataToSave };
-        else local.push({ ...dataToSave, id: docId });
-        localStorage.setItem('customers', JSON.stringify(local));
+        if (window.DBService) {
+            await window.DBService.saveCustomer({ ...dataToSave, id: docId }, { alreadySynced: true });
+        }
     } catch(_) {}
     return await set('customers', docId, dataToSave);
 }
 
-async function getCustomerByPhone(phone) {
-    // 1. ابحث في localStorage أولاً (أسرع + يشتغل أوفلاين)
+async function getCustomerByPhone(phone) { 
+    const currentUid = _getCurrentUid(); 
+
+    // 1. ابحث في SQLite أولاً (أسرع + يشتغل أوفلاين)
     try {
-        const local = JSON.parse(localStorage.getItem('customers') || '[]');
-        const localMatch = local.find(c => c.phone === phone || c.phone === phone.replace(/^0/, '+2'));
-        if (localMatch) return localMatch;
+        if (window.DBService) {
+            const sqlMatch = await window.DBService.getCustomerByPhone(phone);
+            if (sqlMatch) return sqlMatch;
+        }
     } catch(_) {}
 
-    // 2. بحث في Firestore
-    try {
-        const db = await window.firestoreReady;
-        const uid = _getCurrentUid();
-        if (uid) {
-            // جرّب الـ composite key
-            const docId = `${uid}_${phone}`;
-            const doc = await db.collection("customers").doc(docId).get();
-            if (doc.exists) return { id: doc.id, ...doc.data() };
-            // query مع restaurantId
-            const q1 = await db.collection("customers")
-                .where("phone", "==", phone)
-                .where("restaurantId", "==", uid)
-                .limit(1).get();
-            if (!q1.empty) return { id: q1.docs[0].id, ...q1.docs[0].data() };
-            // fallback: بدون restaurantId (بيانات قديمة)
-            const q2 = await db.collection("customers")
-                .where("phone", "==", phone)
-                .limit(1).get();
-            if (!q2.empty) {
-                // حدّث restaurantId في الخلفية
-                q2.docs[0].ref.update({ restaurantId: uid }).catch(() => {});
-                return { id: q2.docs[0].id, ...q2.docs[0].data() };
-            }
-            return null;
-        }
-        const doc = await db.collection("customers").doc(phone).get();
-        return doc.exists ? { id: doc.id, ...doc.data() } : null;
-    } catch(e) { return null; }
+    // 2. بحث في Firestore 
+    try { 
+        const db = await window.firestoreReady; 
+        if (currentUid) { 
+            // جرّب الـ composite key 
+            const docId = `${currentUid}_${phone}`; 
+            const doc = await db.collection("customers").doc(docId).get(); 
+            if (doc.exists) return { id: doc.id, ...doc.data() }; 
+            
+            // query مع restaurantId (صارم) 
+            const q1 = await db.collection("customers") 
+                .where("phone", "==", phone) 
+                .where("restaurantId", "==", currentUid) 
+                .limit(1).get(); 
+            if (!q1.empty) return { id: q1.docs[0].id, ...q1.docs[0].data() }; 
+            
+            return null; // 🚫 قفلنا الـ Fallback اللي كان بيجيب أي عميل مجهول 
+        } 
+        return null; 
+    } catch(e) { return null; } 
 }
 
 async function deleteCustomer(phone) {
@@ -872,25 +946,33 @@ async function deleteCustomer(phone) {
 // 1. دالة الجلب الذكية (بتقرا من الكاش في 0 ثانية وتحدث في الخلفية)
 window.getCollectionWithCache = async function(collectionName, localKey) {
     localKey = localKey || collectionName;
-    const cachedData = localStorage.getItem(localKey);
+
+    // ═══ البيانات التشغيلية: SQLite هو المصدر الوحيد — لا نستخدم localStorage أبداً ═══
+    const operationalKeys = [
+        'orders', 'menuItems', 'categories', 'ingredients', 'expenses',
+        'expensesHistory', 'employees', 'suppliers', 'aggregators',
+        'customers', 'salesHistory', 'cashSessions', 'shifts',
+        'offline_customers', 'ordersOnHold'
+    ];
+    const isOperational = operationalKeys.includes(collectionName) || operationalKeys.includes(localKey);
+
+    const cachedData = isOperational ? null : localStorage.getItem(localKey);
     const hasCache = cachedData && cachedData !== '[]' && cachedData !== '{}' && cachedData !== 'null';
 
     const fetchFromServer = async () => {
         if (!navigator.onLine) return null;
         try {
             const db = await window.firestoreReady;
-            // 🔒 فلترة: كل مطعم يشوف بياناته بس
             let query = db.collection(collectionName);
             if (TENANT_COLLECTIONS.has(collectionName)) {
                 const uid = _getCurrentUid();
-                // 🛡️ لو مفيش uid، مش بنجري query محمية (تمنع مسح الكاش بنتيجة فاضية)
                 if (!uid) return null;
                 query = query.where('restaurantId', '==', uid);
             }
             const snap = await query.get();
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            // 🛡️ بنحفظ في localStorage فقط لو البيانات فيها حاجة (منع مسح الكاش بـ [])
-            if (data.length > 0) {
+            // حفظ في localStorage فقط للمفاتيح غير التشغيلية
+            if (data.length > 0 && !isOperational) {
                 localStorage.setItem(localKey, JSON.stringify(data));
             }
             return data;
@@ -898,8 +980,17 @@ window.getCollectionWithCache = async function(collectionName, localKey) {
     };
 
     if (hasCache) {
-        fetchFromServer(); // تحديث صامت في الخلفية
-        return JSON.parse(cachedData); // عرض فوري للكاشير
+        fetchFromServer();
+        let cached = JSON.parse(cachedData);
+        if (TENANT_COLLECTIONS.has(collectionName) && Array.isArray(cached)) {
+            const uid = _getCurrentUid();
+            if (uid) {
+                cached = cached.filter(item =>
+                    item.restaurantId === uid || (item.id === uid && !item.restaurantId)
+                );
+            }
+        }
+        return cached;
     } else {
         const data = await fetchFromServer();
         return data || [];
@@ -909,7 +1000,7 @@ window.getCollectionWithCache = async function(collectionName, localKey) {
 // 2. توجيه كل دوال الجلب في السيستم للمحرك السريع
 getAllMenuItems = async () => await window.getCollectionWithCache('menuItems');
 getAllCategories = async () => await window.getCollectionWithCache('categories');
-getAllOrders = async () => await window.getCollectionWithCache('orders');
+// 🗓️ الدالة الجديدة بتجيب آخر 3 أيام بس — الـ override التلقائي مش محتاجه هنا
 getAllExpenses = async () => await window.getCollectionWithCache('expenses');
 getAllExpensesHistory = async () => await window.getCollectionWithCache('expensesHistory');
 getAllIngredients = async () => await window.getCollectionWithCache('ingredients');
@@ -979,10 +1070,13 @@ getSettings = async () => {
      return result;
  }; 
  
- // 🔥 المحرك الصاروخي للشيفتات (عشان الشيفت ميطيرش مع الريفريش) 
- window.startShift = async (shiftData) => await set('shifts', shiftData.id, shiftData); 
- window.updateShift = async (id, data) => await set('shifts', id, data); 
- window.endShift = async (id, data) => await set('shifts', id, data); 
+ // 🔥 المحرك الصاروخي للشيفتات (عشان الشيفت ميطيرش مع الريفريش)
+ window.startShift = async (shiftData) => await set('shifts', shiftData.id, shiftData);
+ // createShiftWithId: يحفظ الشيفت في Firebase بنفس الـ ID بتاع SQLite (SHIFT-xxx)
+ // بدون ده، SyncManager بيرجع لـ startShift بـ object ناقص (بدون id) → Firebase يعمل doc بـ auto-ID → opening_balance بيضيع
+ window.createShiftWithId = async (shiftData) => await set('shifts', shiftData.id, shiftData);
+ window.updateShift = async (id, data) => await set('shifts', id, { ...data, id });
+ window.endShift = async (id, data) => await set('shifts', id, data);
  window.getCurrentShift = async () => { 
      const sessions = await window.getCollectionWithCache('shifts', 'cashSessions'); 
      return sessions.find(s => s.status === 'open') || null; 
@@ -1012,6 +1106,38 @@ deleteDocument = async function(collectionName, id) {
 };
 // ============================================================
 
+// ============================================================
+// 🧹 Cache Sanitizer — تنظيف الكاش من بيانات tenants تانية
+// يُستدعى تلقائياً عند كل مرة يُعرف فيها الـ UID (لوجين أو ريفريش)
+// ============================================================
+window._sanitizeTenantCache = function(currentUid) {
+    if (!currentUid) return;
+    const CACHE_KEYS = ['customers', 'offline_customers', 'orders', 'menuItems',
+        'categories', 'ingredients', 'employees', 'suppliers', 'expenses',
+        'expensesHistory', 'notifications', 'tables'];
+
+    let removed = 0;
+    CACHE_KEYS.forEach(key => {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return;
+            const filtered = arr.filter(item =>
+                // احتفظ فقط بالمختومين بنفس الـ UID أو غير المختومين (بيانات قديمة)
+                !item.restaurantId || item.restaurantId === currentUid
+            );
+            if (filtered.length !== arr.length) {
+                removed += (arr.length - filtered.length);
+                localStorage.setItem(key, JSON.stringify(filtered));
+            }
+        } catch(_) {}
+    });
+    if (removed > 0) {
+        console.log(`🧹 Tenant Cache Sanitizer: أُزيل ${removed} سجل غريب من الكاش`);
+    }
+};
+
 // --- Final Export to Window Object ---
 // ============================================================
 if (typeof window !== 'undefined') {
@@ -1037,6 +1163,7 @@ if (typeof window !== 'undefined') {
             getAllCategories, addCategory, updateCategory, deleteCategory,
             // Orders
             getAllOrders, addOrder, updateOrder, deleteOrder, getOrdersByShift,
+            getOrdersByDateRange, // 📊 للتقارير فقط — بدون localStorage
             // Expenses
             getAllExpenses, addExpense, updateExpense, deleteExpense, getExpensesByShift,
             // Expenses History
@@ -1053,7 +1180,7 @@ if (typeof window !== 'undefined') {
             // Settings
             getSettings, updateSettings,
             // License & Shifts
-            markValidLicenseCodeUsed, startShift, endShift, updateShift, getCurrentShift, getShifts, verifyPin,
+            markValidLicenseCodeUsed, startShift, endShift, updateShift, createShiftWithId, getCurrentShift, getShifts, verifyPin,
             // Attendance & Daily Log
             upsertAttendance, setDailyLogRow
         };

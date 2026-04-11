@@ -165,21 +165,22 @@ window.handleRefresh = function() {
 };
 
 // Global Stock Notification Logic (available on all pages)
-window.showStockNotifications = function() {
+window.showStockNotifications = async function() {
   let data = null;
   if (typeof menuData !== 'undefined' && menuData) data = menuData;
   else if (typeof window.menuData !== 'undefined' && window.menuData) data = window.menuData;
   else if (typeof globalMenuData !== 'undefined' && globalMenuData) data = globalMenuData;
-  
+
   let items = [];
-  if (localStorage.getItem('menuItems')) {
-    try {
-      items = JSON.parse(localStorage.getItem('menuItems'));
-    } catch (e) {
-      items = data && data.items ? data.items : [];
+  try {
+    const dbItems = window.DBService ? await window.DBService.getMenuItems() : null;
+    if (dbItems && dbItems.length > 0) {
+      items = dbItems;
+    } else if (data && data.items) {
+      items = data.items;
     }
-  } else if (data && data.items) {
-    items = data.items;
+  } catch (e) {
+    items = data && data.items ? data.items : [];
   }
   
   if (!items || items.length === 0) {
@@ -194,20 +195,46 @@ window.showStockNotifications = function() {
   const lowStockItems = [];
   const criticalStockItems = [];
   
+  // 1. فحص أصناف القائمة (menu items)
   items.forEach(item => {
     const itemType = item.type || 'physical';
     if (itemType === 'service') return;
-    
-    const stock = parseInt(item.stock, 10) || 0;
-    const minStockLimit = parseInt(item.minStockLimit, 10) || 5;
-    const criticalStockLimit = item.criticalStockLimit !== undefined ? parseInt(item.criticalStockLimit, 10) : 0;
-    
-    if (stock <= criticalStockLimit) {
+    // تخطي الأصناف اللي مش بتتابع مخزونها
+    if (!item.trackStock && !item.track_stock) return;
+
+    const stock = parseFloat(item.stock) || 0;
+    const minStockLimit = parseFloat(item.minStockLimit) || 0;
+    const criticalLimit = parseFloat(item.criticalStockLimit) || 0;
+
+    // لو مفيش حدود مضبوطة أصلاً — متنبهش
+    if (minStockLimit <= 0 && criticalLimit <= 0) return;
+
+    if (criticalLimit > 0 && stock <= criticalLimit) {
       criticalStockItems.push({ name: item.name, stock });
-    } else if (stock <= minStockLimit) {
+    } else if (minStockLimit > 0 && stock <= minStockLimit) {
       lowStockItems.push({ name: item.name, stock });
     }
   });
+
+  // 2. فحص المواد الخام (ingredients)
+  try {
+    const ingredients = window.DBService ? await window.DBService.getIngredients() : [];
+    ingredients.forEach(ing => {
+      const qty = parseFloat(ing.quantity) || 0;
+      const warning = parseFloat(ing.warningThreshold) || 0;
+      const critical = parseFloat(ing.criticalStockLimit) || parseFloat(ing.minQuantity) || 0;
+
+      // لو مفيش حدود مضبوطة — متنبهش
+      if (warning <= 0 && critical <= 0) return;
+
+      const unit = ing.unit || '';
+      if (critical > 0 && qty <= critical) {
+        criticalStockItems.push({ name: `${ing.name} (خامة)`, stock: `${qty} ${unit}` });
+      } else if (warning > 0 && qty <= warning) {
+        lowStockItems.push({ name: `${ing.name} (خامة)`, stock: `${qty} ${unit}` });
+      }
+    });
+  } catch(e) { console.warn('[StockNotif] ingredients check failed:', e.message); }
   
   if (criticalStockItems.length === 0 && lowStockItems.length === 0) {
     if (typeof Notification !== 'undefined') {

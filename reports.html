@@ -234,28 +234,28 @@
 
         .modal-close-btn {
             position: absolute;
-            left: 15px; /* مكان الزر على اليسار */
-            top: 15px;  /* مكان الزر من فوق */
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0; /* برواز خفيف */
+            left: 15px;
+            top: 15px;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
             width: 32px;
             height: 32px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 16px;
-            color: #64748b;
+            color: #ef4444;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100; /* عشان يبقى فوق أي حاجة */
+            z-index: 100;
             transition: all 0.2s;
         }
 
         .modal-close-btn:hover {
-            background: #fee2e2;
-            color: #ef4444;
-            border-color: #fecaca;
-            transform: rotate(90deg); /* حركة شيك لما تقف عليه */
+            background: #ef4444;
+            color: #fff;
+            border-color: #dc2626;
+            transform: rotate(90deg);
         }
 
         /* الهيدر بتاع الكارت في المودال */
@@ -449,7 +449,7 @@
                 <div class="card" style="border-left: 4px solid #27AE60; background: #f9fff9;">
                     <h3 style="font-size: 16px; margin-bottom: 10px;"><i class="fas fa-coins" style="color: #27AE60;"></i> إجمالي الإيرادات</h3>
                     <div class="stat-value" style="color: #27AE60;" id="performanceGrossRevenue">0.00 ج.م</div>
-                    <div class="stat-label">مجموع (الكاش + الفيزا + الضريبة + الخدمة) قبل أي خصم</div>
+                    <div class="stat-label">إجمالي المقبوضات الفعلية (كاش + فيزا) شاملة الضريبة والخدمة</div>
                 </div>
 
                 <div class="card" style="border-left: 4px solid #27AE60;">
@@ -650,6 +650,7 @@
     <script src="js/firebase.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <!-- <script src="js/activation.js"></script> -->
     <script src="js/utils.js"></script>
@@ -710,15 +711,29 @@
         // ==========================================
         // Update Expense Summary Cards
         // ==========================================
-        window.updateExpenseSummaryCards = function() {
-            // Get all expenses from localStorage
-            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-            const expensesHistory = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
+        window.updateExpenseSummaryCards = async function() {
+            // Get all expenses from SQLite
+            let expenses = [];
+            let expensesHistory = [];
+            try {
+                if (window.DBService) {
+                    expenses = await window.DBService.getExpenses({});
+                    expensesHistory = await window.DBService.getExpensesHistory({});
+                }
+            } catch(e) {
+                console.warn('updateExpenseSummaryCards: failed to load from DBService', e);
+            }
             
-            // Merge both arrays and deduplicate by id
+            // Merge both arrays and deduplicate — strip HIST- prefix to match correctly
             const uniqueMap = new Map();
-            [...expenses, ...expensesHistory].forEach(e => {
-                const key = e.id || `${e.type}_${e.amount}_${e.date}_${e.description || ''}`;
+            expenses.forEach(e => {
+                const baseId = String(e.id || '').replace(/^HIST-/, '');
+                const key = baseId || `${e.type}_${e.amount}_${e.date}_${e.description || ''}`;
+                if (!uniqueMap.has(key)) uniqueMap.set(key, e);
+            });
+            expensesHistory.forEach(e => {
+                const baseId = String(e.expense_id || e.id || '').replace(/^HIST-/, '');
+                const key = baseId || `${e.type}_${e.amount}_${e.date}_${e.description || ''}`;
                 if (!uniqueMap.has(key)) uniqueMap.set(key, e);
             });
             const allExpenses = Array.from(uniqueMap.values());
@@ -777,27 +792,41 @@
         // ==========================================
         // Render Unified Expenses Table
         // ==========================================
-        window.renderUnifiedExpensesTable = function() {
+        window.renderUnifiedExpensesTable = async function() {
             const tbody = document.getElementById('unifiedExpensesTableBody');
             if (!tbody) return;
 
-            // Get all expenses from localStorage
-            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-            const expensesHistory = JSON.parse(localStorage.getItem('expensesHistory') || '[]');
+            // Get all expenses from SQLite
+            let expenses = [];
+            let expensesHistory = [];
+            try {
+                if (window.DBService) {
+                    expenses = await window.DBService.getExpenses({});
+                    expensesHistory = await window.DBService.getExpensesHistory({});
+                }
+            } catch(e) {
+                console.warn('renderUnifiedExpensesTable: failed to load from DBService', e);
+            }
 
             // Debug: Log the raw data to see field names
             console.log('Raw expenses data:', expenses);
             console.log('Raw expensesHistory data:', expensesHistory);
 
-            // Create a Set to track unique expense IDs and avoid duplicates
+            // Create a Map to track unique expenses — dedup by stripping HIST- prefix
             const uniqueExpenses = new Map();
 
-            // Add expenses with unique IDs to avoid duplication
-            [...expenses, ...expensesHistory].forEach(expense => {
-                const expenseId = expense.id || `${expense.type}_${expense.amount}_${expense.date}_${expense.description || ''}`;
-                if (!uniqueExpenses.has(expenseId)) {
-                    uniqueExpenses.set(expenseId, expense);
-                }
+            // expenses table أولاً (الأصل)
+            expenses.forEach(expense => {
+                const baseId = String(expense.id || '').replace(/^HIST-/, '');
+                const key = baseId || `${expense.type}_${expense.amount}_${expense.date}_${expense.description || ''}`;
+                if (!uniqueExpenses.has(key)) uniqueExpenses.set(key, expense);
+            });
+
+            // expensesHistory — بس لو مش موجود بالفعل (بعد شيل HIST-)
+            expensesHistory.forEach(expense => {
+                const baseId = String(expense.expense_id || expense.id || '').replace(/^HIST-/, '');
+                const key = baseId || `${expense.type}_${expense.amount}_${expense.date}_${expense.description || ''}`;
+                if (!uniqueExpenses.has(key)) uniqueExpenses.set(key, expense);
             });
 
             // Convert Map back to array and sort by date (newest first)
@@ -836,35 +865,30 @@
                 const expenseType = expense.type || expense.category || 'other';
                 const amount = parseFloat(expense.amount || expense.cost || 0);
 
-                // Get date from multiple possible fields
-                let date = expense.date || expense.businessDate || expense.createdAt || expense.timestamp || '';
-
                 // Get description from multiple possible fields
                 const description = expense.description || expense.note || expense.reason || expense.item || expenseType || '-';
 
-                // Get user who added the expense - check all possible field names
+                // Get user who added the expense
                 const addedBy = expense.createdBy || expense.addedBy || expense.user || expense.employee || expense.cashier || expense.userName || 'مجهول';
 
-                // Get notes/remarks - REMOVED from view as per request
-                // const notes = expense.notes || expense.remarks || expense.details || '';
+                // Format date with Egypt time
+                const formattedDate = formatExpenseDateTime(expense);
 
-                // Format date using the new formatSafeDate function
-                const formattedDate = formatSafeDate(expense);
-                
-                // Smart category detection to avoid duplication
+                // Smart category detection — English keys + Arabic labels
                 let categoryLabel = 'أخرى';
                 let categoryClass = 'other';
-                
-                if (expenseType === 'employees' || String(expense.description || '').includes('راتب') || String(expense.description || '').includes('حضور') || expense.source === 'payroll_daily' || String(expense.id || '').startsWith('PAYROLL_')) {
+                const desc = String(expense.description || '').toLowerCase();
+
+                if (expenseType === 'employees' || expenseType === 'رواتب' || expenseType === 'رواتب العمال' || desc.includes('راتب') || desc.includes('حضور') || expense.source === 'payroll_daily' || String(expense.id || '').startsWith('PAYROLL_')) {
                     categoryLabel = 'رواتب';
                     categoryClass = 'employees';
-                } else if (expenseType === 'supplies' || String(expense.description || '').includes('بضاعة') || String(expense.description || '').includes('خامات')) {
+                } else if (expenseType === 'supplies' || expenseType === 'بضاعة' || expenseType === 'شراء بضاعة' || desc.includes('بضاعة') || desc.includes('خامات')) {
                     categoryLabel = 'بضاعة';
                     categoryClass = 'supplies';
-                } else if (expenseType === 'bills' || String(expense.description || '').includes('فاتور') || String(expense.description || '').includes('كهرباء') || String(expense.description || '').includes('ماء')) {
+                } else if (expenseType === 'bills' || expenseType === 'فواتير' || desc.includes('فاتور') || desc.includes('كهرباء') || desc.includes('ماء') || desc.includes('غاز')) {
                     categoryLabel = 'فواتير';
                     categoryClass = 'bills';
-                } else if (expenseType === 'rent' || String(expense.description || '').includes('إيجار')) {
+                } else if (expenseType === 'rent' || expenseType === 'إيجار' || expenseType === 'ايجار' || desc.includes('إيجار') || desc.includes('ايجار')) {
                     categoryLabel = 'إيجار';
                     categoryClass = 'rent';
                 }
@@ -892,19 +916,19 @@
 
         
         // Auto-update summary cards when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Update expense summary cards
-            updateExpenseSummaryCards();
-            
+            await updateExpenseSummaryCards();
+
             // Render unified expenses table
-            renderUnifiedExpensesTable();
-            
+            await renderUnifiedExpensesTable();
+
             // Load performance with fresh data from DataManager
             loadPerformance();
-            
+
             console.log('All functions loaded: expenses, table, and performance');
-            
-            // Listen for localStorage changes (when new expenses are added)
+
+            // Listen for DB changes (refresh when data might have changed)
             window.addEventListener('storage', function(e) {
                 if (e.key === 'expenses' || e.key === 'expensesHistory') {
                     console.log('Expenses changed, updating...');
@@ -913,7 +937,7 @@
                     loadPerformance();
                 }
             });
-            
+
             // Also update when the tab becomes visible (in case expenses were added in another tab)
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) {
@@ -992,6 +1016,44 @@
         }
 
         // ==========================================
+        // دالة عرض تاريخ + وقت المصروف بتوقيت مصر
+        // ==========================================
+        function formatExpenseDateTime(expense) {
+            const raw = expense.createdAt || expense.created_at || expense.date || expense.businessDate || expense.timestamp;
+            if (!raw) return '<span style="color:#94a3b8">غير محدد</span>';
+
+            let d;
+            try {
+                if (raw.toDate) d = raw.toDate();
+                else if (raw.seconds) d = new Date(raw.seconds * 1000);
+                else d = new Date(raw);
+            } catch(e) { return '<span style="color:#94a3b8">-</span>'; }
+
+            if (isNaN(d.getTime())) {
+                // لو التاريخ نص عادي YYYY-MM-DD بدون وقت
+                if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                    return `<span style="font-family:'Poppins',sans-serif;direction:ltr;">${raw}</span>`;
+                }
+                return '<span style="color:#94a3b8">-</span>';
+            }
+
+            // عرض بتوقيت مصر
+            try {
+                const opts = { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true };
+                const parts = new Intl.DateTimeFormat('en-US', opts).formatToParts(d);
+                const get = (t) => (parts.find(p => p.type === t) || {}).value || '';
+                const dateStr = `${get('year')}-${get('month')}-${get('day')}`;
+                const timeStr = `${get('hour')}:${get('minute')} ${get('dayPeriod')}`;
+                return `<span style="font-family:'Poppins',sans-serif;direction:ltr;white-space:nowrap;">${dateStr} <span style="color:#666;font-size:12px;">${timeStr}</span></span>`;
+            } catch(e) {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `<span style="font-family:'Poppins',sans-serif;direction:ltr;">${year}-${month}-${day}</span>`;
+            }
+        }
+
+        // ==========================================
         // 1. دي الدالة الناقصة اللي بتسبب الإيرور
         // ==========================================
         function getLocalDateString(dateInput) {
@@ -1035,12 +1097,64 @@
             console.log("🚀 Starting loadPerformance (Optimized)...");
             const rangeSelector = document.getElementById('performanceRangeSelector');
             const rangeType = rangeSelector ? rangeSelector.value : 'all_time';
-            
-            // 1. تحميل البيانات وتنقيتها من التكرار
-            let orders = JSON.parse(localStorage.getItem('orders') || '[]');
-            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-            let menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
-            let ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+
+            // ── حساب نطاق التاريخ أولاً عشان نبعته لـ Firestore ──────────────
+            // _toYMD: بتوقيت مصر (Africa/Cairo) مش UTC
+            const _toYMD = (d) => {
+                const eg = new Date((d instanceof Date ? d : new Date(d)).toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+                return `${eg.getFullYear()}-${String(eg.getMonth()+1).padStart(2,'0')}-${String(eg.getDate()).padStart(2,'0')}`;
+            };
+            const todayD  = new Date();
+            const todayS  = _toYMD(todayD);
+            let qStart, qEnd = todayS;
+
+            if (rangeType === 'today') {
+                qStart = qEnd = todayS;
+            } else if (rangeType === 'yesterday') {
+                const y = new Date(); y.setDate(y.getDate() - 1);
+                qStart = qEnd = _toYMD(y);
+            } else if (rangeType === 'this_week') {
+                const w = new Date(); w.setDate(w.getDate() - w.getDay() + (w.getDay() === 0 ? -6 : 1));
+                qStart = _toYMD(w);
+            } else if (rangeType === 'this_month') {
+                qStart = todayS.substring(0, 8) + '01';
+            } else {
+                // all_time → آخر 365 يوم (حد عملي يحمي الـ Firestore Reads)
+                const y = new Date(); y.setFullYear(y.getFullYear() - 1);
+                qStart = _toYMD(y);
+            }
+
+            // 1. تحميل الأوردرات (SQLite أولاً → Firestore → localStorage)
+            let orders = [];
+            try {
+                if (window.DBService) {
+                    orders = await window.DBService.getOrders({ fromDate: qStart, toDate: qEnd });
+                } else if (window.FirestoreService && window.FirestoreService.getOrdersByDateRange) {
+                    orders = await window.FirestoreService.getOrdersByDateRange(qStart, qEnd);
+                } else {
+                    orders = [];
+                }
+            } catch(e) {
+                console.warn('loadPerformance: orders load failed', e);
+                orders = [];
+            }
+
+            let expenses = [];
+            try {
+                if (window.DBService) {
+                    expenses = await window.DBService.getExpenses({ fromDate: qStart, toDate: qEnd });
+                }
+            } catch(e) {
+                console.warn('loadPerformance: expenses load failed', e);
+            }
+            let menuItems = [];
+            try {
+                if (window.DBService) menuItems = await window.DBService.getMenuItems();
+            } catch(e) { console.warn('loadPerformance: menuItems load failed', e); }
+            let ingredients = [];
+            try {
+                if (window.DBService) ingredients = await window.DBService.getIngredients();
+            } catch(e) { console.warn('loadPerformance: ingredients load failed', e); }
 
             // 🔥 منع تكرار الأوردرات نهائياً (باستخدام ID فريد)
             const ordersMap = new Map();
@@ -1114,7 +1228,7 @@
             }
 
             const isItemInRange = (item) => {
-                const dates = [item.businessDate, item.date, item.createdAt, item.timestamp];
+                const dates = [item.businessDate, item.date, item.createdAt, item.created_at, item.timestamp];
                 for (let d of dates) {
                     const ymd = parseToYMD(d);
                     if (ymd && ymd >= start && ymd <= end) return true;
@@ -1131,32 +1245,47 @@
             filteredOrders.forEach(order => {
                 const oTotal = parseFloat(order.total || 0);
                 const oDisc = parseFloat(order.discount || 0);
-                rev += (oTotal + oDisc); // Gross
+                const oDelivery = parseFloat(order.deliveryFee || order.delivery_fee || 0);
+                // الإيرادات = الإجمالي - سعر التوصيل (التوصيل مش إيراد ليك)
+                rev += (oTotal + oDisc - oDelivery); // Gross بدون الدليفري
                 disc += oDisc;
                 tax += parseFloat(order.tax || 0);
                 serv += parseFloat(order.serviceCharge || 0);
 
                 const pm = String(order.paymentMethod || '').toLowerCase();
-                if (pm.includes('visa') || pm.includes('card')) visa += (oTotal + oDisc);
-                else cash += (oTotal + oDisc);
+                if (pm.includes('visa') || pm.includes('card')) visa += (oTotal + oDisc - oDelivery);
+                else cash += (oTotal + oDisc - oDelivery);
 
-                // حساب الخامات (COGS) بدقة
-                if (order.items) {
-                    order.items.forEach(i => {
-                        const qty = parseFloat(i.quantity || 1);
-                        let unitCost = 0;
-                        
-                        // محاولة إيجاد التكلفة بأكثر من طريقة مرتبة
-                        const vKey = i.variant ? `${(i.name||'').trim()}_${(i.variant||'').trim()}` : null;
-                        
-                        if (vKey && itemCostMap[vKey]) unitCost = itemCostMap[vKey];
-                        else if (i.id && itemCostMap[String(i.id)]) unitCost = itemCostMap[String(i.id)];
-                        else if (i.name && itemCostMap[i.name.trim()]) unitCost = itemCostMap[i.name.trim()];
-                        else unitCost = parseFloat(i.cost || 0);
+                // 🛠️ حل مشكلة التكلفة المصفّرة — 3 مستويات fallback
+                 let cost = parseFloat(order.totalCost) || parseFloat(order.total_cost) || 0;
 
-                        cogs += (unitCost * qty);
-                    });
-                }
+                 // Fallback 1: حساب من الأصناف اللي جوا الأوردر
+                 if (cost === 0) {
+                     let items = order.items || order.cartItems || [];
+                     if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+                     if (Array.isArray(items) && items.length > 0) {
+                         cost = items.reduce((s, i) => {
+                             const ic = parseFloat(i.cost || i.costPrice || i.buyPrice || 0);
+                             return s + (ic * (parseFloat(i.quantity) || 1));
+                         }, 0);
+                     }
+                 }
+
+                 // Fallback 2: حساب من خريطة تكلفة المنيو (itemCostMap)
+                 if (cost === 0) {
+                     let items = order.items || order.cartItems || [];
+                     if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+                     if (Array.isArray(items) && items.length > 0) {
+                         cost = items.reduce((s, i) => {
+                             const itemName = (i.name || '').trim();
+                             const variantName = (i.variant || i.variantName || '').trim();
+                             const variantKey = variantName ? `${itemName}_${variantName}` : '';
+                             const mapCost = (variantKey && itemCostMap[variantKey]) || itemCostMap[String(i.id)] || itemCostMap[itemName] || 0;
+                             return s + (mapCost * (parseFloat(i.quantity) || 1));
+                         }, 0);
+                     }
+                 }
+                 cogs += cost;
             });
 
             const totalExp = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount)||0), 0);
@@ -1212,7 +1341,15 @@
                     const aggOrders = filteredOrders.filter(o => o.orderSource === agg.companyName && o.status !== 'cancelled');
                     const orderCount = aggOrders.length;
                     const grossSales = aggOrders.reduce((sum, o) => sum + (parseFloat(o.total) || parseFloat(o.orderTotal) || parseFloat(o.netTotal) || 0), 0);
-                    const totalCommission = aggOrders.reduce((sum, o) => sum + (parseFloat(o.expectedCommission) || 0), 0);
+                    // حساب العمولة: لو محفوظة في الأوردر نستخدمها، لو لأ نحسبها من نسبة الشركة
+                    const commissionRate = parseFloat(agg.commissionPercentage || agg.commission_rate || 0);
+                    const totalCommission = aggOrders.reduce((sum, o) => {
+                        const saved = parseFloat(o.expectedCommission) || 0;
+                        if (saved > 0) return sum + saved;
+                        // حساب من النسبة
+                        const orderTotal = parseFloat(o.total) || 0;
+                        return sum + (orderTotal * commissionRate / 100);
+                    }, 0);
                     const netReceivable = grossSales - totalCommission;
 
                     let aggCOGS = 0;
@@ -1263,37 +1400,107 @@
                 return;
             }
 
-            // 1. Load all necessary data from localStorage
-            let logs = JSON.parse(localStorage.getItem('daily_log') || '[]');
-            let cashSessions = JSON.parse(localStorage.getItem('cashSessions') || '[]');
-            let orders = JSON.parse(localStorage.getItem('orders') || '[]');
-            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            // 1. Date helpers
+            const _toYMD2 = (d) => {
+                try {
+                    const eg = new Date((d instanceof Date ? d : new Date(d)).toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+                    if (isNaN(eg.getTime())) return '';
+                    return `${eg.getFullYear()}-${String(eg.getMonth()+1).padStart(2,'0')}-${String(eg.getDate()).padStart(2,'0')}`;
+                } catch(e) { return ''; }
+            };
+            const _todayS2 = _toYMD2(new Date());
+            const logFrom = dateFilter || (() => { const d=new Date(); d.setDate(d.getDate()-30); return _toYMD2(d); })();
+            const logTo   = dateFilter || _todayS2;
 
-            // 2. Merge cashSessions into the log array to include open shifts
-            let allShifts = [...logs];
-            const loggedSessionIds = new Set(logs.map(l => l.sessionId || l.id));
+            // 2. Load cash sessions from SQLite ONLY (single source of truth)
+            let cashSessions = [];
+            try {
+                if (window.DBService) cashSessions = await window.DBService.getCashSessions();
+            } catch(e) { console.warn('[Reports] getCashSessions failed:', e.message); }
+
+            // 3. Deduplicate sessions: first by ID, then by opened_at time (±3 min) to catch Firebase/SQLite twin duplicates
+            const sessionMap = new Map();
             cashSessions.forEach(session => {
-                if (!loggedSessionIds.has(session.id)) {
-                    allShifts.push({ ...session, businessDate: session.date, sessionId: session.id });
+                const sid = session.id;
+                if (!sid) return;
+                const sessionDate = session.date || _toYMD2(session.opened_at || session.openedAt || session.createdAt || '');
+                if (!sessionDate) return;
+                if (sessionDate < logFrom || sessionDate > logTo) return;
+                if (!sessionMap.has(sid)) {
+                    sessionMap.set(sid, { ...session, businessDate: sessionDate, sessionId: sid });
                 }
             });
 
-            // 3. Sort shifts (newest first)
+            // Secondary dedup: merge shifts with same opened_at (±3 min) — keep the one with more info
+            const deduped = [];
+            const usedKeys = new Set();
+            const byTime = Array.from(sessionMap.values()).sort((a, b) => {
+                // prefer closed over open, then most data
+                if (a.status === 'closed' && b.status !== 'closed') return -1;
+                if (b.status === 'closed' && a.status !== 'closed') return 1;
+                return (b.closing_balance != null ? 1 : 0) - (a.closing_balance != null ? 1 : 0);
+            });
+            byTime.forEach(session => {
+                if (usedKeys.has(session.id)) return;
+                const openedMs = new Date(session.opened_at || session.openedAt || session.createdAt || 0).getTime();
+                // find any already-accepted session within ±3 min
+                let merged = false;
+                for (const kept of deduped) {
+                    const kMs = new Date(kept.opened_at || kept.openedAt || kept.createdAt || 0).getTime();
+                    if (Math.abs(openedMs - kMs) <= 30 * 1000) {
+                        // same shift — mark as used, don't add again
+                        usedKeys.add(session.id);
+                        merged = true;
+                        break;
+                    }
+                }
+                if (!merged) {
+                    deduped.push(session);
+                    usedKeys.add(session.id);
+                }
+            });
+            let allShifts = deduped;
+
+            // 4. Sort shifts (newest first)
             allShifts.sort((a, b) => {
-                const timeA = new Date(a.closedAt || a.createdAt || 0).getTime();
-                const timeB = new Date(b.closedAt || b.createdAt || 0).getTime();
+                const timeA = new Date(a.opened_at || a.openedAt || a.closedAt || a.createdAt || 0).getTime();
+                const timeB = new Date(b.opened_at || b.openedAt || b.closedAt || b.createdAt || 0).getTime();
                 return timeB - timeA;
             });
 
-            // 4. Filter by date if a filter is applied
-            if (dateFilter) {
-                allShifts = allShifts.filter(s => (s.businessDate || s.date) === dateFilter);
+            // 5. Load orders and expenses for the date range
+            let orders = [];
+            try {
+                if (window.DBService) {
+                    orders = await window.DBService.getOrders({ fromDate: logFrom, toDate: logTo });
+                } else if (window.FirestoreService && window.FirestoreService.getOrdersByDateRange) {
+                    orders = await window.FirestoreService.getOrdersByDateRange(logFrom, logTo);
+                }
+            } catch(e) {
+                console.warn('loadDailyLog: orders load failed', e);
             }
+
+            let expenses = [];
+            try {
+                if (window.DBService) {
+                    expenses = await window.DBService.getExpenses({ fromDate: logFrom, toDate: logTo });
+                }
+            } catch(e) {
+                console.warn('loadDailyLog: expenses load failed', e);
+            }
+
+            // جلب قائمة شركات التوصيل (للبحث عن الاسم بالـ ID)
+            let aggregatorsList = [];
+            try {
+                if (window.DBService) aggregatorsList = await window.DBService.getAggregators();
+            } catch(e) {}
+            const aggMap = {};
+            aggregatorsList.forEach(a => { if (a.id) aggMap[a.id] = a.name || a.id; });
             
             // Clear the table and handle empty state
             tableBody.innerHTML = '';
             if (allShifts.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#999;">لا توجد سجلات للعرض</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#999;">لا توجد سجلات للعرض</td></tr>`;
                 return;
             }
 
@@ -1301,43 +1508,56 @@
             _processedShiftsData = allShifts.map(log => {
                 const sessionId = log.sessionId || log.id;
 
-                // If shift is closed and has the pre-calculated totals, use them.
-                if (log.status === 'closed' && typeof log.expectedAmount !== 'undefined') {
-                    const opening = parseFloat(log.openingAmount || 0);
-                    const expectedCash = parseFloat(log.expectedAmount);
-                    const actualCash = parseFloat(log.closingAmount);
-                    const diff = actualCash - expectedCash;
-
+                // ═══ شيفت مغلق مع قيم محفوظة في SQLite → استخدمهم مباشرة (الأرقام ثابتة ومش بتتأثر بشيفتات تانية) ═══
+                if (log.status === 'closed' && log.closing_balance != null) {
+                    const opening      = parseFloat(log.opening_balance || log.openingAmount || 0);
+                    const cashNet      = parseFloat(log.cash_sales      || log.cashSales     || 0);
+                    const visaNet      = parseFloat(log.visa_sales      || log.visaSales     || 0);
+                    const totalExp     = parseFloat(log.total_expenses  || log.totalExpenses || 0);
+                    const actualCash   = parseFloat(log.closing_balance || log.closingAmount || 0);
+                    const expectedCash = opening + cashNet - totalExp;
+                    const diff         = actualCash - expectedCash;
+                    const aggRaw       = log.aggregatorSales || {};
+                    const aggregatorSales = {};
+                    for (const [k, v] of Object.entries(aggRaw)) {
+                        aggregatorSales[k] = typeof v === 'object' ? v : { total: parseFloat(v) || 0, count: 0 };
+                    }
+                    const totalAggregator = parseFloat(log.aggregator_sales || log.aggregator_sales_total || 0);
                     return {
                         log,
-                        businessDate: log.businessDate || log.date,
+                        businessDate:  log.businessDate || log.date,
                         diff,
-                        // Pass other values through for the modal
-                        opening: opening,
-                        cashSalesGross: parseFloat(log.cashSales || 0),
-                        cashDiscounts: parseFloat(log.totalDiscounts || 0),
-                        totalExpenses: parseFloat(log.totalExpenses || 0),
-                        expectedCash: expectedCash,
-                        actualCash: actualCash,
-                        visaSalesGross: parseFloat(log.visaSales || log.cardSales || 0),
-                        visaDiscounts: 0,
-                        expectedBank: parseFloat(log.visaSales || log.cardSales || 0)
+                        opening,
+                        cashSalesGross: cashNet,
+                        cashDiscounts:  0,
+                        totalExpenses:  totalExp,
+                        expectedCash,
+                        actualCash,
+                        visaSalesGross: visaNet,
+                        visaDiscounts:  0,
+                        expectedBank:   visaNet,
+                        aggregatorSales,
+                        totalAggregator
                     };
                 }
 
-                // Otherwise, calculate from scratch (for open shifts or old logs).
-                const dayOrders = orders.filter(o => (o.shift_id || o.shiftId) === sessionId && o.status !== 'cancelled');
-                const dayExpenses = expenses.filter(e => (e.shift_id || e.shiftId) === sessionId);
+                // شيفت مفتوح أو بيانات قديمة → احسب من الأوردرات
+                const dayOrders = orders.filter(o => (o.session_id || o.shift_id || o.shiftId) === sessionId && o.status !== 'cancelled');
+                const dayExpenses = expenses.filter(e => (e.session_id || e.shift_id || e.shiftId) === sessionId);
 
                 let cashSalesGross = 0, cashDiscounts = 0;
                 let visaSalesGross = 0, visaDiscounts = 0;
+                const aggregatorSalesCalc = {}; // { companyName: amount }
 
                 dayOrders.forEach(o => {
                     const total = parseFloat(o.total || 0);
                     const discount = parseFloat(o.discount || 0);
-                    const pm = String(o.paymentMethod || o.payment || '').toLowerCase();
+                    const pm = String(o.payment_method || o.paymentMethod || o.payment || '').toLowerCase();
                     const gross = total + discount;
+                    const src = String(o.orderSource || o.order_source || '').toLowerCase();
+                    const aggId = o.aggregator_id || o.aggregatorId || '';
 
+                    // كل أوردر بيتحسب في الكاش أو الفيزا بناءً على طريقة الدفع — حتى لو من شركة توصيل
                     if (pm.includes('visa') || pm.includes('card')) {
                         visaSalesGross += gross;
                         visaDiscounts += discount;
@@ -1345,28 +1565,47 @@
                         cashSalesGross += gross;
                         cashDiscounts += discount;
                     }
+
+                    // شركات التوصيل بتتتبع بشكل منفصل (بغض النظر عن طريقة الدفع)
+                    if (src !== 'direct' && (src === 'aggregator' || aggId || (src && src !== 'cash' && src !== 'visa' && src !== 'card'))) {
+                        const companyName = aggMap[aggId] || aggId || (src !== 'direct' ? src : null) || 'توصيل';
+                        if (!aggregatorSalesCalc[companyName]) aggregatorSalesCalc[companyName] = { total: 0, count: 0 };
+                        aggregatorSalesCalc[companyName].total += total;
+                        aggregatorSalesCalc[companyName].count++;
+                    }
                 });
 
+                // aggregatorSalesCalc = { companyName: { total, count } }
+                // دمج مع log.aggregatorSales (قيم رقمية قديمة) لو فيه
+                const oldAgg = log.aggregatorSales || {};
+                const aggregatorSales = { ...aggregatorSalesCalc };
+                for (const [k, v] of Object.entries(oldAgg)) {
+                    if (!aggregatorSales[k]) aggregatorSales[k] = { total: parseFloat(v) || 0, count: 0 };
+                }
+                const totalAggregator = Object.values(aggregatorSales).reduce((s, v) => s + (v.total || parseFloat(v) || 0), 0);
+
                 const totalExpenses = dayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-                const opening = parseFloat(log.openingAmount || 0);
+                const opening = parseFloat(log.opening_balance || log.openingAmount || 0);
                 const expectedCash = opening + cashSalesGross - cashDiscounts - totalExpenses;
-                const actualCash = parseFloat(log.closingAmount || 0);
+                const actualCash = parseFloat(log.closing_balance || log.closingAmount || 0);
                 const diff = log.status === 'closed' ? actualCash - expectedCash : 0;
                 const expectedBank = visaSalesGross - visaDiscounts;
-                
+
                 return {
-                    log, 
-                    businessDate: log.businessDate || log.date, 
+                    log,
+                    businessDate: log.businessDate || log.date,
                     diff,
-                    opening, 
-                    cashSalesGross, 
-                    cashDiscounts, 
-                    totalExpenses, 
-                    expectedCash, 
-                    actualCash, 
-                    visaSalesGross, 
-                    visaDiscounts, 
-                    expectedBank
+                    opening,
+                    cashSalesGross,
+                    cashDiscounts,
+                    totalExpenses,
+                    expectedCash,
+                    actualCash,
+                    visaSalesGross,
+                    visaDiscounts,
+                    expectedBank,
+                    aggregatorSales,
+                    totalAggregator
                 };
             });
 
@@ -1395,7 +1634,7 @@
                 return `
                 <tr>
                     <td style="font-weight:600">${businessDate}</td>
-                    <td>${log.openedBy || 'Admin'}</td>
+                    <td>${log.openedBy || log.opened_by || 'Admin'}</td>
                     <td style="font-size:12px; color:#666">${openTime} - ${closeTime}</td>
                     <td>${statusBadge}</td>
                     <td>${resultBadge}</td>
@@ -1415,36 +1654,46 @@
             const data = _processedShiftsData[index];
             if (!data) return;
 
-            const { log, businessDate, opening, cashSalesGross, cashDiscounts, totalExpenses, expectedCash, actualCash, diff, visaSalesGross, visaDiscounts, expectedBank } = data;
+            const { log, businessDate, opening, cashSalesGross, cashDiscounts, totalExpenses, expectedCash, actualCash, diff, visaSalesGross, visaDiscounts, expectedBank, aggregatorSales: aggSalesFromData } = data;
 
-            const aggregatorSales = log.aggregatorSales || {};
+            // استخدم aggregatorSales المحسوبة من الأوردرات (أدق من log.aggregatorSales فقط)
+            const aggregatorSales = (aggSalesFromData && Object.keys(aggSalesFromData).length > 0)
+                ? aggSalesFromData
+                : (log.aggregatorSales || {});
+            // ═══ بناء كارت شركات التوصيل جوا المودال ═══
             let aggregatorSalesHTML = '';
-            let totalAggregatorRevenue = 0;
+            const aggEntries = Object.entries(aggregatorSales).filter(([,v]) => {
+                const t = typeof v === 'object' ? v.total : parseFloat(v);
+                return t > 0;
+            });
 
-            if (Object.keys(aggregatorSales).length > 0) {
-                aggregatorSalesHTML += `<div style="background:#fff7e6; border:1px solid #ffeacc; border-radius:8px; padding:15px; margin-top: 15px;">
-                    <h4 style="margin:0 0 10px 0; color:#d97706; font-size:14px; border-bottom:1px solid #fee8c5; padding-bottom:5px;">
+            if (aggEntries.length > 0) {
+                const totalAggRev = aggEntries.reduce((s,[,v]) => s + (typeof v === 'object' ? v.total : parseFloat(v) || 0), 0);
+                aggregatorSalesHTML = `
+                <div style="background:#fff7e6; border:1px solid #fcd34d; border-radius:8px; padding:15px; margin-top:15px;">
+                    <h4 style="margin:0 0 12px 0; color:#d97706; font-size:14px; border-bottom:1px solid #fde68a; padding-bottom:8px; display:flex; align-items:center; gap:8px;">
                         <i class="fas fa-motorcycle"></i> مستحقات شركات التوصيل
+                        <span style="background:#fde68a; color:#78350f; border-radius:10px; padding:1px 10px; font-size:12px; font-weight:700; margin-right:auto;">${aggEntries.length} منصة</span>
                     </h4>
-                    <div class="calc-table">`;
-
-                for (const companyName in aggregatorSales) {
-                    const amount = aggregatorSales[companyName];
-                    if (amount > 0) {
-                        totalAggregatorRevenue += amount;
-                        aggregatorSalesHTML += `<div class="calc-row">
-                            <span class="calc-label" style="color:#92400e">مبيعات ${companyName}</span>
-                            <span class="calc-val" style="color:#92400e">${Utils.formatCurrency(amount)}</span>
-                        </div>`;
-                    }
-                }
-
-                aggregatorSalesHTML += `<div style="border-top:1px dashed #fcd34d; margin:8px 0;"></div>
-                    <div class="result-row" style="color:#78350f">
-                        <span>المتوقع من شركات التوصيل:</span>
-                        <span class="calc-val">${Utils.formatCurrency(totalAggregatorRevenue)}</span>
+                    <div class="calc-table">
+                        ${aggEntries.map(([name, v]) => {
+                            const tot = typeof v === 'object' ? v.total : parseFloat(v) || 0;
+                            const cnt = typeof v === 'object' ? v.count : 0;
+                            return `<div class="calc-row" style="align-items:center;">
+                                <span class="calc-label" style="color:#92400e; display:flex; align-items:center; gap:6px;">
+                                    ${name}
+                                    ${cnt > 0 ? `<span style="background:#fef3c7; color:#b45309; border-radius:8px; padding:0 8px; font-size:11px; font-weight:700;">${cnt} طلب</span>` : ''}
+                                </span>
+                                <span class="calc-val" style="color:#92400e; font-weight:700;">${Utils.formatCurrency(tot)}</span>
+                            </div>`;
+                        }).join('')}
+                        <div style="border-top:1px dashed #fcd34d; margin:10px 0 4px;"></div>
+                        <div class="result-row" style="color:#78350f; font-weight:700;">
+                            <span>الإجمالي من التوصيل:</span>
+                            <span class="calc-val">${Utils.formatCurrency(totalAggRev)}</span>
+                        </div>
                     </div>
-                </div></div>`;
+                </div>`;
             }
 
             const openTime = (log.openedAt || log.createdAt) ? new Date(log.openedAt || log.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : '--:--';
@@ -1581,7 +1830,10 @@
         async function loadExpensesHistory() {
             const regBody = document.getElementById('regularExpensesHistoryTable');
             const empBody = document.getElementById('employeesExpensesHistoryTable');
-            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            let expenses = [];
+            try {
+                if (window.DBService) expenses = await window.DBService.getExpenses({});
+            } catch(e) { console.warn('loadExpensesHistory: expenses load failed', e); }
             expenses.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             const regExp = [], empExp = [];
             expenses.forEach(e => { 
@@ -1598,7 +1850,26 @@
 
         async function loadTopProducts() {
             const tbody = document.getElementById('topProductsTableBody');
-            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            // آخر 90 يوم عشان نطلع أكتر منتجات مبيعاً بشكل معقول
+            const _toYMD3 = (d) => {
+                const eg = new Date((d instanceof Date ? d : new Date(d)).toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+                return `${eg.getFullYear()}-${String(eg.getMonth()+1).padStart(2,'0')}-${String(eg.getDate()).padStart(2,'0')}`;
+            };
+            const _to3   = _toYMD3(new Date());
+            const _from3 = (() => { const d=new Date(); d.setDate(d.getDate()-90); return _toYMD3(d); })();
+            let orders = [];
+            try {
+                if (window.DBService) {
+                    orders = await window.DBService.getOrders({ fromDate: _from3, toDate: _to3 });
+                } else if (window.FirestoreService && window.FirestoreService.getOrdersByDateRange) {
+                    orders = await window.FirestoreService.getOrdersByDateRange(_from3, _to3);
+                } else {
+                    orders = [];
+                }
+            } catch(e) {
+                console.warn('loadTopProducts: orders load failed', e);
+                orders = [];
+            }
             const stats = {};
             orders.forEach(o => { if(o.status !== 'cancelled') (o.items||[]).forEach(i => stats[i.name||'Unknown'] = (stats[i.name||'Unknown']||0) + (parseFloat(i.quantity)||1)); });
             const sorted = Object.entries(stats).sort((a,b) => b[1] - a[1]).slice(0, 10);

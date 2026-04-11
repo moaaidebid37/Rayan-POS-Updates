@@ -32,7 +32,7 @@
      // الميجا (كل حاجة حرفياً) 
      mega:  ['pos', 'orders', 'kitchen', 'settings', 'reports', 'inventory',
              'customers', 'marketing', 'suppliers', 'employees', 'aggregators',
-             'whatsapp', 'dashboard', 'bulk_messages', 'advanced_reports', 'multi_branch'], 
+             'whatsapp', 'dashboard', 'bulk_messages', 'advanced_reports', 'multi_branch', 'kds'],
    }; 
 
   const PLAN_LABELS = {
@@ -120,6 +120,8 @@
       CACHE_KEY,            // saas_cache_v3
       'saas_plan',
       'solo_onboarding_done',
+      HW_KEY,               // solo_saas_hw_id — لا تمسح الـ Hardware ID أبداً
+      '_saasUid',
     ]);
     Object.keys(localStorage)
       .filter(k => !SAAS_KEYS.has(k))
@@ -220,31 +222,84 @@
 
     // سجّل بيانات المستخدم مع الـ PIN والدور
     const ownerPin = _pin;
-    await db.collection('users').doc(uid).set({
+    const ownerUser = {
       uid,
-      name:        sub.displayName,
-      email:       sub.email,
-      phone:       sub.phone,
-      displayName: sub.displayName,
-      restaurant:  sub.restaurant,
-      createdAt:   sub.createdAt,
-      role:        'owner',
-      active:      true,
+      name:         sub.displayName || sub.restaurant || 'المالك',
+      email:        sub.email,
+      phone:        sub.phone,
+      displayName:  sub.displayName || sub.restaurant || 'المالك',
+      restaurant:   sub.restaurant,
+      restaurantId: uid,   // ← مهم! عشان يظهر في queries الـ tenant-scoped
+      createdAt:    sub.createdAt,
+      role:         'owner',
+      active:       true,
+      permissions:  ['all'],  // المالك عنده صلاحية لكل حاجة
       ...(ownerPin ? { pin: ownerPin } : {}),
-    }, { merge: true });
+    };
+    await db.collection('users').doc(uid).set(ownerUser, { merge: true });
+
+    // حفظ في localStorage كمان عشان يظهر فوراً في الإعدادات
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const existingIdx = localUsers.findIndex(u => u.id === uid);
+      const userWithId = { ...ownerUser, id: uid };
+      if (existingIdx >= 0) localUsers[existingIdx] = userWithId;
+      else localUsers.push(userWithId);
+      localStorage.setItem('users', JSON.stringify(localUsers));
+    } catch(e) {}
 
     return sub;
   }
 
   async function _updateLastVerified(uid, hwId) {
     try {
-      const db = await window.firestoreReady;
+      const db  = await window.firestoreReady;
+      const now = new Date().toISOString();
+
       await db.collection('subscriptions').doc(uid).update({
-        lastVerified: new Date().toISOString(),
-        // أضف الـ HW ID لو مش موجود
-        hardwareIds: firebase.firestore.FieldValue.arrayUnion(hwId),
+        lastVerified: now,
+        hardwareIds:  firebase.firestore.FieldValue.arrayUnion(hwId),
       });
+
+      // ── Anti-Fraud: سجّل كل login بـ hwId + timestamp ─────────────────────
+      if (hwId) {
+        await db.collection('subscriptions').doc(uid)
+          .collection('login_events').add({
+            hwId,
+            ts:        firebase.firestore.FieldValue.serverTimestamp(),
+            platform:  navigator.platform || 'unknown',
+          });
+
+        // ── اكتشاف تلاعب: أكتر من 3 أجهزة مختلفة في آخر 24 ساعة ──────────
+        await _checkFraud(db, uid, hwId);
+      }
     } catch (e) { /* مش حرج لو فشل */ }
+  }
+
+  // ── Anti-Fraud: راقب التلاعب وأشعر الأدمن ─────────────────────────────────
+  async function _checkFraud(db, uid, currentHwId) {
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000); // آخر 24 ساعة
+      const snap  = await db.collection('subscriptions').doc(uid)
+        .collection('login_events')
+        .where('ts', '>=', since)
+        .get();
+
+      // الأجهزة المختلفة اللي سجّلت دخول في آخر 24 ساعة
+      const uniqueHwIds = new Set(snap.docs.map(d => d.data().hwId).filter(Boolean));
+      uniqueHwIds.add(currentHwId);
+
+      if (uniqueHwIds.size >= 4) {
+        // 🚨 أكتر من 3 أجهزة في 24h → احتمال مشاركة أو تلاعب
+        await db.collection('subscriptions').doc(uid).update({
+          fraudFlag:       true,
+          fraudReason:    `${uniqueHwIds.size} devices in 24h`,
+          fraudDetectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          fraudDevices:    [...uniqueHwIds],
+        });
+        console.warn(`🚨 [Anti-Fraud] uid=${uid} — ${uniqueHwIds.size} different devices in 24h`);
+      }
+    } catch (e) { /* silent */ }
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -386,25 +441,41 @@
       if (!navigator.onLine) return;
       await _waitForFirebaseAuth(5000);
       const user = firebase.auth().currentUser;
-      if (!user) return;
+      if (!user) {
+        // 🔧 لو مفيش يوزر في Firebase بس isLoggedIn موجود → الحساب اتمسح
+        // نمسح الفلاجز عشان المرة الجاية يروح لشاشة تسجيل الدخول
+        console.warn('⚠️ No Firebase user found — account may have been deleted');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem('saas_plan');
+        localStorage.removeItem('_saasUid');
+        return;
+      }
       _state.uid = user.uid;
       localStorage.setItem('_saasUid', user.uid); // 🔒 fallback للـ firestore_service
       if (navigator.onLine) {
         let sub = await _fetchSubscriptionFromFirestore(user.uid);
         if (!sub) {
-          // لو المستخدم اختار "تسجيل دخول" (مش إنشاء حساب) ومعموله حساب — اعرض خطأ
-          if (localStorage.getItem('_soloAuthMode') === 'login') {
-            _showAccountNotFoundScreen();
-            return;
+          // 🔧 الحساب اتمسح من الأدمن بانل — نمسح الفلاجز المحلية
+          // بدل ما نعرض blocking screen ونعطل اليوزر
+          console.warn('⚠️ No subscription found for user — account may have been deleted from admin panel');
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem(CACHE_KEY);
+          localStorage.removeItem('saas_plan');
+          // نعمل sign out من Firebase
+          try { await firebase.auth().signOut(); } catch(_) {}
+          // نعرض رسالة بسيطة بدل blocking screen
+          if (typeof Notification !== 'undefined' && typeof Notification.error === 'function') {
+            Notification.error('تم حذف حسابك. سيتم تحويلك لشاشة تسجيل الدخول عند إعادة تشغيل التطبيق.');
           }
-          sub = await _registerNewUser(user.uid, hwId);
-          if (!sub) return; // رقم مكرر — _registerNewUser عرض الشاشة وعمل signOut
-        } else {
-          await _updateLastVerified(user.uid, hwId);
-          // أضف hwId للـ sub المحلي عشان _buildState يشوف الجهاز الحالي صحيح
-          if (!sub.hardwareIds) sub.hardwareIds = [];
-          if (hwId && !sub.hardwareIds.includes(hwId)) sub.hardwareIds.push(hwId);
+          return;
         }
+
+        await _updateLastVerified(user.uid, hwId);
+        // أضف hwId للـ sub المحلي عشان _buildState يشوف الجهاز الحالي صحيح
+        if (!sub.hardwareIds) sub.hardwareIds = [];
+        if (hwId && !sub.hardwareIds.includes(hwId)) sub.hardwareIds.push(hwId);
+
         // ── فحص القفل عن بُعد (Remote Lock) ──────────────────────────────
         if (sub.locked === true) {
           console.warn('🔒 Account locked by admin');
@@ -424,12 +495,16 @@
         localStorage.setItem('saas_plan', _state.plan || 'trial');
         console.log('✅ Background verify done — plan:', _state.plan);
 
-        // ── لو الباقة اتغيرت (مثلاً من Admin Panel) → ريلود الصفحة ──
+        // ── لو الباقة اتغيرت (مثلاً من Admin Panel) → تحديث بدون ريلود ──
         if (oldPlan && _state.plan !== oldPlan) {
-          console.log(`🔄 Plan changed: ${oldPlan} → ${_state.plan} — reloading...`);
+          console.log(`🔄 Plan changed: ${oldPlan} → ${_state.plan}`);
           _writeAuditEvent(user.uid, 'plan_changed',
             `تغيير الباقة من ${oldPlan} إلى ${_state.plan}`);
-          setTimeout(() => window.location.reload(), 800);
+          // تحديث الـ feature gates بدل ريلود الصفحة عشان منقفلش أي مودال مفتوح
+          _applyFeatureGates();
+          if (typeof Notification !== 'undefined' && typeof Notification.success === 'function') {
+            Notification.success(`تم تحديث باقتك إلى ${PLAN_LABELS[_state.plan] || _state.plan}`);
+          }
         }
       }
     } catch(e) { console.warn('Background verify error:', e.message); }
@@ -537,6 +612,25 @@
 
     // ── الحل الجذري: لو isLoggedIn موجود — افتح البرنامج فوراً ──────
     if (localStorage.getItem('isLoggedIn') === 'true') {
+      // 🔧 تحقق سريع من وجود الحساب في Firebase قبل عرض PIN
+      if (navigator.onLine) {
+        try {
+          await _waitForFirebaseAuth(3000);
+          const fbUser = firebase.auth().currentUser;
+          if (!fbUser) {
+            console.warn('⚠️ Account deleted — clearing local auth flags');
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem(CACHE_KEY);
+            localStorage.removeItem('saas_plan');
+            localStorage.removeItem('_saasUid');
+            _state = { ..._state, isReady: true, isLoggedIn: false };
+            _showAuthScreen();
+            return false;
+          }
+        } catch(e) {
+          console.warn('Firebase quick check failed, proceeding to PIN:', e.message);
+        }
+      }
       // لو الـ PIN لم يُتحقق منه في هذه الجلسة → وجّه لشاشة الـ PIN
       if (!sessionStorage.getItem('isPinVerified') && !window.location.pathname.includes('login')) {
         window.location.href = 'login.html';
@@ -574,6 +668,11 @@
     // كـ fallback حتى لو firebase.auth().currentUser لسه ما اتحملش
     localStorage.setItem('_saasUid', user.uid);
 
+    // 🧹 امسح أي بيانات tenants تانية من الكاش المحلي فوراً عند اللوجين
+    if (typeof window._sanitizeTenantCache === 'function') {
+      window._sanitizeTenantCache(user.uid);
+    }
+
     // 🔄 Migration: أضف restaurantId لكل الـ docs القديمة (مرة واحدة بس)
     _migrateRestaurantId(user.uid);
 
@@ -596,6 +695,9 @@
           // أضف hwId للـ sub المحلي عشان _buildState يشوف الجهاز الحالي صحيح
           if (!sub.hardwareIds) sub.hardwareIds = [];
           if (hwId && !sub.hardwareIds.includes(hwId)) sub.hardwareIds.push(hwId);
+
+          // 🔧 تأكد إن الـ owner user موجود في Firestore (حسابات قديمة ممكن يكون ناقصها)
+          _ensureOwnerUser(user.uid, sub);
         }
 
         _saveCache({ ...sub, uid: user.uid });
@@ -655,6 +757,45 @@
           console.log(`✅ Migration done: ${totalMigrated} docs stamped with restaurantId`);
       } catch (e) { console.warn('Migration error:', e); }
     }, 3000); // 3 ثواني تأخير عشان مش تعطل الـ startup
+  }
+
+  // 🔧 تأكد إن يوزر المالك موجود في Firestore (للحسابات القديمة اللي اتعملت قبل الإصلاح)
+  async function _ensureOwnerUser(uid, sub) {
+    setTimeout(async () => {
+      try {
+        const db = await window.firestoreReady;
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (!userDoc.exists || !userDoc.data().restaurantId) {
+          const ownerPin = localStorage.getItem('solo_user_pin') || '';
+          const ownerData = {
+            uid,
+            name:         sub.displayName || sub.restaurant || 'المالك',
+            displayName:  sub.displayName || sub.restaurant || 'المالك',
+            email:        sub.email || '',
+            phone:        sub.phone || localStorage.getItem('solo_user_phone') || '',
+            restaurant:   sub.restaurant || '',
+            restaurantId: uid,
+            createdAt:    sub.createdAt || new Date().toISOString(),
+            role:         'owner',
+            active:       true,
+            permissions:  ['all'],
+            ...(ownerPin ? { pin: ownerPin } : {}),
+          };
+          await db.collection('users').doc(uid).set(ownerData, { merge: true });
+          console.log('✅ Owner user ensured in Firestore with restaurantId');
+
+          // تحديث localStorage
+          try {
+            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const existingIdx = localUsers.findIndex(u => u.id === uid);
+            const userWithId = { ...ownerData, id: uid };
+            if (existingIdx >= 0) localUsers[existingIdx] = userWithId;
+            else localUsers.push(userWithId);
+            localStorage.setItem('users', JSON.stringify(localUsers));
+          } catch(e) {}
+        }
+      } catch (e) { console.warn('⚠️ ensureOwnerUser:', e.message); }
+    }, 2000); // تأخير خفيف عشان مش يحجب الـ startup
   }
 
   async function _waitForFirebaseAuth(timeout = 15000) {
@@ -903,6 +1044,7 @@
       advanced_reports:'التقارير التحليلية',
       multi_branch:    'الفروع المتعددة',
       bulk_messages:   'الرسائل الجماعية',
+      kds:             'شاشة المطبخ KDS',
     };
     // الباقة المطلوبة لكل ميزة
     const featureRequiredPlan = {
@@ -918,6 +1060,7 @@
       advanced_reports:'Mega',
       multi_branch:    'Mega',
       bulk_messages:   'Mega',
+      kds:             'Mega',
     };
     const label       = featureLabels[feature]       || feature;
     const planNeeded  = featureRequiredPlan[feature] || null;
@@ -985,15 +1128,14 @@
       if (!feature) return;
 
       if (!canUse(feature)) {
-        // تعتيم العنصر
-        item.style.opacity    = '0.42';
-        item.style.cursor     = 'not-allowed';
+        // تنسيق العنصر المقفول — أحمر واضح بدل التعتيم
+        item.style.cssText += ';cursor:not-allowed;background:rgba(231,76,60,0.06);border-right:3px solid #e74c3c;color:#c0392b;';
 
-        // إضافة أيقونة القفل (مرة واحدة)
+        // أيقونة القفل الحمراء (مرة واحدة)
         if (!item.querySelector('.saas-lock')) {
           const lockIcon = document.createElement('i');
           lockIcon.className = 'fas fa-lock saas-lock';
-          lockIcon.style.cssText = 'font-size:10px;color:#e74c3c;margin-right:auto;flex-shrink:0;';
+          lockIcon.style.cssText = 'font-size:13px;color:#e74c3c;margin-right:auto;flex-shrink:0;filter:drop-shadow(0 0 2px rgba(231,76,60,0.4));';
           item.appendChild(lockIcon);
         }
 

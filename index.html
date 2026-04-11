@@ -6,6 +6,10 @@
     <title>الرئيسية</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- 🚀 Preload Firebase CDN scripts عشان الـ download يبدأ من أول ما الـ head يتحمل -->
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js">
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js">
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="fontawesome/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
@@ -391,6 +395,12 @@
             text-align: center;
             font-size: 16px;
         }
+        /* إخفاء أسهم الـ number input */
+        .quantity-value::-webkit-outer-spin-button,
+        .quantity-value::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
         
         .cart-item-remove {
             background: none;
@@ -532,11 +542,13 @@
         }
         
         .modal-close {
-            color: #999999;
+            color: #ef4444;
+            font-size: 22px;
+            font-weight: 700;
         }
-        
+
         .modal-close:hover {
-            color: #000000;
+            color: #dc2626;
         }
         
         #variantOptions .btn.active {
@@ -752,6 +764,79 @@
 .category-tab {
     width: 100%;
 }
+
+/* ═══ KDS Badge Pulse ═══ */
+@keyframes kdsBadgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes kdsReadyGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(52, 199, 89, 0.2); }
+}
+
+#kdsReadyBtn.has-ready {
+    border-color: #34c759 !important;
+    background: #f0faf3 !important;
+    animation: kdsReadyGlow 2s infinite;
+}
+
+.kds-ready-order-card {
+    background: #f8f9fa;
+    border: 2px solid #34c759;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.kds-ready-order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.kds-ready-order-id {
+    font-size: 18px;
+    font-weight: 800;
+    color: #34c759;
+}
+
+.kds-ready-order-time {
+    font-size: 12px;
+    color: #999;
+}
+
+.kds-ready-order-items {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.kds-ready-deliver-btn {
+    width: 100%;
+    padding: 12px;
+    background: #34c759;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Cairo';
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.kds-ready-deliver-btn:hover { background: #2db84e; }
+.kds-ready-deliver-btn:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -860,9 +945,12 @@
                     <div class="dashboard-card-value" id="todayOrders">0</div>
                     <span class="dashboard-card-badge badge-info" id="todayOrdersBadge">0%</span>
                 </div>
-                <div class="dashboard-card">
-                    <div class="dashboard-card-title">إجمالي الإيرادات</div>
-                    <div class="dashboard-card-value" id="totalRevenue">ج.م 0</div>
+                <div class="dashboard-card" onclick="_toggleSecureCard(event)">
+                    <div class="dashboard-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>إجمالي الإيرادات</span>
+                        <i class="fas fa-eye-slash _secure-icon" style="color:#ccc;font-size:12px;cursor:pointer;"></i>
+                    </div>
+                    <div class="dashboard-card-value _secure-value" id="totalRevenue" data-real="">****</div>
                     <span class="dashboard-card-badge badge-success" id="totalRevenueBadge">0%</span>
                 </div>
                 <div class="dashboard-card" style="position: relative;">
@@ -876,9 +964,12 @@
                     <div class="dashboard-card-value" id="todayExpenses">ج.م 0</div>
                     <span class="dashboard-card-badge badge-info" id="todayExpensesBadge">0%</span>
                 </div>
-                <div class="dashboard-card">
-                    <div class="dashboard-card-title">صافي الكاش</div>
-                    <div class="dashboard-card-value" id="netRevenue">ج.م 0</div>
+                <div class="dashboard-card" onclick="_toggleSecureCard(event)">
+                    <div class="dashboard-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>صافي الكاش</span>
+                        <i class="fas fa-eye-slash _secure-icon" style="color:#ccc;font-size:12px;cursor:pointer;"></i>
+                    </div>
+                    <div class="dashboard-card-value _secure-value" id="netRevenue" data-real="">****</div>
                     <span class="dashboard-card-badge badge-success" id="netRevenueBadge">0%</span>
                 </div>
             </div>
@@ -886,6 +977,13 @@
             <div class="cart-section">
                 <div class="cart-header">
                     <h3>سلة الطلبات</h3>
+                </div>
+                <!-- ═══ KDS Ready Orders Button (Mega Only) ═══ -->
+                <div id="kdsCartButtons" style="display: none; margin-bottom: 10px; padding: 0 2px;">
+                    <button id="kdsReadyBtn" onclick="openKDSReadyOrders()" style="width: 100%; padding: 12px; background: #fff; color: #000; border: 2px solid #e8e8e8; border-radius: 12px; font-family: 'Cairo'; font-size: 14px; font-weight: 700; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s; position: relative;">
+                        🔔 طلبات جاهزة
+                        <span id="kdsReadyBadge" style="display: none; position: absolute; top: -6px; left: -6px; background: #34c759; color: #fff; min-width: 22px; height: 22px; border-radius: 11px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; animation: kdsBadgePulse 1s infinite;">0</span>
+                    </button>
                 </div>
                 <div id="cartCustomerSection" style="margin-bottom: 15px;">
                     <div id="searchCustomerState" style="display: flex; gap: 8px; position: relative; z-index: 50;"> 
@@ -939,14 +1037,23 @@
                     <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #000000; font-size: 13px;">رقم الطاولة</label>
                     <input type="number" id="tableNumber" min="1" step="1" value="" placeholder="أدخل رقم الطاولة" style="width: 100%; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 10px; background: #ffffff; color: #000000; font-size: 13px;">
                 </div>
-                <div style="margin-top: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
-                    <button type="button" onclick="openPriceAdjustmentModal()" class="btn" style="width: 100%; background: #f8f9fa; border: 2px dashed #000000; color: #000000; font-weight: 700; padding: 12px; border-radius: 12px; display: flex; justify-content: center; gap: 8px; align-items: center; transition: all 0.3s ease;">
-                        <i class="fas fa-balance-scale"></i> تعديل السعر / خصم
-                    </button>
-                </div>
+                <div id="priceAdjustmentContainer" style="display: none; margin-top: var(--spacing-sm); margin-bottom: var(--spacing-sm);"> 
+    <button type="button" onclick="openPriceAdjustmentModal()" class="btn" style="width: 100%; background: #f8f9fa; border: 2px dashed #000000; color: #000000; font-weight: 700; padding: 12px; border-radius: 12px; display: flex; justify-content: center; gap: 8px; align-items: center; transition: all 0.3s ease;"> 
+        <i class="fas fa-balance-scale"></i> تعديل السعر / خصم 
+    </button> 
+</div>
                 <div class="delivery-fee-input" id="deliveryFeeInput" style="display: none; margin-bottom: var(--spacing-sm);">
                     <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #000000; font-size: 13px;">سعر التوصيل (ج.م)</label>
                     <input type="number" id="deliveryFee" min="0" step="0.01" value="0" placeholder="0.00" style="width: 100%; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 10px; background: #ffffff; color: #000000; font-size: 13px;" oninput="updateCart()">
+                </div>
+                <!-- ═══ ملاحظات الطلب ═══ -->
+                <div id="orderNotesContainer" style="display: none; margin-bottom: var(--spacing-sm);">
+                    <div style="position: relative;">
+                        <textarea id="orderNotes" placeholder="ملاحظات للمطبخ... (مثال: بدون بصل، زيادة صوص)"
+                            style="width: 100%; padding: 10px 14px; border: 1.5px solid #e8e8e8; border-radius: 12px; background: #fffbeb; color: #333; font-family: 'Cairo'; font-size: 13px; resize: none; height: 56px; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='#e8e8e8'"></textarea>
+                        <i class="fas fa-sticky-note" style="position: absolute; top: 12px; left: 12px; color: #f59e0b; font-size: 13px;"></i>
+                    </div>
                 </div>
                 <div class="cart-summary" id="cartSummary" style="display: none;">
                     <div class="summary-row" id="deliveryFeeRow" style="display: none;">
@@ -977,6 +1084,43 @@
             </div>
         </div>
     </main>
+
+    <!-- ═══ KDS Connect Modal ═══ -->
+    <div class="modal" id="kdsModal">
+        <div class="modal-content" style="max-width: 480px; text-align: center; padding: 30px;">
+            <div class="modal-header" style="border: none; justify-content: center; position: relative;">
+                <h3 style="margin: 0; font-size: 22px;">ربط شاشة المطبخ KDS</h3>
+                <button class="modal-close" onclick="document.getElementById('kdsModal').classList.remove('active')" style="position: absolute; left: 0; top: 0;">×</button>
+            </div>
+            <p style="color: #666; font-size: 14px; margin: 8px 0 20px;">امسح الـ QR Code من تابلت المطبخ أو أدخل الرابط يدوياً</p>
+            <div id="kdsQRContainer" style="display: flex; justify-content: center; margin-bottom: 20px;">
+                <div style="background: #fff; padding: 16px; border-radius: 16px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                    <img id="kdsQRImage" src="" alt="QR Code" style="width: 220px; height: 220px; display: block;">
+                </div>
+            </div>
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <input id="kdsUrlText" readonly style="flex: 1; border: none; background: none; font-family: 'Cairo'; font-size: 14px; font-weight: 600; color: #000; direction: ltr; text-align: center; outline: none;" value="جاري التحميل...">
+                <button onclick="copyKDSUrl()" style="background: #000; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: 'Cairo'; font-size: 13px; font-weight: 600; cursor: pointer;">نسخ</button>
+            </div>
+            <div id="kdsDevicesInfo" style="display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; font-size: 13px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #ccc;" id="kdsDeviceDot"></span>
+                <span id="kdsDevicesText">لا توجد أجهزة متصلة</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ KDS Ready Orders Modal ═══ -->
+    <div class="modal" id="kdsReadyModal">
+        <div class="modal-content" style="max-width: 500px; padding: 24px;">
+            <div class="modal-header" style="border: none;">
+                <h3 style="margin: 0;">🔔 طلبات جاهزة للتسليم</h3>
+                <button class="modal-close" onclick="document.getElementById('kdsReadyModal').classList.remove('active')">×</button>
+            </div>
+            <div id="kdsReadyList" style="max-height: 400px; overflow-y: auto; margin-top: 16px;">
+                <div style="text-align: center; color: #999; padding: 40px;">لا توجد طلبات جاهزة</div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal" id="variantModal">
         <div class="modal-content">
@@ -1020,11 +1164,11 @@
         </div>
     </div>
     
-    <div class="modal" id="openCashDrawerModal">
+    <div class="modal" id="openCashDrawerModal" onclick="if(event.target===this)closeOpenCashDrawerModal()">
         <div class="modal-content" style="max-width: 450px; text-align: center;">
             <div class="modal-header">
                 <h3 class="modal-title">فتح الدرج النقدي</h3>
-                <button class="modal-close" onclick="closeOpenCashDrawerModal()">×</button>
+                <button class="modal-close" onclick="closeOpenCashDrawerModal()" style="color:#ef4444; font-size:22px; font-weight:700;">×</button>
             </div>
             <form id="openCashDrawerForm" onsubmit="handleOpenCashDrawer(event)" style="padding: var(--spacing-lg);">
                 <div class="form-group" style="margin-bottom: var(--spacing-lg);">
@@ -1038,54 +1182,78 @@
         </div>
     </div>
     
-    <div class="modal" id="closeCashDrawerModal">
+    <div class="modal" id="closeCashDrawerModal" onclick="if(event.target===this)closeCloseCashDrawerModal()">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="modal-title">إغلاق الدرج النقدي</h3>
-                <button class="modal-close" onclick="closeCloseCashDrawerModal()">×</button>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button id="_modalSecureBtn" onclick="_toggleModalSecure()" title="إظهار/إخفاء الأرقام" style="background:none;border:1px solid #e8e8e8;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px;color:#64748b;display:flex;align-items:center;gap:5px;">
+                        <i id="_modalSecureIcon" class="fas fa-eye-slash"></i>
+                    </button>
+                    <button class="modal-close" onclick="closeCloseCashDrawerModal()">×</button>
+                </div>
             </div>
             <div style="padding: var(--spacing-lg);">
-                <div style="background: #fafafa; padding: var(--spacing-lg); border-radius: 12px; margin-bottom: var(--spacing-lg);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
-                        <span style="color: #666666; font-size: 14px;">المبلغ الابتدائي:</span>
-                        <strong style="color: #000000; font-size: 14px;" id="closeOpeningAmount">0.00 ج.م</strong>
+                <!-- ══ قسم الكاش ════════════════════════════════════════════ -->
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
+                    <div style="font-weight: 700; color: #15803d; font-size: 13px; margin-bottom: 10px; letter-spacing: 0.5px;">💵 مبيعات الكاش</div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:#15803d; font-weight:700; font-size:14px;">إجمالي الكاش:</span>
+                        <strong style="color:#15803d; font-size:15px;" id="closeCashNet" class="_ms-val">****</strong>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;"> 
-                        <span style="color: #666666; font-size: 14px;">إجمالي مبيعات النقد:</span> 
-                        <strong style="color: #000000; font-size: 14px;" id="closeCashSales">0.00 ج.م</strong> 
-                    </div> 
-                     <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;"> 
-                         <span style="color: #666666; font-size: 14px;">إجمالي الخصومات الممنوحة:</span> 
-                         <strong style="color: #e74c3c; font-size: 14px;" id="closeTotalDiscounts">0.00 ج.م</strong> 
-                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
-                        <span style="color: #666666; font-size: 14px;">إجمالي المصاريف النقدية:</span>
-                        <strong style="color: #e74c3c; font-size: 14px;" id="closeTotalExpenses">0.00 ج.م</strong>
-                    </div>
+                    <span id="closeCashGross" style="display:none;"></span>
+                    <span id="closeCashDiscount" style="display:none;"></span>
+                    <div id="closeCashDiscountRow" style="display:none;"></div>
+                </div>
 
-                    <div style="display: flex; justify-content: space-between; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 2px solid #e8e8e8;">
-                        <span style="color: #000000; font-weight: 700; font-size: 16px;">المبلغ المتوقع في الدرج:</span>
-                        <strong style="color: #000000; font-weight: 800; font-size: 18px;" id="closeExpectedAmount">0.00 ج.م</strong>
+                <!-- ══ قسم الفيزا ════════════════════════════════════════════ -->
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;">
+                    <div style="font-weight: 700; color: #1d4ed8; font-size: 13px; margin-bottom: 10px; letter-spacing: 0.5px;">💳 مبيعات الفيزا</div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:#1d4ed8; font-weight:700; font-size:14px;">إجمالي الفيزا:</span>
+                        <strong style="color:#1d4ed8; font-size:15px;" id="closeVisaNet" class="_ms-val">****</strong>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid #e8e8e8;">
-                        <span style="color: #666666; font-size: 14px;">إجمالي مبيعات الفيزا:</span>
-                        <strong style="color: #3498DB; font-size: 14px;" id="closeVisaSalesDisplay">0.00 ج.م</strong>
+                    <span id="closeVisaGross" style="display:none;"></span>
+                    <span id="closeVisaDiscount" style="display:none;"></span>
+                    <div id="closeVisaDiscountRow" style="display:none;"></div>
+                </div>
+
+                <!-- ══ التوصيل ═══════════════════════════════════════════════ -->
+                <div id="aggregatorSalesContainer" style="display:none; background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+                    <!-- Aggregator sales will be injected here -->
+                </div>
+
+                <!-- ══ ملخص الدرج ══════════════════════════════════════════════ -->
+                <div style="background: #fafafa; border: 1px solid #e8e8e8; border-radius: 12px; padding: 14px 16px; margin-bottom: var(--spacing-lg);">
+                    <div style="font-weight: 700; color: #333; font-size: 13px; margin-bottom: 10px;">📋 ملخص الدرج النقدي</div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="color:#555; font-size:13px;">المبلغ الابتدائي:</span>
+                        <strong style="color:#1a1a1a; font-size:13px;" id="closeOpeningAmount" class="_ms-val">****</strong>
                     </div>
-                    <div id="aggregatorSalesContainer" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px dashed #cccccc;">
-                        <!-- Aggregator sales will be injected here -->
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="color:#555; font-size:13px;">+ إجمالي الكاش:</span>
+                        <strong style="color:#15803d; font-size:13px;" id="closeCashNetSummary" class="_ms-val">****</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="color:#e74c3c; font-size:13px;">- المصاريف النقدية:</span>
+                        <strong style="color:#e74c3c; font-size:13px;" id="closeTotalExpenses" class="_ms-val">****</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding-top:10px; border-top:2px solid #333; margin-top:4px;">
+                        <span style="color:#000; font-weight:700; font-size:15px;">المبلغ المتوقع في الدرج:</span>
+                        <strong style="color:#000; font-weight:800; font-size:18px;" id="closeExpectedAmount" class="_ms-val">****</strong>
                     </div>
                 </div>
                 
-                <form id="closeCashDrawerForm" onsubmit="handleCloseCashDrawer(event)">
+                <form id="closeCashDrawerForm">
                     <div class="form-group" style="margin-bottom: var(--spacing-lg);">
                         <label class="label" style="display: block; margin-bottom: 8px; color: #000000; font-weight: 600; font-size: 14px;">المبلغ الفعلي في الدرج (ج.م) *</label>
-                        <input type="number" class="input" id="closingAmount" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 16px; font-weight: 700; text-align: center;" oninput="calculateDifference()">
+                        <input type="number" class="input" id="closingAmount" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 12px; background: #ffffff; color: #000000; font-size: 16px; font-weight: 700; text-align: center;" oninput="calculateDifference()" onkeydown="return event.key!=='-'">
                     </div>
                     
                     <div style="background: #fafafa; padding: var(--spacing-lg); border-radius: 12px; margin-bottom: var(--spacing-lg);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #000000; font-weight: 700; font-size: 16px;">الفرق:</span>
-                            <strong style="color: #000000; font-weight: 800; font-size: 20px;" id="closeDifference">0.00 ج.م</strong>
+                            <strong style="color: #000000; font-weight: 800; font-size: 20px;" id="closeDifference" class="_ms-val">****</strong>
                         </div>
                     </div>
                     
@@ -1190,7 +1358,7 @@
     </div>
 
     <!-- Add Expense Modal -->
-    <div class="modal" id="addExpenseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="modal" id="addExpenseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10000; align-items: center; justify-content: center;" onclick="if(event.target===this)closeAddExpenseModal()">
         <div class="modal-content" style="background: #ffffff; border-radius: 16px; padding: var(--spacing-lg); max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
                 <h3 style="color: #000000; font-weight: 700; font-size: 20px; margin: 0;">إضافة مصروف</h3>
@@ -1230,6 +1398,7 @@
     <script src="js/firebase.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <!-- activation.js معطّل — النظام بيستخدم SaaS بدلاً منه -->
     <!-- <script src="js/activation.js"></script> -->
@@ -1363,27 +1532,25 @@
 <script>
 // دالة تحديد حالة الصنف (أحمر/أصفر/جيد)
 function getItemStatus(item) {
-    const stock = parseFloat(item.stock ?? item.current_stock ?? 0);
-    const redLimit = parseFloat(item.criticalStockLimit ?? item.minThreshold ?? 0);
-    const yellowLimit = parseFloat(item.warningThreshold ?? 0);
+    // ingredients بتستخدم quantity، menu items بتستخدم stock
+    const stock = parseFloat(item.quantity ?? item.stock ?? item.current_stock ?? 0);
+    const redLimit = parseFloat(item.criticalStockLimit ?? item.min_quantity ?? item.minThreshold ?? 0);
+    const yellowLimit = parseFloat(item.warningThreshold ?? item.warning_threshold ?? 0);
+
+    // لو مفيش حدود مضبوطة أصلاً — مش تنبيه
+    if (redLimit <= 0 && yellowLimit <= 0) return 'good';
 
     // إذا وصل للحد الأحمر أو أقل
     if (redLimit > 0 && stock <= redLimit) return 'critical';
     // إذا وصل للحد الأصفر أو أقل (ولم يصل للأحمر بعد)
     if (yellowLimit > 0 && stock <= yellowLimit) return 'warning';
-    
+
     return 'good';
 }
 
 function updateStockBell() {
-    // نستخدم الـ notifications collection من Firestore عشان أداء أفضل
-    if (typeof window !== 'undefined' && window.FirestoreService) {
-        // لو Firestore متاح، نستخدمه (أفضل أداء)
-        updateFromFirestore();
-    } else {
-        // لو مش متاح، نستخدم localStorage (backup)
-        updateFromLocalStorage();
-    }
+    // SQLite هو المصدر الوحيد للحقيقة — Firestore notifications قد تكون قديمة
+    updateFromLocalStorage();
 }
 
 // تحديث من Firestore (الطريقة المفضلة)
@@ -1422,10 +1589,10 @@ async function updateFromFirestore() {
     }
 }
 
-// تحديث من localStorage (الطريقة الاحتياطية)
-function updateFromLocalStorage() {
-    const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
-    const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+// تحديث من DBService (الطريقة الاحتياطية)
+async function updateFromLocalStorage() {
+    const ingredients = (window.DBService ? await window.DBService.getIngredients() : []) || [];
+    const menuItems = (window.DBService ? await window.DBService.getMenuItems() : []) || [];
     const allItems = [...ingredients, ...menuItems];
 
     let nawaqis = [];
@@ -1477,7 +1644,7 @@ window.showStockNotifications = function() {
                 <span class="item-n">${item.name}</span>
                 <span class="item-t">${msg}</span>
             </div>
-            <span class="item-v">${item.stock ?? item.current_stock ?? 0} ${unit}</span>
+            <span class="item-v">${item.quantity ?? item.stock ?? item.current_stock ?? 0} ${unit}</span>
         </div>`;
     });
 
@@ -1517,8 +1684,8 @@ async function forceSyncAllToFirebase() {
     }
     
     console.log("🚀 Starting Full Notifications Sync...");
-    const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
-    const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+    const ingredients = (window.DBService ? await window.DBService.getIngredients() : []) || [];
+    const menuItems = (window.DBService ? await window.DBService.getMenuItems() : []) || [];
 
     for (const item of ingredients) {
         if (window.FirestoreService && window.FirestoreService.updateNotificationsCollection) {
@@ -1546,18 +1713,18 @@ setTimeout(forceSyncAllToFirebase, 5000);
          }; 
      } 
  </script>
- > <div class="modal" id="priceAdjustModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center;"> 
+ <div class="modal" id="priceAdjustModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center;"> 
      <div class="modal-content" style="background: #fff; width: 90%; max-width: 450px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"> 
          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"> 
              <h3 style="margin:0; font-size: 18px; color: #000;"><i class="fas fa-sliders-h" style="color:#f39c12; margin-left:8px;"></i> تعديل السعر المتقدم</h3> 
-             <button onclick="document.getElementById('priceAdjustModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button> 
+             <button type="button" onclick="document.getElementById('priceAdjustModal').style.display='none'; document.getElementById('priceAdjustModal').classList.remove('active');" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button> 
          </div> 
          
-         >         <div style="margin-bottom: 15px;"> 
+         <div style="margin-bottom: 15px;"> 
              <label style="font-size: 13px; font-weight: 600; display:block; margin-bottom: 8px;">1. تطبيق على:</label> 
              <select id="adjTarget" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit; font-size: 14px;" onchange="calculateAdjPreview()"> 
                  <option value="order">🛒 الطلب بالكامل</option> 
-                 >             </select> 
+                 </select> 
          </div> 
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
          <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">2. العملية:</label>
@@ -1574,17 +1741,18 @@ setTimeout(forceSyncAllToFirebase, 5000);
          </div>
      </div> 
      
-     >         <div style="margin-bottom: 20px;"> 
+     <div style="margin-bottom: 20px;"> 
          <label style="font-size: 13px; font-weight: 600; display:block; margin-bottom: 8px;">4. القيمة:</label> 
          <input type="number" id="adjValue" min="0" step="0.01" value="0" placeholder="0" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #000; font-size: 16px; font-weight: bold; text-align: center;" oninput="calculateAdjPreview()"> 
      </div> 
      
-     >         <div id="adjPreview" style="background: #f0f4f8; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; font-size: 14px; font-weight: 700; color: #333; border: 1px dashed #cbd5e1;"> 
+     <div id="adjPreview" style="background: #f0f4f8; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; font-size: 14px; font-weight: 700; color: #333; border: 1px dashed #cbd5e1;"> 
          اكتب القيمة لرؤية الحسبة النهائية... 
      </div> 
      
      <button onclick="applyPriceAdjustment()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px;">تطبيق التعديل ✓</button> 
  </div>
+</div>
 
  <div class="modal" id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100000; justify-content: center; align-items: center;">
         <div class="modal-content" style="background: #fff; width: 90%; max-width: 450px; border-radius: 20px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
@@ -1689,31 +1857,46 @@ setTimeout(forceSyncAllToFirebase, 5000);
          btn.disabled = true; 
          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; 
  
-         const newCustomer = { 
-             name: name, 
-             phone: phone, 
-             address: address, 
-             tier: 'regular', 
-             points: 0, 
-             ordersCount: 0 
-         }; 
- 
-         try { 
-             // حفظ في الفايربيز 
-             await window.FirestoreService.saveCustomer(newCustomer); 
-             
-             document.getElementById('quickAddCustomerModal').style.display = 'none'; 
-             document.getElementById('searchCustomerState').style.display = 'none'; 
-             document.getElementById('activeCustomerState').style.display = 'flex'; 
-             
-             // عرض البيانات في السلة 
-             document.getElementById('cartCustName').textContent = name; 
-             document.getElementById('cartCustTier').textContent = '👤 عادي'; 
-             document.getElementById('cartCustTier').style.color = '#666'; 
-             document.getElementById('cartCustTier').style.background = '#f5f5f5'; 
-             document.getElementById('cartCustPoints').textContent = '0 نقطة'; 
- 
-             // ربط العميل بالطلب الحالي في السيستم 
+         // 🔍 البحث عن العميل أولاً — لو موجود نحدّثه بدل ما نعمل كارت جديد
+         let existingCustomer = null;
+         try {
+             if (window.FirestoreService && window.FirestoreService.getCustomerByPhone) {
+                 existingCustomer = await window.FirestoreService.getCustomerByPhone(phone);
+             } else if (window.DBService && window.DBService.getCustomerByPhone) {
+                 existingCustomer = await window.DBService.getCustomerByPhone(phone);
+             }
+         } catch(_) {}
+
+         const newCustomer = existingCustomer
+             ? { ...existingCustomer, name: name || existingCustomer.name, address: address || existingCustomer.address }
+             : { name, phone, address, tier: 'regular', points: 0, ordersCount: 0,
+                 restaurantId: localStorage.getItem('_saasUid') || localStorage.getItem('userId') };
+
+         try {
+             // حفظ في الفايربيز
+             await window.FirestoreService.saveCustomer(newCustomer);
+
+             document.getElementById('quickAddCustomerModal').style.display = 'none';
+             document.getElementById('searchCustomerState').style.display = 'none';
+             document.getElementById('activeCustomerState').style.display = 'flex';
+
+             // عرض البيانات في السلة
+             const custName = newCustomer.name || name;
+             const custPoints = newCustomer.points || 0;
+             // حساب التير من النقاط ديناميكياً
+             const custTier = _calcTierFromPoints(custPoints);
+             document.getElementById('cartCustName').textContent = custName;
+
+             let tierName = 'عادي'; let tierColor = '#666'; let tierBg = '#f5f5f5'; let tierIcon = '👤';
+             if(custTier === 'gold') { tierName = 'ذهبي'; tierColor = '#d4ac0d'; tierBg = 'rgba(241, 196, 15, 0.15)'; tierIcon = '🥇'; }
+             else if(custTier === 'silver') { tierName = 'فضي'; tierColor = '#7f8c8d'; tierBg = 'rgba(189, 195, 199, 0.2)'; tierIcon = '🥈'; }
+             else if(custTier === 'vip') { tierName = 'VIP'; tierColor = '#9b59b6'; tierBg = 'rgba(155, 89, 182, 0.2)'; tierIcon = '👑'; }
+             document.getElementById('cartCustTier').textContent = `${tierIcon} ${tierName}`;
+             document.getElementById('cartCustTier').style.color = tierColor;
+             document.getElementById('cartCustTier').style.background = tierBg;
+             document.getElementById('cartCustPoints').textContent = `${custPoints} نقطة`;
+
+             // ربط العميل بالطلب الحالي في السيستم
              window.currentOrderCustomer = newCustomer; 
  
          } catch (error) { 
@@ -1725,6 +1908,248 @@ setTimeout(forceSyncAllToFirebase, 5000);
      } 
  
      // 3. إلغاء العميل من السلة 
+     // حساب التير ديناميكياً من النقاط (نفس المنطق في صفحة العملاء)
+     // ══════════════════════════════════════════════════════════════════
+     // 🔒 أرقام مشفرة — إجمالي الإيرادات + صافي الكاش
+     // ══════════════════════════════════════════════════════════════════
+     let _secureUnlocked = false;
+     const _secureIds = ['totalRevenue', 'netRevenue'];
+
+     // Override textContent setter لاعتراض أي تحديث
+     _secureIds.forEach(id => {
+         const el = document.getElementById(id);
+         if (!el) return;
+         let _realValue = el.textContent || '';
+         Object.defineProperty(el, '_realVal', { get: () => _realValue, set: (v) => { _realValue = v; }, configurable: true });
+         const origDesc = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent') ||
+                          Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'textContent');
+         if (origDesc && origDesc.set) {
+             Object.defineProperty(el, 'textContent', {
+                 get: origDesc.get,
+                 set: function(val) {
+                     _realValue = val;
+                     if (_secureUnlocked) {
+                         origDesc.set.call(this, val);
+                     } else {
+                         origDesc.set.call(this, '****');
+                     }
+                 },
+                 configurable: true
+             });
+         }
+         // أيضاً اعترض innerHTML
+         const origInner = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+         if (origInner && origInner.set) {
+             Object.defineProperty(el, 'innerHTML', {
+                 get: origInner.get,
+                 set: function(val) {
+                     _realValue = val.replace(/<[^>]*>/g, '');
+                     if (_secureUnlocked) {
+                         origInner.set.call(this, val);
+                     } else {
+                         origInner.set.call(this, '****');
+                     }
+                 },
+                 configurable: true
+             });
+         }
+         // إخفاء القيمة الحالية فوراً
+         el.textContent = '****';
+     });
+
+     // تتبع أي كارت مفتوح (كل كارت مستقل)
+     let _unlockedCards = {};
+     let _pendingCardId = null;
+
+     window._toggleSecureCard = function(e) {
+         const card = e.currentTarget;
+         const valEl = card.querySelector('._secure-value');
+         const icon = card.querySelector('._secure-icon');
+         if (!valEl) return;
+         const cardId = valEl.id;
+         const origSet = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').set;
+
+         // لو الكارت ده مفتوح → قفله
+         if (_unlockedCards[cardId]) {
+             _unlockedCards[cardId] = false;
+             _secureUnlocked = Object.values(_unlockedCards).some(v => v);
+             origSet.call(valEl, '****');
+             if (icon) { icon.className = 'fas fa-eye-slash _secure-icon'; icon.style.color = '#ccc'; }
+             return;
+         }
+
+         // حفظ الكارت المطلوب فتحه
+         _pendingCardId = cardId;
+
+         // مودال PIN
+         const overlay = document.createElement('div');
+         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+         overlay.innerHTML = `
+             <div style="background:#fff;border-radius:16px;padding:30px;width:300px;text-align:center;font-family:Cairo;">
+                 <div style="font-size:32px;margin-bottom:10px;">🔒</div>
+                 <h3 style="margin:0 0 8px;font-size:18px;">أدخل رقم PIN</h3>
+                 <p style="color:#888;font-size:13px;margin-bottom:16px;">أدخل رقم PIN الخاص بك</p>
+                 <input type="password" id="_secPinInput" maxlength="6" placeholder="****"
+                     style="width:100%;padding:14px;text-align:center;font-size:24px;letter-spacing:8px;border:2px solid #e0e0e0;border-radius:12px;outline:none;font-family:monospace;"
+                     autofocus>
+                 <div id="_secPinError" style="color:#e74c3c;font-size:12px;margin-top:8px;display:none;">PIN غلط!</div>
+                 <div style="display:flex;gap:8px;margin-top:16px;">
+                     <button onclick="this.closest('div[style]').parentElement.remove()" style="flex:1;padding:12px;background:#f5f5f5;border:none;border-radius:10px;font-family:Cairo;font-weight:700;cursor:pointer;">إلغاء</button>
+                     <button onclick="_verifySecurePin()" style="flex:1;padding:12px;background:#000;color:#fff;border:none;border-radius:10px;font-family:Cairo;font-weight:700;cursor:pointer;">تأكيد</button>
+                 </div>
+             </div>`;
+         document.body.appendChild(overlay);
+         overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
+         setTimeout(() => document.getElementById('_secPinInput')?.focus(), 100);
+         document.getElementById('_secPinInput')?.addEventListener('keypress', (ev) => { if (ev.key === 'Enter') _verifySecurePin(); });
+     };
+
+     window._verifySecurePin = async function() {
+         const input = document.getElementById('_secPinInput');
+         const pin = input?.value || '';
+
+         // ابحث عن المستخدم المطابق للـ PIN — من DBService أو localStorage
+         let allUsers = [];
+         try {
+             if (window.DBService) {
+                 allUsers = (await window.DBService.getUsers()) || [];
+             }
+         } catch(e) {}
+         if (!allUsers.length) {
+             try { allUsers = JSON.parse(localStorage.getItem('users') || '[]'); } catch(_) {}
+         }
+
+         const matched = allUsers.find(u => String(u.pin || u.password || '') === pin);
+         const isOwnerOrAdmin = matched && (matched.role === 'owner' || matched.role === 'admin');
+         const hasShiftPerm   = matched && matched.canViewShiftNumbers === true;
+         const noUsers        = allUsers.length === 0;
+
+         if (noUsers || isOwnerOrAdmin || hasShiftPerm) {
+             // فتح الكارت المحدد بس
+             const origSet = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').set;
+             const el = document.getElementById(_pendingCardId);
+             if (el && el._realVal) {
+                 _secureUnlocked = true;
+                 _unlockedCards[_pendingCardId] = true;
+                 origSet.call(el, el._realVal);
+                 // تحديث الأيقونة للكارت ده بس
+                 const card = el.closest('.dashboard-card');
+                 const icon = card?.querySelector('._secure-icon');
+                 if (icon) { icon.className = 'fas fa-eye _secure-icon'; icon.style.color = '#27ae60'; }
+             }
+             input.closest('div[style*="fixed"]')?.remove();
+         } else {
+             const err = document.getElementById('_secPinError');
+             if (err) err.style.display = 'block';
+             if (input) { input.value = ''; input.style.borderColor = '#e74c3c'; input.focus(); }
+         }
+     };
+
+     // ══════════════════════════════════════════════════════════════════
+     // 🔒 تشفير أرقام مودال إغلاق الشيفت — يفتحها المالك بـ PIN فقط
+     // ══════════════════════════════════════════════════════════════════
+     let _modalSecureUnlocked = false;
+
+     window._applyModalSecure = function() {
+         document.querySelectorAll('#closeCashDrawerModal ._ms-val').forEach(el => {
+             if (!el.dataset.realMs) el.dataset.realMs = el.textContent;
+             if (!_modalSecureUnlocked) el.textContent = '****';
+         });
+         const icon = document.getElementById('_modalSecureIcon');
+         if (icon) icon.className = _modalSecureUnlocked ? 'fas fa-eye' : 'fas fa-eye-slash';
+     };
+
+     window._setModalSecureValue = function(id, val) {
+         const el = document.getElementById(id);
+         if (!el) return;
+         el.dataset.realMs = val;
+         el.textContent = _modalSecureUnlocked ? val : '****';
+     };
+
+     window._toggleModalSecure = function() {
+         if (_modalSecureUnlocked) {
+             // قفل
+             _modalSecureUnlocked = false;
+             document.querySelectorAll('#closeCashDrawerModal ._ms-val').forEach(el => el.textContent = '****');
+             const icon = document.getElementById('_modalSecureIcon');
+             if (icon) { icon.className = 'fas fa-eye-slash'; }
+             return;
+         }
+
+         // بناء قائمة المستخدمين المسموح لهم بكشف الأرقام:
+         // المالك/أدمن دايماً مسموح — الكاشير بس لو canViewShiftNumbers === true
+         const _getAllowedUsers = () => {
+             try {
+                 return JSON.parse(localStorage.getItem('users') || '[]');
+             } catch(_) { return []; }
+         };
+
+         const overlay = document.createElement('div');
+         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+         overlay.innerHTML = `
+             <div style="background:#fff;border-radius:16px;padding:28px 32px;width:300px;text-align:center;font-family:Cairo,sans-serif;">
+                 <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+                 <div style="font-weight:700;font-size:16px;margin-bottom:4px;">تأكيد الهوية</div>
+                 <div style="font-size:12px;color:#888;margin-bottom:18px;">أدخل رقم PIN الخاص بك</div>
+                 <input id="_msPinInput" type="password" maxlength="6" placeholder="●●●●"
+                     style="width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:10px;text-align:center;font-size:22px;letter-spacing:8px;outline:none;box-sizing:border-box;">
+                 <div id="_msPinError" style="display:none;color:#e74c3c;font-size:12px;margin-top:8px;">PIN غير مسموح أو غلط</div>
+                 <div style="display:flex;gap:10px;margin-top:16px;">
+                     <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:10px;border:1px solid #e8e8e8;border-radius:10px;cursor:pointer;background:#fafafa;">إلغاء</button>
+                     <button id="_msPinConfirm" style="flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;background:#000;color:#fff;font-weight:700;">تأكيد</button>
+                 </div>
+             </div>`;
+         document.body.appendChild(overlay);
+         const inp = overlay.querySelector('#_msPinInput');
+         setTimeout(() => inp && inp.focus(), 100);
+
+         const confirm = () => {
+             const entered = inp.value.trim();
+             const users = _getAllowedUsers();
+             // ابحث عن المستخدم اللي PIN بتاعه مطابق
+             const matched = users.find(u => String(u.pin || u.password || '') === entered);
+             // مسموح لو: مالك/أدمن، أو canViewShiftNumbers = true
+             const isOwnerOrAdmin = matched && (matched.role === 'owner' || matched.role === 'admin');
+             const hasShiftPerm   = matched && matched.canViewShiftNumbers === true;
+             // لو مفيش مستخدمين خالص — ارفع القيد
+             const noUsers = users.length === 0;
+
+             if (noUsers || isOwnerOrAdmin || hasShiftPerm) {
+                 _modalSecureUnlocked = true;
+                 document.querySelectorAll('#closeCashDrawerModal ._ms-val').forEach(el => {
+                     if (el.dataset.realMs) el.textContent = el.dataset.realMs;
+                 });
+                 const icon = document.getElementById('_modalSecureIcon');
+                 if (icon) { icon.className = 'fas fa-eye'; }
+                 overlay.remove();
+             } else {
+                 const err = document.getElementById('_msPinError');
+                 if (err) err.style.display = 'block';
+                 inp.value = ''; inp.style.borderColor = '#e74c3c'; inp.focus();
+             }
+         };
+         overlay.querySelector('#_msPinConfirm').onclick = confirm;
+         inp.addEventListener('keydown', e => { if (e.key === 'Enter') confirm(); });
+     };
+
+     // إعادة تطبيق التشفير لما المودال يتقفل
+     const _origCloseDrawerModal = window.closeCloseCashDrawerModal;
+     window.closeCloseCashDrawerModal = function() {
+         _modalSecureUnlocked = false;
+         if (_origCloseDrawerModal) _origCloseDrawerModal();
+     };
+
+     function _calcTierFromPoints(pts) {
+         const s = JSON.parse(localStorage.getItem('loyaltySettings') || '{}');
+         const vipMin    = s.vip    || s.vipThreshold    || 750;
+         const goldMin   = s.gold   || s.goldThreshold   || 500;
+         const silverMin = s.silver || s.silverThreshold || 100;
+         if (pts >= vipMin)    return 'vip';
+         if (pts >= goldMin)   return 'gold';
+         if (pts >= silverMin) return 'silver';
+         return 'regular';
+     }
+
      function clearCartCustomer() { 
          document.getElementById('activeCustomerState').style.display = 'none'; 
          document.getElementById('searchCustomerState').style.display = 'flex'; 
@@ -1748,11 +2173,11 @@ setTimeout(forceSyncAllToFirebase, 5000);
                      
                      document.getElementById('cartCustName').textContent = customer.name || 'بدون اسم'; 
                      
-                     // تحديد شكل التقييم 
-                     const tier = customer.tier || 'regular'; 
-                     let tierName = 'عادي'; let tierColor = '#666'; let tierBg = '#f5f5f5'; let tierIcon = '👤'; 
-                     if(tier === 'gold') { tierName = 'ذهبي'; tierColor = '#d4ac0d'; tierBg = 'rgba(241, 196, 15, 0.15)'; tierIcon = '🥇'; } 
-                     else if(tier === 'silver') { tierName = 'فضي'; tierColor = '#7f8c8d'; tierBg = 'rgba(189, 195, 199, 0.2)'; tierIcon = '🥈'; } 
+                     // تحديد شكل التقييم (ديناميكي من النقاط)
+                     const tier = _calcTierFromPoints(customer.points || 0);
+                     let tierName = 'عادي'; let tierColor = '#666'; let tierBg = '#f5f5f5'; let tierIcon = '👤';
+                     if(tier === 'gold') { tierName = 'ذهبي'; tierColor = '#d4ac0d'; tierBg = 'rgba(241, 196, 15, 0.15)'; tierIcon = '🥇'; }
+                     else if(tier === 'silver') { tierName = 'فضي'; tierColor = '#7f8c8d'; tierBg = 'rgba(189, 195, 199, 0.2)'; tierIcon = '🥈'; }
                      else if(tier === 'vip') { tierName = 'VIP'; tierColor = '#9b59b6'; tierBg = 'rgba(155, 89, 182, 0.2)'; tierIcon = '👑'; } 
  
                      document.getElementById('cartCustTier').textContent = `${tierIcon} ${tierName}`; 
@@ -1915,7 +2340,8 @@ setTimeout(forceSyncAllToFirebase, 5000);
                             points: 0, 
                             ordersCount: 0, 
                             totalSpent: 0, 
-                            createdAt: new Date().toISOString() 
+                            createdAt: new Date().toISOString(), 
+                            restaurantId: localStorage.getItem('_saasUid') || localStorage.getItem('userId') // 👈 السطر السحري 
                         }; 
                         
                         try { 
@@ -1923,11 +2349,10 @@ setTimeout(forceSyncAllToFirebase, 5000);
                                  await window.FirestoreService.saveCustomer(newCustomer); 
                              } 
   
-                             // 🚀 السطر السحري: إضافة العميل الجديد للأوفلاين فوراً عشان التسويق يلقطه 
-                             let offlineCustomers = []; 
-                             try { offlineCustomers = JSON.parse(localStorage.getItem('customers') || '[]'); } catch(e){} 
-                             offlineCustomers.push(newCustomer); 
-                             localStorage.setItem('customers', JSON.stringify(offlineCustomers)); 
+                             // 🚀 السطر السحري: إضافة العميل الجديد للأوفلاين فوراً عشان التسويق يلقطه
+                             if (window.DBService && typeof window.DBService.saveCustomer === 'function') {
+                                 try { await window.DBService.saveCustomer(newCustomer); } catch(e) { console.error('DBService saveCustomer error:', e); }
+                             } 
                                
                              // تحديث بيانات السلة بالعميل الجديد 
                              window.currentOrderCustomer = newCustomer; 
@@ -1961,14 +2386,276 @@ setTimeout(forceSyncAllToFirebase, 5000);
             }, 500); // تأخير نص ثانية لضمان أمان التشغيل 
         }); 
     </script>
-    <script src="saas/sidebar.js"></script>
-    <script src="saas/onboarding-ui.js"></script>
-    <script src="saas/plans-ui.js"></script>
-    <script src="saas/auth-ui.js"></script>
-    <script src="saas/subscription-manager.js"></script>
+    <script defer src="saas/sidebar.js"></script>
+    <script defer src="saas/onboarding-ui.js"></script>
+    <script defer src="saas/plans-ui.js"></script>
+    <script defer src="saas/auth-ui.js"></script>
+    <script defer src="saas/subscription-manager.js"></script>
 
     <script>
 
+    </script>
+
+    <!-- 🔒 Feature Gate: إدارة العملاء — Mega فقط -->
+    <script>
+    (function() {
+        function _applyCustomerGate() {
+            if (!window.SaaS) return;
+            if (window.SaaS.canUse('customers')) return;
+
+            const searchState = document.getElementById('searchCustomerState');
+            if (!searchState || document.getElementById('customerGateBlock')) return;
+
+            // أخبّي الـ search row الأصلي بدل ما نحطّ overlay فوقه
+            searchState.style.display = 'none';
+
+            // بلوك نظيف متناسق مكانه
+            const gate = document.createElement('div');
+            gate.id = 'customerGateBlock';
+            gate.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1.5px solid #fcc;background:#fff5f5;cursor:pointer;transition:background 0.15s;';
+            gate.innerHTML = `
+                <div style="width:36px;height:36px;border-radius:8px;background:#e74c3c;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-lock" style="color:#fff;font-size:15px;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:bold;color:#c0392b;font-family:Cairo,sans-serif;">إدارة العملاء</div>
+                    <div style="font-size:11px;color:#e74c3c;font-family:Cairo,sans-serif;margin-top:2px;">متاح في باقة Mega — اضغط للترقية</div>
+                </div>
+                <i class="fas fa-chevron-left" style="color:#e74c3c;font-size:12px;opacity:0.6;"></i>
+            `;
+            gate.addEventListener('mouseenter', () => gate.style.background = '#ffecec');
+            gate.addEventListener('mouseleave', () => gate.style.background = '#fff5f5');
+            gate.addEventListener('click', () => {
+                if (window.SaaS && typeof window.SaaS.requireFeature === 'function')
+                    window.SaaS.requireFeature('customers');
+            });
+
+            searchState.parentNode.insertBefore(gate, searchState);
+        }
+
+        // شغّل بعد ما SaaS يكون جاهز
+        window.addEventListener('saas-ready', _applyCustomerGate);
+        // fallback لو الـ event اتبعت قبل ما السكريبت يشتغل
+        if (window.SaaS && window.SaaS.canUse) _applyCustomerGate();
+    })();
+    </script>
+
+    <!-- ═══ KDS Integration Script (Mega Only) ═══ -->
+    <script>
+    (function() {
+        'use strict';
+        const { ipcRenderer } = require('electron');
+
+        // ── KDS Feature Gate: Mega Only ──
+        function isKDSAllowed() {
+            return window.SaaS && window.SaaS.canUse && window.SaaS.canUse('kds');
+        }
+
+        // Show/hide KDS buttons based on plan
+        function applyKDSGate() {
+            const kdsContainer = document.getElementById('kdsCartButtons');
+            if (kdsContainer) {
+                kdsContainer.style.display = isKDSAllowed() ? 'block' : 'none';
+            }
+        }
+
+        // Apply gate when SaaS is ready
+        window.addEventListener('saas-ready', applyKDSGate);
+        if (window.SaaS && window.SaaS.canUse) applyKDSGate();
+
+        // ── KDS State ──
+        let kdsReadyOrders = []; // orders with status 'ready'
+
+        // ── Bell Sound (inline for Electron) ──
+        let bellAudio = null;
+        function initBellSound() {
+            try {
+                bellAudio = new Audio('sounds/bell.wav');
+                bellAudio.volume = 0.7;
+            } catch(e) { console.warn('Bell sound init failed:', e); }
+        }
+
+        function playBellSound() {
+            try {
+                if (!bellAudio) initBellSound();
+                bellAudio.currentTime = 0;
+                bellAudio.play().catch(() => {});
+            } catch(e) {}
+        }
+
+        // ── KDS Modal ──
+        window.openKDSModal = async function() {
+            const modal = document.getElementById('kdsModal');
+            modal.classList.add('active');
+            try {
+                const info = await ipcRenderer.invoke('kds-get-info');
+                if (info.qrCode) {
+                    document.getElementById('kdsQRImage').src = info.qrCode;
+                } else {
+                    document.getElementById('kdsQRImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(info.url)}`;
+                }
+                document.getElementById('kdsUrlText').value = info.url;
+                const dot = document.getElementById('kdsDeviceDot');
+                const text = document.getElementById('kdsDevicesText');
+                if (info.connectedDevices > 0) {
+                    dot.style.background = '#34c759';
+                    text.textContent = `${info.connectedDevices} جهاز متصل`;
+                } else {
+                    dot.style.background = '#ccc';
+                    text.textContent = 'لا توجد أجهزة متصلة';
+                }
+            } catch(e) {
+                console.error('KDS info error:', e);
+            }
+        };
+
+        // ── Copy URL ──
+        window.copyKDSUrl = function() {
+            const input = document.getElementById('kdsUrlText');
+            navigator.clipboard.writeText(input.value).then(() => {
+                const btn = input.nextElementSibling;
+                btn.textContent = '✓ تم';
+                btn.style.background = '#34c759';
+                setTimeout(() => { btn.textContent = 'نسخ'; btn.style.background = '#000'; }, 2000);
+            });
+        };
+
+        // ── Open Ready Orders Modal ──
+        window.openKDSReadyOrders = function() {
+            const modal = document.getElementById('kdsReadyModal');
+            modal.classList.add('active');
+            renderKDSReadyList();
+        };
+
+        function renderKDSReadyList() {
+            const container = document.getElementById('kdsReadyList');
+            if (kdsReadyOrders.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;"><div style="font-size: 48px; margin-bottom: 12px;">✅</div>لا توجد طلبات جاهزة حالياً</div>';
+                return;
+            }
+            container.innerHTML = kdsReadyOrders.map(order => {
+                const ordNum = order.id.replace(/\\D/g, '').slice(-4);
+                const itemsList = (order.items || []).map(i => `${i.quantity || 1}× ${i.name}`).join(' • ');
+                const readyTime = order.readyAt ? new Date(order.readyAt).toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}) : '';
+                return `
+                <div class="kds-ready-order-card">
+                    <div class="kds-ready-order-header">
+                        <span class="kds-ready-order-id">#${ordNum}</span>
+                        <span class="kds-ready-order-time">جاهز منذ ${readyTime}</span>
+                    </div>
+                    <div class="kds-ready-order-items">${itemsList}</div>
+                    <button class="kds-ready-deliver-btn" onclick="kdsMarkDelivered('${order.id}')">
+                        🤝 تم التسليم
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Mark Delivered from Cashier ──
+        window.kdsMarkDelivered = async function(orderId) {
+            try {
+                await ipcRenderer.invoke('kds-mark-delivered', orderId);
+                kdsReadyOrders = kdsReadyOrders.filter(o => o.id !== orderId);
+                updateKDSBadge();
+                renderKDSReadyList();
+                if (kdsReadyOrders.length === 0) {
+                    document.getElementById('kdsReadyModal').classList.remove('active');
+                }
+            } catch(e) { console.error('KDS deliver error:', e); }
+        };
+
+        // ── Send Order to KDS (called from processOrder — Mega Only) ──
+        window.sendOrderToKDS = async function(order) {
+            if (!isKDSAllowed()) return; // Skip if not Mega
+            try {
+                const result = await ipcRenderer.invoke('kds-send-order', order);
+                if (result.success) {
+                    console.log('🍳 Order sent to KDS:', order.id);
+                    // Show KDS ready button
+                    const readyBtn = document.getElementById('kdsReadyBtn');
+                    if (readyBtn) readyBtn.style.display = 'flex';
+                }
+            } catch(e) { console.error('KDS send error:', e); }
+        };
+
+        // ── Update Badge ──
+        function updateKDSBadge() {
+            const badge = document.getElementById('kdsReadyBadge');
+            const btn = document.getElementById('kdsReadyBtn');
+            if (!badge || !btn) return;
+            if (kdsReadyOrders.length > 0) {
+                badge.textContent = kdsReadyOrders.length;
+                badge.style.display = 'flex';
+                btn.classList.add('has-ready');
+                btn.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+                btn.classList.remove('has-ready');
+            }
+        }
+
+        // ── Listen for KDS events from main process ──
+        ipcRenderer.on('kds-order-status-changed', (event, order) => {
+            if (order.status === 'ready') {
+                // Add to ready list if not already there
+                if (!kdsReadyOrders.find(o => o.id === order.id)) {
+                    kdsReadyOrders.push(order);
+                }
+                updateKDSBadge();
+                playBellSound();
+                // Show notification
+                showKDSNotification(order);
+            }
+        });
+
+        ipcRenderer.on('kds-order-delivered', (event, order) => {
+            kdsReadyOrders = kdsReadyOrders.filter(o => o.id !== order.id);
+            updateKDSBadge();
+        });
+
+        // ── KDS Notification ──
+        function showKDSNotification(order) {
+            const ordNum = order.id.replace(/\\D/g, '').slice(-4);
+            // Create floating notification
+            const notif = document.createElement('div');
+            notif.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; background: #34c759; color: #fff; padding: 14px 28px; border-radius: 14px; font-family: Cairo; font-size: 16px; font-weight: 700; box-shadow: 0 8px 30px rgba(52,199,89,0.4); display: flex; align-items: center; gap: 10px; animation: slideDown 0.4s ease-out;';
+            notif.innerHTML = `<span style="font-size: 24px;">🔔</span> طلب #${ordNum} جاهز للتسليم!`;
+            document.body.appendChild(notif);
+
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = '@keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }';
+            document.head.appendChild(style);
+
+            setTimeout(() => {
+                notif.style.transition = 'all 0.4s ease-in';
+                notif.style.opacity = '0';
+                notif.style.transform = 'translateX(-50%) translateY(-20px)';
+                setTimeout(() => { notif.remove(); style.remove(); }, 400);
+            }, 4000);
+        }
+
+        // ── Init ──
+        initBellSound();
+        // Check for existing ready orders on load
+        // Check for existing ready orders on load (Mega only)
+        function initKDS() {
+            if (!isKDSAllowed()) return;
+            (async () => {
+                try {
+                    const orders = await ipcRenderer.invoke('kds-get-orders');
+                    kdsReadyOrders = (orders || []).filter(o => o.status === 'ready');
+                    updateKDSBadge();
+                    if (kdsReadyOrders.length > 0) {
+                        document.getElementById('kdsReadyBtn').style.display = 'flex';
+                    }
+                } catch(e) {}
+            })();
+        }
+        window.addEventListener('saas-ready', initKDS);
+        if (window.SaaS && window.SaaS.canUse) initKDS();
+
+    })();
     </script>
 </body>
 </html>

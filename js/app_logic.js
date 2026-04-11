@@ -48,31 +48,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================================ 
  // 🔥 2. دالة التحميل المسبق (النسخة الصامتة اللي بتمنع الرعشة) 
  // ============================================================ 
- async function preloadEssentialData() { 
-     try { 
-         console.log("⚡ جاري تحديث البيانات في الخلفية بهدوء..."); 
- 
-         // هنجيب البيانات من الفايربيز في الخلفية بدون ما نوقف السيستم 
-         Promise.all([ 
-             DataManager.getCategories(), 
-             DataManager.getMenuItems(), 
-             DataManager.getEmployees(), 
-             DataManager.getSuppliers(), 
-             DataManager.getAggregators(), 
-             DataManager.getCashSessions() // 👈 الحقنة السحرية اللي بتسحب الشيفتات فوراً مع فتح الصفحة 
-         ]).then(() => {
-             console.log("✅ تم مزامنة كل البيانات الأساسية مع السيرفر بنجاح!");
-             // 🚀 فحص الشيفت بعد أن أصبحت البيانات جاهزة 100%
-             if (typeof window.checkCashDrawerSession === 'function') {
-                 window.checkCashDrawerSession();
+ async function preloadEssentialData() {
+     try {
+         console.log("⚡ جاري تحميل البيانات الأساسية...");
+
+         // 🚀 المرحلة الأولى: SQLite فوري (أسرع من localStorage)
+         if (window.DBService) {
+             try {
+                 const bootstrap = await window.DBService.loadBootstrapData();
+                 console.log('[App] SQLite Bootstrap جاهز:',
+                     `${bootstrap.menuItems.length} صنف | ${bootstrap.employees.length} موظف`);
+                 // فحص الشيفت المفتوح فوراً من SQLite
+                 // فحص حالة الشيفت — سواء مفتوح أو مقفول
+                 if (typeof window.checkCashDrawerSession === 'function') {
+                     window.checkCashDrawerSession();
+                 }
+             } catch(e) {
+                 console.warn('[App] SQLite bootstrap err:', e.message);
              }
-         }).catch(err => { 
-             console.warn("⚠️ النظام يعمل الآن بدون إنترنت.", err); 
-         }); 
- 
-     } catch (err) { 
-         console.error("⚠️ خطأ في التحميل المسبق:", err); 
-     } 
+         }
+
+          // 🌐 المرحلة الثانية: Firebase في الخلفية لتحديث SQLite 
+          Promise.all([ 
+              DataManager.getCategories(), 
+              DataManager.getMenuItems(), 
+              DataManager.getEmployees(), 
+              DataManager.getSuppliers(), 
+              DataManager.getAggregators(), 
+              DataManager.getCashSessions() 
+          ]).then(async () => {
+              console.log("✅ تم مزامنة كل البيانات الأساسية بنجاح!");
+              // ✅ استدعاء checkCashDrawerSession دايماً بعد المزامنة
+              // الحماية من race condition موجودة في: data.js (stale-skip) + _shiftJustClosed flag
+              if (typeof window.checkCashDrawerSession === 'function') {
+                  window.checkCashDrawerSession();
+              }
+          }).catch(err => {
+              console.warn("⚠️ النظام يعمل بدون إنترنت.", err);
+          });
+
+     } catch (err) {
+         console.error("⚠️ خطأ في التحميل المسبق:", err);
+     }
  }
 
 // ============================================================
@@ -312,6 +329,15 @@ window.performOperationalWipe = async function() {
 
     async function executeWipe() {
         console.log("🚀 Starting Operational Wipe...");
+
+        // 1. مسح SQLite (الـ Local DB الجديد)
+        if (window.DBService && window.DBService.clearOperationalData) {
+            try {
+                await window.DBService.clearOperationalData();
+            } catch(e) {
+                console.warn("⚠️ SQLite wipe partial:", e.message);
+            }
+        }
 
         // 2. مسح LocalStorage
         const keysToRemove = [

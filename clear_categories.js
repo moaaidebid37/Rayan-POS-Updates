@@ -1,5 +1,5 @@
 // Script to remove all categories and associated data
-function removeAllCategories() {
+async function removeAllCategories() {
     console.log('Starting category removal process...');
     
     // 1. Remove from localStorage
@@ -30,17 +30,19 @@ function removeAllCategories() {
         'الاضافات'
     ];
     
-    // Remove menu items from localStorage
+    // Remove menu items from DBService (SQLite)
     let menuItems = [];
     try {
-        menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+        menuItems = window.DBService ? await window.DBService.getMenuItems() : [];
         const originalCount = menuItems.length;
-        
+
         menuItems = menuItems.filter(item => {
             return !categoriesToRemove.includes(item.category);
         });
-        
-        localStorage.setItem('menuItems', JSON.stringify(menuItems));
+
+        if (window.DBService) {
+            await window.DBService.saveMenuItems(menuItems);
+        }
         console.log(`✓ Removed ${originalCount - menuItems.length} menu items from deleted categories`);
     } catch (e) {
         console.warn('Error removing menu items:', e);

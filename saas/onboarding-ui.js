@@ -447,18 +447,27 @@
     const btn = document.querySelector('#saas-onboarding .ob-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left:8px;"></i> جاري الفحص...'; }
 
-    // ── فحص التكرار قبل الانتقال لخطوة الـ OTP ──────────────────────────
+    // ── فحص التكرار عبر Admin SDK (server-side) — أدق وأأمن ──────────
+    // الفحص الحقيقي بيتم في phone-auth-ipc.js (send-otp) عبر Admin SDK
+    // هنا نعمل فحص سريع لو الـ IPC متاح (Electron)
     try {
-      const db = await window.firestoreReady;
-      const snap = await db.collection('subscriptions').where('phone', '==', _phone).limit(1).get();
-      if (!snap.empty) {
-        _err('هذا الرقم مسجّل بالفعل. يرجى تسجيل الدخول.');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-arrow-left" style="margin-right:8px;"></i> التالي'; }
-        setTimeout(() => _switchToLogin(), 2000);
-        return;
+      if (window.require) {
+        const { ipcRenderer } = window.require('electron');
+        // الفحص هيتم تلقائياً في send-otp — مش محتاج نعمله هنا
+      } else {
+        // Web mode — نحاول client-side (ممكن يفشل بسبب rules)
+        const db = await window.firestoreReady;
+        const snap = await db.collection('subscriptions').where('phone', '==', _phone).limit(1).get();
+        if (!snap.empty) {
+          _err('هذا الرقم مسجّل بالفعل. يرجى تسجيل الدخول.');
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-arrow-left" style="margin-right:8px;"></i> التالي'; }
+          setTimeout(() => _switchToLogin(), 2000);
+          return;
+        }
       }
     } catch(e) {
-      console.warn('Phone check failed, proceeding:', e);
+      // مش مشكلة — الفحص الرئيسي في send-otp (Admin SDK)
+      console.log('ℹ️ Client-side phone check skipped (handled by Admin SDK)');
     }
 
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-arrow-left" style="margin-right:8px;"></i> التالي'; }

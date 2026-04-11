@@ -15,205 +15,234 @@
         * {
             font-family: 'Poppins', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
+
         body {
-            background: #fafafa;
+            background: #f5f6f8;
         }
-        
+
         .sidebar {
             background: #ffffff;
             border-left: 1px solid #e8e8e8;
         }
-        
-        .sidebar-item {
-            color: #000000;
-        }
-        
-        .sidebar-item:hover {
-            background: #f5f5f5;
-        }
-        
-        .sidebar-item.active {
-            background: #000000;
-            color: #ffffff;
-        }
-        
+        .sidebar-item { color: #000000; }
+        .sidebar-item:hover { background: #f5f5f5; }
+        .sidebar-item.active { background: #000000; color: #ffffff; }
+
+        /* ─── Header ─── */
         .header {
             background: #ffffff;
-            border-bottom: 1px solid #e8e8e8;
+            border-bottom: 1px solid #eaeaea;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
         }
-        
-        .header-title {
-            color: #000000;
-            font-weight: 700;
-        }
-        
+        .header-title { color: #000000; font-weight: 800; font-size: 22px; }
         .header-search {
-            background: #fafafa;
-            border: 1px solid #e8e8e8;
+            background: #f5f6f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 14px;
         }
-        
-        .header-search input {
-            color: #000000;
-        }
-        
-        .header-search input::placeholder {
-            color: #999999;
-        }
-        
+        .header-search input { color: #000000; }
+        .header-search input::placeholder { color: #aaa; }
+
+        /* ─── Main Content ─── */
         .main-content {
-            background: #fafafa;
+            background: #f5f6f8;
             padding: var(--spacing-lg);
         }
-        
         .card {
             background: #ffffff;
-            border-radius: 16px;
+            border-radius: 18px;
             padding: var(--spacing-lg);
-            border: 1px solid #e8e8e8;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid #eaeaea;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.03);
         }
-        
         .menu-management-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: var(--spacing-lg);
         }
-        
+
+        /* ─── Layout Grid ─── */
         .menu-layout {
             display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: var(--spacing-lg);
+            grid-template-columns: 260px 1fr;
+            gap: 20px;
             height: calc(100vh - 200px);
         }
-        
+
+        /* ─── Categories Sidebar ─── */
         .categories-sidebar {
             background: #ffffff;
-            border-radius: 16px;
-            padding: var(--spacing-lg);
-            border: 1px solid #e8e8e8;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-radius: 18px;
+            padding: 16px;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
             overflow-y: auto;
             max-height: 100%;
         }
-        
         .categories-sidebar h4 {
             color: #000000;
-            font-weight: 700;
-            font-size: 18px;
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-sm);
-            border-bottom: 2px solid #e8e8e8;
+            font-weight: 800;
+            font-size: 16px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
         .category-list {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-xs);
+            gap: 6px;
         }
-        
+
+        /* ─── Category Item ─── */
         .category-item {
-            padding: 12px 16px;
-            border: 1px solid #e8e8e8;
-            background: #ffffff;
+            padding: 11px 14px;
+            border: 1px solid transparent;
+            background: #f8f9fb;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: var(--spacing-sm);
+            gap: 8px;
             font-weight: 500;
-            color: #000000;
+            font-size: 14px;
+            color: #1a1a1a;
             position: relative;
+            user-select: none;
         }
-        
         .category-item-content {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
+            gap: 8px;
             flex: 1;
+            min-width: 0;
         }
-        
-        .category-delete-btn {
-            background: rgba(231, 76, 60, 0.1);
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            min-width: 32px;
-            height: 32px;
+        .category-item-content span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Drag Handle */
+        .drag-handle {
+            color: #ccc;
+            font-size: 12px;
+            cursor: grab;
+            padding: 2px 4px;
+            transition: color 0.2s;
             flex-shrink: 0;
         }
-        
+        .category-item:hover .drag-handle { color: #888; }
+        .category-item.active .drag-handle { color: rgba(255,255,255,0.5); }
+
+        /* Delete Button */
+        .category-delete-btn {
+            background: none;
+            border: none;
+            color: #d44;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .category-item:hover .category-delete-btn { opacity: 1; }
         .category-delete-btn:hover {
-            background: #e74c3c;
-            color: #ffffff;
-            transform: scale(1.1);
+            background: #fee;
+            color: #c00;
         }
-        
+        .category-item.active .category-delete-btn { color: rgba(255,255,255,0.6); }
+        .category-item.active .category-delete-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+        /* States */
         .category-item:hover {
-            background: #f5f5f5;
-            border-color: #000000;
-            transform: translateX(-4px);
+            background: #f0f1f4;
+            border-color: #ddd;
         }
-        
         .category-item.active {
-            background: #000000;
+            background: #111;
             color: #ffffff;
-            border-color: #000000;
+            border-color: #111;
             font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
-        
-        .category-item i {
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
+        .category-item i { font-size: 14px; width: 18px; text-align: center; }
+
+        /* Drag & Drop States */
+        .category-item.dragging {
+            opacity: 0.4;
+            transform: scale(0.96);
         }
-        
+        .category-item.drag-over-top {
+            border-top: 2px solid #000;
+            padding-top: 9px;
+        }
+        .category-item.drag-over-bottom {
+            border-bottom: 2px solid #000;
+            padding-bottom: 9px;
+        }
+
+        /* ─── Menu Content Area ─── */
         .menu-content-area {
             background: #ffffff;
-            border-radius: 16px;
-            padding: var(--spacing-lg);
-            border: 1px solid #e8e8e8;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-radius: 18px;
+            padding: 20px;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
             overflow-y: auto;
             max-height: 100%;
         }
-        
         .menu-items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: var(--spacing-lg);
-        }
-        
-        .menu-item-card {
-            background: #ffffff;
-            border: 1px solid #e8e8e8;
-            border-radius: 16px;
-            padding: var(--spacing-md);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: fadeIn 0.4s ease-out;
-            animation-fill-mode: both;
-            position: relative;
-        }
-        
-        .menu-item-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-            transform: translateY(-4px) scale(1.02);
-            border-color: #000000;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
         }
 
-        /* Variants table inside card */
+        /* ─── Menu Item Card ─── */
+        .menu-item-card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.25s ease;
+            animation: fadeIn 0.3s ease-out;
+            animation-fill-mode: both;
+            position: relative;
+            overflow: hidden;
+        }
+        .menu-item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            background: transparent;
+            transition: background 0.25s ease;
+            border-radius: 14px 14px 0 0;
+        }
+        .menu-item-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+            transform: translateY(-3px);
+            border-color: #d0d0d0;
+        }
+        .menu-item-card:hover::before {
+            background: #000;
+        }
+
+        /* Variants */
         .menu-item-variants {
             margin: 8px 0 4px;
             display: flex;
@@ -226,119 +255,78 @@
             align-items: center;
             background: #f7f8fa;
             border-radius: 8px;
-            padding: 5px 10px;
+            padding: 6px 10px;
             font-size: 13px;
         }
-        .variant-row .v-size {
-            color: #555;
-            font-weight: 500;
-        }
-        .variant-row .v-price {
-            color: #000;
-            font-weight: 700;
-            direction: ltr;
-        }
-        .variant-row .v-profit {
-            color: #27AE60;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        
+        .variant-row .v-size { color: #555; font-weight: 500; }
+        .variant-row .v-price { color: #000; font-weight: 700; direction: ltr; }
+        .variant-row .v-profit { color: #27AE60; font-size: 11px; font-weight: 600; }
+
         .menu-item-name {
-            font-weight: 600;
-            color: #000000;
-            margin-bottom: var(--spacing-xs);
-            font-size: 16px;
-        }
-        
-        .menu-item-category {
-            font-size: 13px;
-            color: #666666;
-            margin-bottom: var(--spacing-sm);
-        }
-        
-        .menu-item-price {
-            color: #000000;
             font-weight: 700;
-            margin-bottom: var(--spacing-md);
-            font-size: 18px;
+            color: #111;
+            margin-bottom: 2px;
+            font-size: 15px;
+            letter-spacing: -0.01em;
         }
-        
+        .menu-item-category {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .menu-item-price {
+            color: #000;
+            font-weight: 800;
+            margin-bottom: 12px;
+            font-size: 18px;
+            background: #f5f6f8;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 8px;
+        }
+
+        /* Stock Badge */
         .stock-badge-content {
             position: absolute;
             top: 12px;
             right: 12px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11px;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            gap: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
             z-index: 10;
-            transition: all 0.3s ease;
         }
-        
-        .stock-badge-content:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
         .stock-info-left {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 14px;
+            left: 14px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             z-index: 10;
         }
-        
         .stock-quantity-display {
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 8px;
             font-size: 13px;
             font-weight: 700;
             color: #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            min-width: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            min-width: 36px;
             text-align: center;
         }
-        
         .stock-add-btn-left {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: #27AE60;
-            color: #ffffff;
-            border: 2px solid #ffffff;
-            cursor: pointer;
-            font-size: 18px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            line-height: 1;
-            padding: 0;
-            margin: 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .stock-add-btn-left:hover {
-            background: #229954 !important;
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        }
-        
-        .stock-add-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.9);
-            color: #27AE60;
-            border: 2px solid rgba(255, 255, 255, 0.9);
+            color: #fff;
+            border: 2px solid #fff;
             cursor: pointer;
             font-size: 16px;
             font-weight: 700;
@@ -346,92 +334,89 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
-            line-height: 1;
             padding: 0;
-            margin: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
         }
-        
-        .stock-add-btn:hover {
-            background: #ffffff !important;
-            transform: scale(1.15);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        .stock-add-btn-left:hover {
+            background: #229954 !important;
+            transform: scale(1.1);
         }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
+        .stock-add-btn {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            color: #27AE60;
+            border: 2px solid rgba(255,255,255,0.9);
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
+            font-size: 14px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
         }
-        
-        .btn-primary {
-            background: #000000;
-            color: #ffffff;
-        }
-        
-        .btn-primary:hover {
-            background: #1a1a1a;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn-secondary {
-            background: #fafafa;
-            border: 1px solid #e8e8e8;
-            color: #000000;
-        }
-        
-        .btn-secondary:hover {
-            background: #f5f5f5;
-            border-color: #000000;
-        }
-        
-        .btn-outline {
-            background: #ffffff;
-            border: 1px solid #e8e8e8;
-            color: #000000;
-        }
-        
-        .btn-outline:hover {
-            background: #f5f5f5;
-            border-color: #000000;
-        }
-        
-        .btn-sm {
-            padding: 8px 16px;
-            font-size: 13px;
-        }
-        
-        .modal {
-            background: rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-content {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e8e8e8;
-        }
-        
-        .modal-title {
-            color: #000000;
-            font-weight: 700;
-        }
-        
-        .modal-close {
-            color: #999999;
-        }
-        
-        .modal-close:hover {
-            color: #000000;
-        }
-        
-        .form-group {
-            margin-bottom: var(--spacing-lg);
+        .stock-add-btn:hover {
+            background: #fff !important;
+            transform: scale(1.1);
         }
 
+        /* ─── Menu Item Actions ─── */
+        .menu-item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .menu-item-actions .btn { flex: 1; }
+
+        /* ─── Buttons ─── */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+        .btn-primary { background: #111; color: #fff; }
+        .btn-primary:hover {
+            background: #000;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+        .btn-secondary {
+            background: #f5f6f8;
+            border: 1px solid #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #eee;
+            border-color: #ccc;
+        }
+        .btn-outline {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #333;
+        }
+        .btn-outline:hover {
+            background: #f5f5f5;
+            border-color: #bbb;
+        }
+        .btn-sm { padding: 7px 14px; font-size: 12px; }
+        .btn-lg { padding: 14px 28px; font-size: 16px; }
+
+        /* ─── Modals ─── */
+        .modal { background: rgba(0,0,0,0.45); }
+        .modal-content {
+            background: #ffffff;
+            border-radius: 18px;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        .modal-title { color: #000; font-weight: 700; }
+        .modal-close { color: #aaa; }
+        .modal-close:hover { color: #000; }
+
+        .form-group { margin-bottom: var(--spacing-lg); }
         /* كود إجبار الخانات على الكتابة والضغط */
         .modal-content input,
         .modal-content select,
@@ -443,65 +428,36 @@
             position: relative !important;
             z-index: 9999 !important;
         }
-        .form-group {
-            position: relative;
-            z-index: 9998;
-        }
-        
+        .form-group { position: relative; z-index: 9998; }
+
         .label {
             display: block;
             margin-bottom: 8px;
-            color: #000000;
+            color: #111;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
         }
-        
         .input {
             width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e8e8e8;
-            border-radius: 12px;
-            background: #ffffff;
-            color: #000000;
+            padding: 11px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fff;
+            color: #000;
             font-size: 14px;
+            transition: border-color 0.2s;
         }
-        
         .input:focus {
             outline: none;
-            border-color: #000000;
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+            border-color: #000;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
         }
-        
-        .btn-lg {
-            padding: 14px 28px;
-            font-size: 16px;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f5f5f5;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #cccccc;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #999999;
-        }
-        
-        .menu-item-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-        
-        .menu-item-actions .btn {
-            flex: 1;
-        }
+
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
     </style>
 </head>
 <body>
@@ -702,7 +658,7 @@
                     </div>
                     
                     <script>
-                        function updateSingleProfit() {
+                        async function updateSingleProfit() {
                             const costPriceInput = document.getElementById('itemCostPrice');
                             const costPrice = parseFloat(costPriceInput ? costPriceInput.value : 0) || 0;
                             const price = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
@@ -724,7 +680,7 @@
                             }
                             
                             // حساب التكلفة من الوصفة إذا كانت موجودة
-                            const recipeCost = calculateMainRecipeCost();
+                            const recipeCost = await calculateMainRecipeCost();
                             const finalCostPrice = recipeCost > 0 ? recipeCost : costPrice;
                             
                             // عرض التكلفة دائماً إذا كانت موجودة
@@ -755,15 +711,15 @@
                             }
                         }
                         
-                        function calculateMainRecipeCost() {
+                        async function calculateMainRecipeCost() {
                             const recipeContainer = document.getElementById('mainRecipeContainer');
                             if (!recipeContainer) return 0;
-                            
+
                             const recipeItems = recipeContainer.querySelectorAll('.recipe-item');
                             if (recipeItems.length === 0) return 0;
-                            
+
                             let totalCost = 0;
-                            const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+                            const ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
                             
                             recipeItems.forEach(item => {
                                 const ingredientId = item.dataset.ingredientId;
@@ -782,8 +738,8 @@
                             return totalCost;
                         }
                         
-                        function updateMainRecipeCostDisplay() {
-                            const recipeCost = calculateMainRecipeCost();
+                        async function updateMainRecipeCostDisplay() {
+                            const recipeCost = await calculateMainRecipeCost();
                             const costDisplay = document.getElementById('mainRecipeCostDisplay');
                             const costValue = document.getElementById('mainRecipeCostValue');
                             
@@ -854,6 +810,7 @@
     <script src="js/firebase.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
@@ -1005,31 +962,74 @@
                 return Array.from(seen.values());
             };
 
-            // ── مرحلة 1: قراءة localStorage فوراً (0ms) ──────────────────────
+            // ── انتظر DBService لو مش جاهز (max 3 ثواني) ──────────────────────
+            if (!window.DBService) {
+                console.warn('⏳ [Menu] DBService not ready, waiting...');
+                let waited = 0;
+                await new Promise(resolve => {
+                    const check = setInterval(() => {
+                        waited += 100;
+                        if (window.DBService || waited >= 3000) {
+                            clearInterval(check);
+                            resolve();
+                        }
+                    }, 100);
+                });
+                if (window.DBService) console.log('✅ [Menu] DBService ready after', waited, 'ms');
+                else console.error('❌ [Menu] DBService not available after 3s');
+            }
+
+            // ── مرحلة 1: قراءة SQLite ──────────────────────────────────────────
             try {
-                const savedCats = localStorage.getItem('categories');
-                const parsed = (savedCats && savedCats !== '[]' && savedCats !== 'null')
-                    ? JSON.parse(savedCats) : [];
+                const parsed = (window.DBService && typeof window.DBService.getCategories === 'function')
+                    ? await window.DBService.getCategories() : [];
+                console.log(`📂 [Menu] Categories loaded: ${parsed.length}`);
                 window.menuData.categories = _dedup(parsed);
                 // صحّح الكاش تلقائياً لو كان فيه تكرار
                 if (window.menuData.categories.length !== parsed.length) {
-                    localStorage.setItem('categories', JSON.stringify(window.menuData.categories));
+                    for (const cat of window.menuData.categories) {
+                        if (window.DBService && typeof window.DBService.saveCategory === 'function') await window.DBService.saveCategory(cat);
+                    }
                     console.log(`🧹 تم تنظيف ${parsed.length - window.menuData.categories.length} فئة مكررة من الكاش`);
                 }
-            } catch (e) { window.menuData.categories = []; }
+            } catch (e) { console.error('❌ [Menu] Categories load error:', e); window.menuData.categories = []; }
 
             try {
-                const savedItems = localStorage.getItem('menuItems');
-                const parsed = (savedItems && savedItems !== '[]' && savedItems !== 'null')
-                    ? JSON.parse(savedItems) : [];
+                const parsed = (window.DBService && typeof window.DBService.getMenuItems === 'function')
+                    ? await window.DBService.getMenuItems() : [];
+                console.log(`📦 [Menu] Menu items loaded: ${parsed.length}`);
                 const deduped = _dedup(parsed);
                 menuItems = deduped.map(mapMenuItemFromFirebase);
                 if (deduped.length !== parsed.length) {
-                    localStorage.setItem('menuItems', JSON.stringify(deduped));
+                    for (const item of deduped) {
+                        if (window.DBService && typeof window.DBService.saveMenuItem === 'function') await window.DBService.saveMenuItem(item);
+                    }
                 }
-            } catch (e) { menuItems = []; }
+            } catch (e) { console.error('❌ [Menu] Menu items load error:', e); menuItems = []; }
+
+            // ── Fallback: لو SQLite رجّع فاضي وفيه DataManager → جرّبه ──────
+            if (window.menuData.categories.length === 0 && menuItems.length === 0) {
+                console.warn('⚠️ [Menu] SQLite returned empty, trying DataManager fallback...');
+                try {
+                    if (window.DataManager && typeof window.DataManager.getCategories === 'function') {
+                        const cats = await window.DataManager.getCategories();
+                        if (Array.isArray(cats) && cats.length > 0) {
+                            window.menuData.categories = _dedup(cats);
+                            console.log(`📂 [Menu] DataManager categories: ${cats.length}`);
+                        }
+                    }
+                    if (window.DataManager && typeof window.DataManager.getMenuItems === 'function') {
+                        const items = await window.DataManager.getMenuItems();
+                        if (Array.isArray(items) && items.length > 0) {
+                            menuItems = _dedup(items).map(mapMenuItemFromFirebase);
+                            console.log(`📦 [Menu] DataManager items: ${items.length}`);
+                        }
+                    }
+                } catch(e) { console.warn('[Menu] DataManager fallback err:', e); }
+            }
 
             // ── رسم الواجهة فوراً بالبيانات المحلية ──────────────────────────
+            console.log(`🎨 [Menu] Rendering with ${window.menuData.categories.length} categories, ${menuItems.length} items`);
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initializeMenuPage);
             } else {
@@ -1062,23 +1062,45 @@
 
                     if (Array.isArray(fbCats) && fbCats.length > 0) {
                         const clean = _dedup(fbCats);
-                        const prevLen = window.menuData.categories.length;
-                        localStorage.setItem('categories', JSON.stringify(clean));
+                        const prevIds = new Set(window.menuData.categories.map(c => String(c.id)));
+                        const newIds = new Set(clean.map(c => String(c.id)));
+                        if (window.DBService && typeof window.DBService.saveCategory === 'function') {
+                            for (const cat of clean) await window.DBService.saveCategory(cat);
+                        }
                         window.menuData.categories = clean;
-                        if (clean.length !== prevLen) changed = true;
+                        // changed لو العدد اختلف أو الـ IDs اختلفت
+                        if (clean.length !== prevIds.size || [...newIds].some(id => !prevIds.has(id))) changed = true;
                     }
                     if (Array.isArray(fbItems) && fbItems.length > 0) {
                         const clean = _dedup(fbItems);
-                        const prevLen = menuItems.length;
-                        localStorage.setItem('menuItems', JSON.stringify(clean));
+                        const prevIds = new Set(menuItems.map(i => String(i.id)));
+                        const newIds = new Set(clean.map(i => String(i.id)));
+                        if (window.DBService && typeof window.DBService.saveMenuItem === 'function') {
+                            // حماية بيانات الـ aggregatorPrices المحلية من الكتابة فوقها
+                            const existingItems = await window.DBService.getMenuItems().catch(() => []);
+                            const existingMap = {};
+                            (existingItems || []).forEach(e => { existingMap[String(e.id)] = e; });
+                            for (const item of clean) {
+                                const existing = existingMap[String(item.id)];
+                                if (existing && existing.aggregatorPrices && Object.keys(existing.aggregatorPrices).length > 0) {
+                                    if (!item.aggregatorPrices || Object.keys(item.aggregatorPrices).length === 0) {
+                                        item.aggregatorPrices = existing.aggregatorPrices;
+                                    }
+                                }
+                                await window.DBService.saveMenuItem(item);
+                            }
+                        }
                         menuItems = clean.map(mapMenuItemFromFirebase);
-                        if (clean.length !== prevLen) changed = true;
+                        if (clean.length !== prevIds.size || [...newIds].some(id => !prevIds.has(id))) changed = true;
                     }
 
-                    // إعادة رسم الواجهة فقط لو في فرق فعلي في عدد العناصر
+                    // إعادة رسم الواجهة فقط لو في فرق فعلي في البيانات
                     if (changed) {
+                        console.log('🔄 [Menu] Re-rendering after Firebase sync (data changed)');
                         initCategories();
                         renderMenuItems();
+                    } else {
+                        console.log('✅ [Menu] Firebase sync done — no changes, skipping re-render');
                     }
                 } catch (e) {
                     console.warn('Background Firebase sync failed:', e);
@@ -1132,16 +1154,17 @@
             }
             
             // Listen for menu items updates from other pages (e.g., when stock is decreased in index.html)
-            window.addEventListener('menuItemsUpdated', () => {
-                // Reload menuItems from localStorage
-                const stored = localStorage.getItem('menuItems');
-                if (stored) {
-                    try {
-                        menuItems = JSON.parse(stored);
+            window.addEventListener('menuItemsUpdated', async () => {
+                // Reload menuItems from SQLite
+                try {
+                    const stored = (window.DBService && typeof window.DBService.getMenuItems === 'function')
+                        ? await window.DBService.getMenuItems() : [];
+                    if (stored && stored.length > 0) {
+                        menuItems = stored;
                         renderMenuItems();
-                    } catch (e) {
-                        console.error('Error parsing menuItems:', e);
                     }
+                } catch (e) {
+                    console.error('Error loading menuItems:', e);
                 }
             });
             
@@ -1210,7 +1233,9 @@ async function deleteCategory(categoryId, categoryName) {
 
                 // 2. كنس الجهاز المحلي
                 window.menuData.categories = window.menuData.categories.filter(c => String(c.id) !== String(categoryId));
-                localStorage.setItem('categories', JSON.stringify(window.menuData.categories));
+                if (window.DBService && typeof window.DBService.removeCategory === 'function') {
+                    await window.DBService.removeCategory(String(categoryId));
+                }
 
                 // 3. تنظيف الطابور
                 let syncQueue = JSON.parse(localStorage.getItem('_syncQueue') || '[]');
@@ -1271,7 +1296,9 @@ async function deleteCategory(categoryId, categoryName) {
 
                 // 2. التنظيف المحلي
                 menuItems = menuItems.filter(i => String(i.id) !== String(itemId));
-                localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                if (window.DBService && typeof window.DBService.removeMenuItem === 'function') {
+                    await window.DBService.removeMenuItem(String(itemId));
+                }
 
                 if (typeof window.menuData !== 'undefined') {
                     window.menuData.items = window.menuData.items.filter(i => String(i.id) !== String(itemId));
@@ -1290,8 +1317,8 @@ async function deleteCategory(categoryId, categoryName) {
                 console.error('❌ فشل المسح من السيرفر:', error);
                 alert('حدث خطأ! تأكد من اتصالك بالإنترنت لضمان مسح المنتج من السيرفر.');
             }
-        }      
-              function clearAllCategories() {
+        }
+              async function clearAllCategories() {
             if (window.menuData.categories.length === 0) {
                 if (typeof Notification !== 'undefined') {
                     Notification.info('لا توجد فئات للمسح');
@@ -1311,8 +1338,12 @@ async function deleteCategory(categoryId, categoryName) {
             // مسح جميع الفئات من menuData
             window.menuData.categories = [];
             
-            // مسح الفئات من localStorage
-            localStorage.removeItem('categories');
+            // مسح الفئات من SQLite
+            if (window.DBService && typeof window.DBService.removeCategory === 'function') {
+                for (const cat of deletedCategories) {
+                    if (cat && cat.id != null) await window.DBService.removeCategory(String(cat.id));
+                }
+            }
             
             // تحديث menuData العام
             if (typeof window !== 'undefined' && window.menuData) {
@@ -1347,7 +1378,7 @@ async function deleteCategory(categoryId, categoryName) {
         function initCategoryForm() {
             const categoryForm = document.getElementById('categoryForm');
             if (categoryForm) {
-                categoryForm.addEventListener('submit', (e) => {
+                categoryForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     
                     const categoryName = document.getElementById('categoryName').value.trim();
@@ -1378,11 +1409,13 @@ async function deleteCategory(categoryId, categoryName) {
                     
                     window.menuData.categories.push(newCategory);
                     
-                    // Save categories to localStorage
+                    // Save category to SQLite
                     const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     newCategory._localId = localId;
                     newCategory._synced = false;
-                    localStorage.setItem('categories', JSON.stringify(window.menuData.categories));
+                    if (window.DBService && typeof window.DBService.saveCategory === 'function') {
+                        await window.DBService.saveCategory(newCategory);
+                    }
                     
                     // Also update the global menuData object
                     if (typeof window !== 'undefined' && window.menuData) {
@@ -1497,49 +1530,36 @@ async function deleteCategory(categoryId, categoryName) {
         }
         
         function initCategories() {
-            // 🔥 الترتيب الديناميكي الإجباري باستخدام وقت الإضافة
-             window.menuData.categories.sort((a, b) => {
-                 return (a.createdAt || 0) - (b.createdAt || 0);
-             });
-            const categoryList = document.getElementById('categoryList');
-            const categoryIcons = {
-                1: 'fa-bowl-food',
-                2: 'fa-burger',
-                3: 'fa-pot-food',
-                4: 'fa-bowl-rice',
-                5: 'fa-drumstick-bite',
-                6: 'fa-cup-straw',
-                7: 'fa-bowl-rice',
-                8: 'fa-cucumber'
-            };
-            
-            const isOwner = typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function'
-                ? Auth.canDelete()
-                : (typeof Auth !== 'undefined' && typeof Auth.getUserRole === 'function'
-                    && (Auth.getUserRole() === 'owner' || Auth.getUserRole() === 'admin'));
+            // ترتيب واحد: بالـ order أولاً، ثم createdAt كـ fallback
+            window.menuData.categories.sort((a, b) => {
+                const orderA = a.order !== undefined ? Number(a.order) : 999;
+                const orderB = b.order !== undefined ? Number(b.order) : 999;
+                if (orderA !== orderB) return orderA - orderB;
+                return (a.createdAt || 0) - (b.createdAt || 0);
+            });
 
-            // الترتيب الديناميكي باستخدام حقل order من الفايربيز 
-             window.menuData.categories.sort((a, b) => { 
-                 // لو الفئة ليها رقم ترتيب في الفايربيز بناخده، لو مالهاش بنديها 999 عشان تنزل في الآخر 
-                 let orderA = a.order !== undefined ? Number(a.order) : 999; 
-                 let orderB = b.order !== undefined ? Number(b.order) : 999; 
-                 
-                 return orderA - orderB; 
-             });
-            
+            const categoryList = document.getElementById('categoryList');
+            if (categoryList) {
+                const allBtn = categoryList.querySelector('.category-item[data-category="all"]');
+                categoryList.innerHTML = '';
+                if (allBtn) categoryList.appendChild(allBtn);
+            }
+
             window.menuData.categories.forEach(category => {
                 const categoryItem = document.createElement('div');
                 categoryItem.className = 'category-item';
                 categoryItem.dataset.category = category.id;
-                
+                categoryItem.draggable = true;
+
+                // Drag handle
+                const dragHandle = document.createElement('i');
+                dragHandle.className = 'fas fa-grip-vertical drag-handle';
+
                 const categoryContent = document.createElement('div');
                 categoryContent.className = 'category-item-content';
                 categoryContent.onclick = () => switchCategory(category.id);
-                categoryContent.innerHTML = `
-                    <span>${category.name}</span>
-                `;
-                
-                // زر حذف الفئة (لصاحب المحل فقط)
+                categoryContent.innerHTML = `<span>${category.name}</span>`;
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'category-delete-btn';
                 deleteBtn.type = 'button';
@@ -1547,25 +1567,19 @@ async function deleteCategory(categoryId, categoryName) {
                 deleteBtn.title = 'حذف الفئة';
                 deleteBtn.setAttribute('data-restricted', 'owner');
                 deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // منع تفعيل switchCategory
+                    e.stopPropagation();
                     deleteCategory(category.id, category.name);
                 };
-                
-                // إظهار زر الحذف دائماً (يمكن إخفاؤه لغير المالكين لاحقاً إذا لزم الأمر)
-                // if (!isOwner) {
-                //     deleteBtn.style.display = 'none';
-                // }
-                
+
+                categoryItem.appendChild(dragHandle);
                 categoryItem.appendChild(categoryContent);
                 categoryItem.appendChild(deleteBtn);
-                
                 categoryList.appendChild(categoryItem);
             });
-            
+
             // Populate category select
             const categorySelect = document.getElementById('itemCategory');
             if (categorySelect) {
-                // Clear existing options except the first one (placeholder)
                 categorySelect.innerHTML = '<option value="">اختر الفئة</option>';
                 window.menuData.categories.forEach(category => {
                     const option = document.createElement('option');
@@ -1574,6 +1588,105 @@ async function deleteCategory(categoryId, categoryName) {
                     categorySelect.appendChild(option);
                 });
             }
+
+            // Setup drag & drop
+            _setupCategoryDragDrop();
+        }
+
+        // ─── Drag & Drop للفئات ───
+        let _draggedCatId = null;
+
+        function _setupCategoryDragDrop() {
+            const categoryList = document.getElementById('categoryList');
+            if (!categoryList) return;
+
+            const items = categoryList.querySelectorAll('.category-item[draggable="true"]');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    _draggedCatId = item.dataset.category;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', _draggedCatId);
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    _draggedCatId = null;
+                    // Clean all drag-over states
+                    categoryList.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+                        el.classList.remove('drag-over-top', 'drag-over-bottom');
+                    });
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (item.dataset.category === _draggedCatId) return;
+
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                    if (e.clientY < midY) {
+                        item.classList.add('drag-over-top');
+                    } else {
+                        item.classList.add('drag-over-bottom');
+                    }
+                });
+
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+
+                item.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                    const droppedOnId = item.dataset.category;
+                    if (!_draggedCatId || _draggedCatId === droppedOnId) return;
+
+                    const cats = window.menuData.categories;
+                    const dragIdx = cats.findIndex(c => String(c.id) === String(_draggedCatId));
+                    const dropIdx = cats.findIndex(c => String(c.id) === String(droppedOnId));
+                    if (dragIdx === -1 || dropIdx === -1) return;
+
+                    // Determine insert position based on mouse position
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    let insertIdx = e.clientY < midY ? dropIdx : dropIdx + 1;
+                    if (dragIdx < insertIdx) insertIdx--;
+
+                    // Move category in array
+                    const [moved] = cats.splice(dragIdx, 1);
+                    cats.splice(insertIdx, 0, moved);
+
+                    // Update order field on each category
+                    cats.forEach((cat, i) => {
+                        cat.order = i;
+                        cat.sortOrder = i;
+                        cat.sort_order = i;
+                    });
+
+                    // Persist to SQLite
+                    const orderedIds = cats.map(c => c.id);
+                    try {
+                        if (window.DBService && typeof window.DBService.reorderCategories === 'function') {
+                            await window.DBService.reorderCategories(orderedIds);
+                        }
+                        // Sync each to Firebase
+                        if (window.SyncManager) {
+                            cats.forEach(cat => {
+                                window.SyncManager.addToSyncQueue('categories', 'update', cat, cat._localId || cat.id);
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Failed to save category order:', err);
+                    }
+
+                    // Re-render
+                    initCategories();
+                    renderMenuItems();
+                });
+            });
         }
         
         function switchCategory(categoryId) {
@@ -1588,7 +1701,7 @@ async function deleteCategory(categoryId, categoryName) {
             renderMenuItems();
         }
         
-        function renderMenuItems() {
+        async function renderMenuItems() {
             // ترتيب المنتجات حسب وقت الإضافة
             if (typeof menuItems !== 'undefined') {
                 menuItems.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -1606,7 +1719,16 @@ async function deleteCategory(categoryId, categoryName) {
                 return;
             }
             
-            filteredItems.forEach((item, index) => {
+            // جلب المخزون مرة واحدة قبل اللوب
+            let inventoryItems = [];
+            try {
+                if (window.DBService && typeof window.DBService.getIngredients === 'function') {
+                    inventoryItems = await window.DBService.getIngredients();
+                }
+            } catch(e) { console.warn('Failed to load ingredients:', e.message); }
+
+            for (let index = 0; index < filteredItems.length; index++) {
+                const item = filteredItems[index];
                 const category = window.menuData.categories.find(c => String(c.id) === String(item.categoryId));
                 const itemCard = document.createElement('div');
                 itemCard.className = 'menu-item-card';
@@ -1630,7 +1752,7 @@ async function deleteCategory(categoryId, categoryName) {
                 } else {
                     displayPrice = (item.price || 0) + ' ج.م';
                 }
-                
+
                 // حساب التكلفة والمكسب (يعرض دائماً إذا كانت البيانات موجودة)
                 let costAndProfitText = '';
                 const isOwner = typeof Auth !== 'undefined' && typeof Auth.canDelete === 'function'
@@ -1648,10 +1770,10 @@ async function deleteCategory(categoryId, categoryName) {
                         const maxCost = Math.max(...costs);
                         const minProfit = Math.min(...profits);
                         const maxProfit = Math.max(...profits);
-                        
+
                         let costDisplay = '';
                         let profitDisplay = '';
-                        
+
                         // عرض التكلفة دائماً إذا كانت موجودة
                         if (minCost > 0 || maxCost > 0) {
                             if (minCost === maxCost) {
@@ -1660,14 +1782,14 @@ async function deleteCategory(categoryId, categoryName) {
                                 costDisplay = `<div style="color: #666666; font-size: 13px; font-weight: 500; margin-top: 6px; padding: 6px; background: #f8f9fa; border-radius: 6px;">التكلفة: ${Utils.formatCurrency(minCost)} - ${Utils.formatCurrency(maxCost)}</div>`;
                             }
                         }
-                        
+
                         // عرض المكسب دائماً (بدون مربع أخضر)
                         if (minProfit === maxProfit) {
                             profitDisplay = `<div style="color: #27AE60; font-size: 14px; font-weight: 600; margin-top: 6px;">المكسب: ${Utils.formatCurrency(minProfit)}</div>`;
                         } else {
                             profitDisplay = `<div style="color: #27AE60; font-size: 14px; font-weight: 600; margin-top: 6px;">المكسب: ${Utils.formatCurrency(minProfit)} - ${Utils.formatCurrency(maxProfit)}</div>`;
                         }
-                        
+
                         costAndProfitText = costDisplay + profitDisplay;
                     } else {
                         const costPrice = item.costPrice || 0;
@@ -1683,11 +1805,10 @@ async function deleteCategory(categoryId, categoryName) {
                         }
                     }
                 }
-                
+
           // Calculate dynamic stock for recipes
           const itemType = item.type || 'physical';
-          const inventoryItems = JSON.parse(localStorage.getItem('ingredients') || '[]');
-          
+
           let finalStock = item.stock || 0;
           let warningLimit = item.minStockLimit || 5;
           let dangerLimit = item.criticalStockLimit !== undefined ? item.criticalStockLimit : 0;
@@ -1790,12 +1911,12 @@ async function deleteCategory(categoryId, categoryName) {
                     </div>
                 `;
                 menuItemsGrid.appendChild(itemCard);
-            });
+            }
         }
         
         let variantCount = 0;
         
-        function toggleVariantOptions() {
+        async function toggleVariantOptions() {
             const variantType = document.getElementById('variantType').value;
             const pricingSection = document.querySelector('.pricing-section');
             const variantsSection = document.getElementById('variantsSection');
@@ -1820,20 +1941,20 @@ async function deleteCategory(categoryId, categoryName) {
                 
                 if (variantType === 'size') {
                     // أحجام: صغير، وسط، كبير
-                    addVariant('صغير', 0);
-                    addVariant('وسط', 0);
-                    addVariant('كبير', 0);
+                    await addVariant('صغير', 0);
+                    await addVariant('وسط', 0);
+                    await addVariant('كبير', 0);
                 } else if (variantType === 'weight') {
                     // أوزان: ربع، نصف، كيلو
-                    addVariant('ربع', 0);
-                    addVariant('نصف', 0);
-                    addVariant('كيلو', 0);
+                    await addVariant('ربع', 0);
+                    await addVariant('نصف', 0);
+                    await addVariant('كيلو', 0);
                 }
             }
             applyOwnerPermissions(); // تطبيق الصلاحيات بعد تغيير نوع المتغيرات
         }
         
-        function addVariant(name = '', price = 0, costPrice = 0, recipe = null, variantId = null, aggregatorPrices = {}) {
+        async function addVariant(name = '', price = 0, costPrice = 0, recipe = null, variantId = null, aggregatorPrices = {}) {
     price = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(price) : parseFloat(price.toFixed(2));
     costPrice = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(costPrice) : parseFloat(costPrice.toFixed(2));
     
@@ -1852,7 +1973,8 @@ async function deleteCategory(categoryId, categoryName) {
     
     let calculatedCost = costPrice;
     if (recipe && Array.isArray(recipe) && recipe.length > 0) {
-        calculatedCost = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(calculateVariantCostFromRecipe(recipe)) : parseFloat(calculateVariantCostFromRecipe(recipe).toFixed(2));
+        const _varCost = await calculateVariantCostFromRecipe(recipe);
+        calculatedCost = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(_varCost) : parseFloat(_varCost.toFixed(2));
     }
     
     variantDiv.style.cssText = `display: flex; flex-direction: column; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); padding: var(--spacing-lg); background: #ffffff; border-radius: 12px; border: 2px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0,0,0,0.1);`;
@@ -1877,7 +1999,7 @@ async function deleteCategory(categoryId, categoryName) {
     
     let recipeItemsDisplay = '';
     if (recipe && Array.isArray(recipe) && recipe.length > 0) {
-        const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+        const ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
         const recipeItems = recipe.map(recipeItem => {
             const ingredient = ingredients.find(ing => ing.id === recipeItem.ingredientId);
             if (ingredient) {
@@ -1888,7 +2010,7 @@ async function deleteCategory(categoryId, categoryName) {
             }
             return '';
         }).filter(item => item !== '').join('');
-        
+
         if (recipeItems) {
             recipeItemsDisplay = `
                 <div style="background: #f0f9f4; padding: var(--spacing-md); border-radius: 8px; margin-bottom: var(--spacing-md); border: 1px solid #27ae60;">
@@ -2004,22 +2126,20 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
 
         
         // دالة لحساب تكلفة variant من الوصفة
-        function calculateVariantCostFromRecipe(recipe) {
+        async function calculateVariantCostFromRecipe(recipe) {
             if (!recipe || !Array.isArray(recipe) || recipe.length === 0) {
                 return 0;
             }
-            
+
             let totalCost = 0;
-            
+
             // تحميل المواد الخام
             let ingredients = [];
-            if (localStorage.getItem('ingredients')) {
-                try {
-                    ingredients = JSON.parse(localStorage.getItem('ingredients'));
-                } catch (e) {
-                    console.error('Error parsing ingredients:', e);
-                    return 0;
-                }
+            try {
+                ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
+            } catch (e) {
+                console.error('Error loading ingredients:', e);
+                return 0;
             }
             
             recipe.forEach(recipeItem => {
@@ -2037,7 +2157,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
             return totalCost;
         }
         
-        function updateVariantProfit(input) {
+        async function updateVariantProfit(input) {
             const variantDiv = input.closest('.variant-item');
             if (!variantDiv) return;
             
@@ -2056,7 +2176,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
             if (recipeData) {
                 try {
                     const recipe = JSON.parse(recipeData);
-                    recipeCost = calculateVariantCostFromRecipe(recipe);
+                    recipeCost = await calculateVariantCostFromRecipe(recipe);
                 } catch (e) {
                     console.error('Error parsing recipe:', e);
                 }
@@ -2129,7 +2249,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         let currentEditingVariantId = null;
         let currentEditingVariantDiv = null;
         
-        function editVariantRecipe(variantId) {
+        async function editVariantRecipe(variantId) {
             currentEditingVariantId = variantId;
             const variantDiv = document.querySelector(`.variant-item[data-variant-id="${variantId}"]`);
             if (!variantDiv) return;
@@ -2166,9 +2286,9 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
             if (recipeContainer) {
                 recipeContainer.innerHTML = '';
                 if (currentRecipe && currentRecipe.length > 0) {
-                    currentRecipe.forEach(recipeItem => {
-                        addVariantRecipeItem(recipeItem.ingredientId, recipeItem.quantity);
-                    });
+                    for (const recipeItem of currentRecipe) {
+                        await addVariantRecipeItem(recipeItem.ingredientId, recipeItem.quantity);
+                    }
                 }
             }
             
@@ -2214,15 +2334,13 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         }
         
         // دالة لإضافة مادة خام لوصفة variant
-        function addVariantRecipeItem(ingredientId = null, quantity = 0) {
+        async function addVariantRecipeItem(ingredientId = null, quantity = 0) {
             // Load ingredients
             let ingredients = [];
-            if (localStorage.getItem('ingredients')) {
-                try {
-                    ingredients = JSON.parse(localStorage.getItem('ingredients'));
-                } catch (e) {
-                    ingredients = [];
-                }
+            try {
+                ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
+            } catch (e) {
+                ingredients = [];
             }
             
             if (ingredients.length === 0) {
@@ -2304,7 +2422,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         }
         
         // دالة لحفظ وصفة variant
-        function saveVariantRecipe() {
+        async function saveVariantRecipe() {
             if (!currentEditingVariantId || !currentEditingVariantDiv) return;
             
             const recipeContainer = document.getElementById('variantRecipeContainer');
@@ -2330,7 +2448,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
             currentEditingVariantDiv.dataset.recipe = JSON.stringify(recipe);
             
             // إعادة حساب التكلفة وعرضها
-            const calculatedCost = calculateVariantCostFromRecipe(recipe);
+            const calculatedCost = await calculateVariantCostFromRecipe(recipe);
             const costInput = currentEditingVariantDiv.querySelector('input[data-cost]');
             if (costInput) {
                 costInput.value = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(calculatedCost) : parseFloat(calculatedCost.toFixed(2));
@@ -2338,11 +2456,11 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
             // تحديث عرض التكلفة والمكسب
             const priceInput = currentEditingVariantDiv.querySelector('input[type="number"]:not([data-cost])');
             if (priceInput) {
-                updateVariantProfit(priceInput);
+                await updateVariantProfit(priceInput);
             }
-            
+
             // تحديث عرض الخامات في نافذة المتغير
-            updateVariantRecipeDisplay(currentEditingVariantDiv, recipe);
+            await updateVariantRecipeDisplay(currentEditingVariantDiv, recipe);
             
             closeVariantRecipeModal();
             
@@ -2352,7 +2470,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         }
         
         // دالة لتحديث عرض الخامات في نافذة المتغير
-        function updateVariantRecipeDisplay(variantDiv, recipe) {
+        async function updateVariantRecipeDisplay(variantDiv, recipe) {
             if (!variantDiv || !recipe || !Array.isArray(recipe) || recipe.length === 0) {
                 // إزالة عرض الخامات إذا لم تكن موجودة
                 const existingDisplay = variantDiv.querySelector('.variant-recipe-items-display');
@@ -2367,7 +2485,7 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
                 return;
             }
             
-            const ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]');
+            const ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
             const recipeItems = recipe.map(recipeItem => {
                 const ingredient = ingredients.find(ing => ing.id === recipeItem.ingredientId);
                 if (ingredient) {
@@ -2425,15 +2543,13 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         }
         
         // دالة لإضافة مادة خام لوصفة المنتج الرئيسي (بدون متغيرات)
-        function addMainRecipeItem(ingredientId = null, quantity = 0) {
+        async function addMainRecipeItem(ingredientId = null, quantity = 0) {
             // Load ingredients
             let ingredients = [];
-            if (localStorage.getItem('ingredients')) {
-                try {
-                    ingredients = JSON.parse(localStorage.getItem('ingredients'));
-                } catch (e) {
-                    ingredients = [];
-                }
+            try {
+                ingredients = (window.DBService && typeof window.DBService.getIngredients === 'function') ? await window.DBService.getIngredients() : [];
+            } catch (e) {
+                ingredients = [];
             }
             
             if (ingredients.length === 0) {
@@ -2613,7 +2729,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                     itemData.price = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(parseFloat(priceInput ? priceInput.value : 0) || 0) : parseFloat((parseFloat(priceInput ? priceInput.value : 0) || 0).toFixed(2));
                     
                     // حساب التكلفة من الوصفة إذا كانت موجودة
-                    const recipeCost = calculateMainRecipeCost();
+                    const recipeCost = await calculateMainRecipeCost();
                     if (recipeCost > 0) {
                         itemData.costPrice = typeof Utils !== 'undefined' ? Utils.roundToTwoDecimals(recipeCost) : parseFloat(recipeCost.toFixed(2));
                         if (costPriceInput) {
@@ -2738,8 +2854,10 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                     menuItems.push(itemData);
                 }
                 
-                localStorage.setItem('menuItems', JSON.stringify(menuItems));
-                
+                if (window.DBService && typeof window.DBService.saveMenuItem === 'function') {
+                    await window.DBService.saveMenuItem(itemData);
+                }
+
                 // إضافة للمزامنة مع Firebase
                 if (typeof window !== 'undefined' && window.SyncManager) {
                     window.SyncManager.addToSyncQueue('menuItems', editingItem ? 'update' : 'add', itemData, localId);
@@ -2764,7 +2882,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
             });
         }
         
-        function editItem(itemId) {
+        async function editItem(itemId) {
             const item = menuItems.find(i => String(i.id) === String(itemId));
             if (item) {
                 window.renderDeliveryPrices(item.aggregatorPrices || {});
@@ -2789,12 +2907,12 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                 // Handle variants
                 if (item.variants && item.variants.length > 0) {
                     document.getElementById('variantType').value = 'custom';
-                    toggleVariantOptions();
+                    await toggleVariantOptions();
                     const variantsContainer = document.getElementById('variantsContainer');
                     variantsContainer.innerHTML = '';
-                    item.variants.forEach(variant => {
+                    for (const variant of item.variants) {
                         // تحميل recipe و variantId وأسعار الشركات إذا كانوا موجودين
-                        addVariant(
+                        await addVariant(
                             variant.name,
                             variant.price,
                             variant.costPrice || 0,
@@ -2802,7 +2920,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                             variant.variantId || null,
                             variant.aggregatorPrices || {} // 👈 السطر ده هو اللي بيرجع يكتب الأسعار في الخانات من الفايربيز
                         );
-                    });
+                    }
                     
                     // تحديث التكلفة والمكسب لجميع المتغيرات بعد تحميلها
                     setTimeout(() => {
@@ -2830,9 +2948,9 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                     const mainRecipeContainer = document.getElementById('mainRecipeContainer');
                     if (mainRecipeContainer && item.recipe && Array.isArray(item.recipe)) {
                         mainRecipeContainer.innerHTML = '';
-                        item.recipe.forEach(recipeItem => {
-                            addMainRecipeItem(recipeItem.ingredientId, recipeItem.quantity);
-                        });
+                        for (const recipeItem of item.recipe) {
+                            await addMainRecipeItem(recipeItem.ingredientId, recipeItem.quantity);
+                        }
                         // تحديث عرض التكلفة بعد تحميل الوصفة
                         setTimeout(() => {
                             if (typeof updateMainRecipeCostDisplay === 'function') {
@@ -2879,9 +2997,11 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                      console.log(`✅ تم مسح المنتج من الفايربيز.`); 
                  } 
  
-                 // 2. المسح من الذاكرة المحلية 
-                 menuItems = menuItems.filter(i => String(i.id) !== String(itemId)); 
-                 localStorage.setItem('menuItems', JSON.stringify(menuItems)); 
+                 // 2. المسح من الذاكرة المحلية
+                 menuItems = menuItems.filter(i => String(i.id) !== String(itemId));
+                 if (window.DBService && typeof window.DBService.removeMenuItem === 'function') {
+                     await window.DBService.removeMenuItem(String(itemId));
+                 }
  
                  if (typeof window.menuData !== 'undefined') { 
                      window.menuData.items = window.menuData.items.filter(i => String(i.id) !== String(itemId)); 
@@ -2913,7 +3033,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
             }
         }
         
-        function quickAddStock(itemId) {
+        async function quickAddStock(itemId) {
             const item = menuItems.find(i => String(i.id) === String(itemId));
             if (!item) return;
             
@@ -2945,7 +3065,9 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
             const index = menuItems.findIndex(i => String(i.id) === String(itemId));
             if (index !== -1) {
                 menuItems[index].stock = (menuItems[index].stock || 0) + addQty;
-                localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                if (window.DBService && typeof window.DBService.saveMenuItem === 'function') {
+                    await window.DBService.saveMenuItem(menuItems[index]);
+                }
                 
                 if (typeof Notification !== 'undefined') {
                     Notification.success(`تم إضافة ${addQty} وحدة. المخزون الحالي: ${menuItems[index].stock}`);
@@ -3173,7 +3295,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
 
         function closeAIMenuPreview() {
             _aiMenuFiles = [];
-            const modal = document.getElementById('aiMenuPreviewModal');
+           const modal = document.getElementById('aiMenuPreviewModal');
             if (modal) modal.style.display = 'none';
         }
 
@@ -3211,7 +3333,7 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                     if (!cat) {
                         cat = { id: 'CAT_' + Date.now() + Math.random().toString(36).slice(2,5), name: categoryName, createdAt: Date.now() };
                         window.menuData.categories.push(cat);
-                        localStorage.setItem('categories', JSON.stringify(window.menuData.categories));
+                        if (window.DBService && typeof window.DBService.saveCategory === 'function') await window.DBService.saveCategory(cat);
                         if (window.SyncManager) window.SyncManager.addToSyncQueue('categories', 'add', cat);
                     }
 
@@ -3249,7 +3371,11 @@ window.renderDeliveryPrices = async function(existingPrices = {}) {
                 }
 
                 // حفظ الكل وتحديث الشاشة
-                localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                if (window.DBService && typeof window.DBService.saveMenuItem === 'function') {
+                    for (const it of menuItems.slice(-addedCount)) {
+                        await window.DBService.saveMenuItem(it);
+                    }
+                }
 
                 menuItems.slice(-addedCount).forEach(it => {
                     if (window.SyncManager) window.SyncManager.addToSyncQueue('menuItems', 'add', it);

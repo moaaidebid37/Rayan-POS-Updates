@@ -51,14 +51,14 @@
     </div>
 
     <script>
-        function checkOrders() {
+        async function checkOrders() {
             const results = document.getElementById('results');
             results.innerHTML = '<p>جاري الفحص...</p>';
 
-            // فحص localStorage
-            const localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-            const ordersOnHold = JSON.parse(localStorage.getItem('ordersOnHold') || '[]');
-            const salesHistory = JSON.parse(localStorage.getItem('salesHistory') || '[]');
+            // فحص DBService (SQLite)
+            const localOrders = window.DBService ? await window.DBService.getOrders() : [];
+            const ordersOnHold = window.DBService ? await window.DBService.getOrdersOnHold() : [];
+            const salesHistory = window.DBService ? await window.DBService.getSalesHistory() : [];
             const resumeOrder = localStorage.getItem('resumeOrder');
 
             let html = `

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Solo POS — شاشة المطبخ KDS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface-hover: #242835;
+            --new: #007aff;
+            --new-bg: rgba(0, 122, 255, 0.12);
+            --preparing: #ff9500;
+            --preparing-bg: rgba(255, 149, 0, 0.12);
+            --ready: #34c759;
+            --ready-bg: rgba(52, 199, 89, 0.12);
+            --text: #f5f5f7;
+            --text-secondary: #8e8e93;
+            --border: #2c2f3a;
+            --danger: #ff3b30;
+            --danger-bg: rgba(255, 59, 48, 0.12);
+            --accent: #007aff;
+            --gold: #ffd60a;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ═══ HEADER ═══ */
+        .kds-header {
+            background: var(--surface);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .kds-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .kds-logo {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--gold);
+            letter-spacing: -0.5px;
+        }
+
+        .kds-logo span { color: var(--text-secondary); font-weight: 600; font-size: 14px; margin-right: 8px; }
+
+        .kds-header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .kds-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .kds-stat-value {
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--text);
+        }
+
+        .kds-stat-new .kds-stat-value { color: var(--new); }
+        .kds-stat-preparing .kds-stat-value { color: var(--preparing); }
+        .kds-stat-ready .kds-stat-value { color: var(--ready); }
+
+        .kds-clock {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kds-connection {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--ready);
+        }
+
+        .kds-connection.disconnected {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--danger);
+        }
+
+        .kds-connection-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--ready);
+            animation: pulse-dot 2s infinite;
+        }
+
+        .kds-connection.disconnected .kds-connection-dot {
+            background: var(--danger);
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ═══ FILTER TABS ═══ */
+        .kds-filters {
+            background: var(--surface);
+            padding: 8px 24px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .kds-filter-btn {
+            padding: 8px 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Cairo';
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .kds-filter-btn:hover { background: var(--surface-hover); }
+
+        .kds-filter-btn.active {
+            background: var(--text);
+            color: var(--bg);
+            border-color: var(--text);
+        }
+
+        .kds-filter-btn .count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-right: 6px;
+            padding: 0 6px;
+        }
+
+        .kds-filter-btn.active .count { background: var(--bg); color: var(--text); }
+
+        /* ═══ ORDERS GRID ═══ */
+        .kds-orders {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-content: start;
+        }
+
+        .kds-orders::-webkit-scrollbar { width: 6px; }
+        .kds-orders::-webkit-scrollbar-track { background: transparent; }
+        .kds-orders::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ═══ ORDER CARD ═══ */
+        .kds-order {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 2px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s;
+            animation: slideIn 0.4s ease-out;
+            display: flex;
+            flex-direction: column;
+            width: 380px;
+            height: 420px;
+            flex-shrink: 0;
+        }
+
+        .kds-order.new { border-color: var(--new); }
+        .kds-order.preparing { border-color: var(--preparing); }
+        .kds-order.ready { border-color: var(--ready); }
+        .kds-order.late { border-color: var(--danger); animation: latePulse 1.5s infinite !important; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes readyPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
+            50% { box-shadow: 0 0 20px 8px rgba(52, 199, 89, 0.15); }
+        }
+
+        @keyframes latePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.5); border-color: var(--danger); }
+            50% { box-shadow: 0 0 25px 10px rgba(255, 59, 48, 0.2); border-color: #ff6b6b; }
+        }
+
+        .kds-order.ready:not(.late) { animation: readyPulse 2s infinite; }
+
+        .kds-order-header {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .kds-order.new .kds-order-header { background: var(--new-bg); }
+        .kds-order.preparing .kds-order-header { background: var(--preparing-bg); }
+        .kds-order.ready .kds-order-header { background: var(--ready-bg); }
+        .kds-order.late .kds-order-header { background: var(--danger-bg); }
+
+        .kds-order-id {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+
+        .kds-order.new .kds-order-id { color: var(--new); }
+        .kds-order.preparing .kds-order-id { color: var(--preparing); }
+        .kds-order.ready .kds-order-id { color: var(--ready); }
+        .kds-order.late .kds-order-id { color: var(--danger); }
+
+        .kds-order-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .kds-order-type {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .kds-order.new .kds-order-type { background: var(--new-bg); color: var(--new); }
+        .kds-order.preparing .kds-order-type { background: var(--preparing-bg); color: var(--preparing); }
+        .kds-order.ready .kds-order-type { background: var(--ready-bg); color: var(--ready); }
+        .kds-order.late .kds-order-type { background: var(--danger-bg); color: var(--danger); }
+
+        .kds-order-timer {
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .kds-order-timer.urgent { color: var(--danger); font-weight: 900; }
+
+        .kds-late-badge {
+            display: inline-block;
+            background: var(--danger);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 6px;
+            animation: lateBadgePulse 1s infinite;
+        }
+
+        @keyframes lateBadgePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ═══ ORDER ITEMS ═══ */
+        .kds-order-items {
+            padding: 12px 18px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .kds-order-items::-webkit-scrollbar { width: 4px; }
+        .kds-order-items::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .kds-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .kds-item:last-child { border-bottom: none; }
+
+        .kds-item-qty {
+            min-width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .kds-order.new .kds-item-qty { background: var(--new-bg); color: var(--new); }
+        .kds-order.preparing .kds-item-qty { background: var(--preparing-bg); color: var(--preparing); }
+        .kds-order.ready .kds-item-qty { background: var(--ready-bg); color: var(--ready); }
+        .kds-order.late .kds-item-qty { background: var(--danger-bg); color: var(--danger); }
+
+        .kds-item-name {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .kds-item-variant {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .kds-item-addons {
+            font-size: 11px;
+            color: var(--preparing);
+            margin-top: 3px;
+        }
+
+        /* ═══ ORDER NOTES ═══ */
+        .kds-order-notes {
+            margin: 0 18px;
+            padding: 8px 12px;
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid rgba(255, 214, 10, 0.25);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--gold);
+            flex-shrink: 0;
+        }
+
+        /* ═══ ORDER ACTION BUTTONS ═══ */
+        .kds-order-action {
+            padding: 14px 18px;
+            flex-shrink: 0;
+        }
+
+        .kds-order-actions-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .kds-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Cairo';
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .kds-btn:active { transform: scale(0.97); }
+
+        .kds-btn-receive {
+            background: var(--new);
+            color: #fff;
+        }
+        .kds-btn-receive:hover { background: #0066dd; }
+
+        .kds-btn-ready {
+            background: var(--preparing);
+            color: #000;
+        }
+        .kds-btn-ready:hover { background: #e68a00; }
+
+        .kds-btn-delivered {
+            background: var(--ready);
+            color: #000;
+        }
+        .kds-btn-delivered:hover { background: #2db84e; }
+
+        /* ═══ EMPTY STATE ═══ */
+        .kds-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: calc(100vh - 140px);
+            color: var(--text-secondary);
+            gap: 16px;
+        }
+
+        .kds-empty-text { font-size: 22px; font-weight: 700; margin-top: 20px; }
+        .kds-empty-sub { font-size: 14px; opacity: 0.6; }
+
+        /* ═══ LOADER — Cooking Pot Animation ═══ */
+        .kds-loader {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+        .kds-loader-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-top-color: var(--gold);
+            border-right-color: var(--preparing);
+            animation: loaderSpin 1.5s linear infinite;
+            position: absolute;
+            top: 0; left: 0;
+        }
+        .kds-loader-ring:nth-child(2) {
+            width: 96px; height: 96px;
+            top: 12px; left: 12px;
+            border-top-color: var(--preparing);
+            border-right-color: var(--gold);
+            animation-direction: reverse;
+            animation-duration: 2s;
+        }
+        .kds-loader-ring:nth-child(3) {
+            width: 72px; height: 72px;
+            top: 24px; left: 24px;
+            border-top-color: #ff6b35;
+            border-right-color: #ffb347;
+            animation-duration: 2.5s;
+        }
+        .kds-loader-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            animation: loaderPulse 2s ease-in-out infinite;
+        }
+        @keyframes loaderSpin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes loaderPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.7; }
+        }
+
+        /* ═══ ORDER DELIVERED ANIMATION ═══ */
+        .kds-order.delivering {
+            animation: deliverSlide 0.5s ease-in forwards !important;
+        }
+
+        @keyframes deliverSlide {
+            to { opacity: 0; transform: scale(0.8) translateY(-30px); }
+        }
+
+        /* ═══ RESPONSIVE ═══ */
+        @media (max-width: 768px) {
+            .kds-orders {
+                padding: 12px;
+                gap: 12px;
+            }
+            .kds-header { padding: 10px 16px; }
+            .kds-filters { padding: 6px 16px; overflow-x: auto; }
+            .kds-stat-value { font-size: 16px; }
+            .kds-order { width: calc(100vw - 24px); height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="kds-header">
+        <div class="kds-header-right">
+            <div class="kds-logo">
+                Solo KDS
+                <span>شاشة المطبخ</span>
+            </div>
+        </div>
+        <div class="kds-header-left">
+            <div class="kds-stat kds-stat-new">
+                <span>جديد</span>
+                <span class="kds-stat-value" id="newCount">0</span>
+            </div>
+            <div class="kds-stat kds-stat-preparing">
+                <span>قيد التحضير</span>
+                <span class="kds-stat-value" id="preparingCount">0</span>
+            </div>
+            <div class="kds-stat kds-stat-ready">
+                <span>جاهز</span>
+                <span class="kds-stat-value" id="readyCount">0</span>
+            </div>
+            <div style="width: 1px; height: 28px; background: var(--border);"></div>
+            <div class="kds-clock" id="clock">00:00:00</div>
+            <div class="kds-connection" id="connectionStatus">
+                <div class="kds-connection-dot"></div>
+                <span>متصل</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══ FILTERS ═══ -->
+    <div class="kds-filters">
+        <button class="kds-filter-btn active" data-filter="all" onclick="filterOrders('all', this)">
+            الكل <span class="count" id="countAll">0</span>
+        </button>
+        <button class="kds-filter-btn" data-filter="preparing" onclick="filterOrders('preparing', this)">
+            قيد التحضير <span class="count" id="countPreparing">0</span>
+        </button>
+        <button class="kds-filter-btn" data-filter="ready" onclick="filterOrders('ready', this)">
+            جاهز <span class="count" id="countReady">0</span>
+        </button>
+    </div>
+
+    <!-- ═══ ORDERS GRID ═══ -->
+    <div class="kds-orders" id="ordersGrid">
+        <div class="kds-empty" id="emptyState">
+            <div class="kds-loader">
+                <div class="kds-loader-ring"></div>
+                <div class="kds-loader-ring"></div>
+                <div class="kds-loader-ring"></div>
+                <div class="kds-loader-center">🍳</div>
+            </div>
+            <div class="kds-empty-text">لا توجد طلبات حالياً</div>
+            <div class="kds-empty-sub">الطلبات الجديدة ستظهر هنا تلقائياً</div>
+        </div>
+    </div>
+
+    <!-- ═══ BELL SOUND ═══ -->
+    <audio id="bellSound" preload="auto">
+        <source src="/sounds/bell.wav" type="audio/wav">
+    </audio>
+    <audio id="lateBellSound" preload="auto">
+        <source src="/sounds/bell.wav" type="audio/wav">
+    </audio>
+
+    <!-- ═══ Socket.io ═══ -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // ── State ──
+        let orders = [];
+        let currentFilter = 'all';
+        let socket = null;
+        let prepTimeLimit = 15; // default 15 minutes, updated from server
+        let lateAlertedOrders = new Set(); // track orders that already rang late bell
+
+        // ── Socket Connection ──
+        function connectSocket() {
+            socket = io(window.location.origin, {
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: Infinity,
+            });
+
+            socket.on('connect', () => {
+                console.log('KDS connected to server');
+                updateConnectionStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('KDS disconnected');
+                updateConnectionStatus(false);
+            });
+
+            socket.on('all-orders', (data) => {
+                orders = data || [];
+                renderOrders();
+            });
+
+            socket.on('new-order', (order) => {
+                // New orders come as 'preparing' status, we treat them as new until received
+                if (!order._received) order.status = 'preparing';
+                orders.push(order);
+                renderOrders();
+                playBell();
+                showNewOrderFlash();
+            });
+
+            socket.on('order-updated', (updatedOrder) => {
+                const idx = orders.findIndex(o => o.id === updatedOrder.id);
+                if (idx !== -1) {
+                    orders[idx] = updatedOrder;
+                    renderOrders();
+                    if (updatedOrder.status === 'ready') playBell();
+                }
+            });
+
+            socket.on('order-delivered', (order) => {
+                const card = document.querySelector(`.kds-order[data-id="${order.id}"]`);
+                if (card) {
+                    card.classList.add('delivering');
+                    setTimeout(() => {
+                        const idx = orders.findIndex(o => o.id === order.id);
+                        if (idx !== -1) orders.splice(idx, 1);
+                        lateAlertedOrders.delete(order.id);
+                        renderOrders();
+                    }, 500);
+                } else {
+                    const idx = orders.findIndex(o => o.id === order.id);
+                    if (idx !== -1) orders.splice(idx, 1);
+                    lateAlertedOrders.delete(order.id);
+                    renderOrders();
+                }
+            });
+
+            // Get prep time setting from server
+            socket.on('kds-settings', (settings) => {
+                if (settings && settings.prepTimeLimit) {
+                    prepTimeLimit = settings.prepTimeLimit;
+                }
+            });
+        }
+
+        // ── Connection Status ──
+        function updateConnectionStatus(connected) {
+            const el = document.getElementById('connectionStatus');
+            if (connected) {
+                el.className = 'kds-connection';
+                el.innerHTML = '<div class="kds-connection-dot"></div><span>متصل</span>';
+            } else {
+                el.className = 'kds-connection disconnected';
+                el.innerHTML = '<div class="kds-connection-dot"></div><span>غير متصل</span>';
+            }
+        }
+
+        // ── Bell Sound ──
+        function playBell() {
+            try {
+                const bell = document.getElementById('bellSound');
+                bell.currentTime = 0;
+                bell.play().catch(() => {});
+            } catch(e) {}
+        }
+
+        function playLateBell() {
+            try {
+                const bell = document.getElementById('lateBellSound');
+                bell.currentTime = 0;
+                bell.play().catch(() => {});
+                // Play again after 1 second for urgency
+                setTimeout(() => {
+                    bell.currentTime = 0;
+                    bell.play().catch(() => {});
+                }, 1200);
+            } catch(e) {}
+        }
+
+        // ── Flash Effect on New Order ──
+        function showNewOrderFlash() {
+            document.body.style.transition = 'background 0.15s';
+            document.body.style.background = '#1a2a1a';
+            setTimeout(() => {
+                document.body.style.background = 'var(--bg)';
+            }, 300);
+        }
+
+        // ── Order Type Label ──
+        function getOrderTypeLabel(type) {
+            const types = { 'takeaway': 'تيك أواي', 'dinein': 'صالة', 'delivery': 'دليفري' };
+            return types[type] || type || 'تيك أواي';
+        }
+
+        function getOrderTypeIcon(type) {
+            const icons = { 'takeaway': '🛍️', 'dinein': '🍽️', 'delivery': '🛵' };
+            return icons[type] || '📦';
+        }
+
+        // ── عرض نوع الطلب + اسم شركة التوصيل لو موجودة ──
+        function getOrderDisplayLabel(order) {
+            const typeLabel = getOrderTypeLabel(order.orderType);
+            // لو فيه شركة توصيل (مش direct) نعرض اسمها
+            if (order.orderSource && order.orderSource !== 'direct') {
+                return order.orderSource;
+            }
+            return typeLabel;
+        }
+
+        // ── Timer ──
+        function getElapsedTime(createdAt) {
+            const created = new Date(createdAt);
+            const now = new Date();
+            const diff = Math.floor((now - created) / 1000);
+            const mins = Math.floor(diff / 60);
+            const secs = diff % 60;
+            return { text: `${mins}:${String(secs).padStart(2, '0')}`, mins };
+        }
+
+        // ── Render Orders ──
+        function renderOrders() {
+            const grid = document.getElementById('ordersGrid');
+            const activeOrders = orders.filter(o => o.status !== 'delivered');
+            const filtered = currentFilter === 'all' ? activeOrders : activeOrders.filter(o => o.status === currentFilter);
+
+            // Update counts
+            const newCount = activeOrders.filter(o => o.status === 'preparing' && !o._received).length;
+            const preparing = activeOrders.filter(o => o.status === 'preparing' && o._received).length;
+            const ready = activeOrders.filter(o => o.status === 'ready').length;
+            document.getElementById('newCount').textContent = newCount;
+            document.getElementById('preparingCount').textContent = preparing;
+            document.getElementById('readyCount').textContent = ready;
+            document.getElementById('countAll').textContent = activeOrders.length;
+            document.getElementById('countPreparing').textContent = newCount + preparing;
+            document.getElementById('countReady').textContent = ready;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="kds-empty">
+                        <div class="kds-loader">
+                            <div class="kds-loader-ring"></div>
+                            <div class="kds-loader-ring"></div>
+                            <div class="kds-loader-ring"></div>
+                            <div class="kds-loader-center">🍳</div>
+                        </div>
+                        <div class="kds-empty-text">لا توجد طلبات حالياً</div>
+                        <div class="kds-empty-sub">الطلبات الجديدة ستظهر هنا تلقائياً</div>
+                    </div>`;
+                return;
+            }
+
+            // Sort: new first, then preparing, then ready — within same status sort by time
+            const statusOrder = { 'preparing': 0, 'ready': 1 };
+            const sorted = [...filtered].sort((a, b) => {
+                const aReceived = a._received ? 1 : 0;
+                const bReceived = b._received ? 1 : 0;
+                if (a.status === b.status) {
+                    if (aReceived !== bReceived) return aReceived - bReceived; // non-received first
+                    return new Date(a.createdAt) - new Date(b.createdAt);
+                }
+                return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+            });
+
+            grid.innerHTML = sorted.map(order => {
+                const elapsed = getElapsedTime(order.createdAt);
+                const isLate = elapsed.mins >= prepTimeLimit && order.status === 'preparing';
+                const isNew = order.status === 'preparing' && !order._received;
+                const ordNum = order.id.replace(/\D/g, '').slice(-4);
+
+                let statusClass = order.status;
+                if (isNew) statusClass = 'new';
+                if (isLate) statusClass += ' late';
+
+                // Action buttons based on status
+                let actionHtml = '';
+                if (isNew) {
+                    // New order — show "تم الاستلام" button
+                    actionHtml = `<button class="kds-btn kds-btn-receive" onclick="markReceived('${order.id}')">📋 تم الاستلام</button>`;
+                } else if (order.status === 'preparing') {
+                    // Received, now preparing — show "تم التحضير" button
+                    actionHtml = `<button class="kds-btn kds-btn-ready" onclick="markReady('${order.id}')">✅ تم التحضير</button>`;
+                } else if (order.status === 'ready') {
+                    // Ready — show delivered (faded, waiting for cashier)
+                    actionHtml = `<div style="text-align:center;padding:8px;color:var(--ready);font-weight:700;font-size:14px;">✅ جاهز — بانتظار التسليم من الكاشير</div>`;
+                }
+
+                return `
+                <div class="kds-order ${statusClass}" data-id="${order.id}">
+                    <div class="kds-order-header">
+                        <div>
+                            <div class="kds-order-id">#${ordNum}</div>
+                        </div>
+                        <div class="kds-order-meta">
+                            <span class="kds-order-type">${getOrderTypeIcon(order.orderType)} ${getOrderDisplayLabel(order)}</span>
+                            ${order.tableNumber ? `<span>طاولة ${order.tableNumber}</span>` : ''}
+                            <span class="kds-order-timer ${isLate ? 'urgent' : ''}">⏱️ ${elapsed.text}</span>
+                            ${isLate ? '<span class="kds-late-badge">متأخر!</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="kds-order-items">
+                        ${(order.items || []).map(item => `
+                            <div class="kds-item">
+                                <div class="kds-item-qty">${item.quantity || 1}×</div>
+                                <div class="kds-item-name">
+                                    ${item.name || 'صنف'}
+                                    ${item.variant ? `<span class="kds-item-variant">${item.variant}</span>` : ''}
+                                    ${item.addons && item.addons.length ? `<div class="kds-item-addons">+ ${item.addons.map(a => a.name || a).join('، ')}</div>` : ''}
+                                    ${item.notes ? `<div class="kds-item-addons">📝 ${item.notes}</div>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${order.notes ? `<div class="kds-order-notes">📝 ${order.notes}</div>` : ''}
+                    <div class="kds-order-action">
+                        ${actionHtml}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Mark Received (acknowledged by kitchen) ──
+        window.markReceived = function(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order._received = true;
+                order.receivedAt = new Date().toISOString();
+                renderOrders();
+                // Notify server
+                if (socket) socket.emit('mark-received', orderId);
+            }
+        };
+
+        // ── Mark Ready (prepared) ──
+        window.markReady = function(orderId) {
+            if (socket) socket.emit('mark-ready', orderId);
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = 'ready';
+                order.readyAt = new Date().toISOString();
+                renderOrders();
+                playBell();
+            }
+        };
+
+        // ── Mark Delivered (from KDS side - not normally used, cashier does this) ──
+        window.markDelivered = function(orderId) {
+            const card = document.querySelector(`.kds-order[data-id="${orderId}"]`);
+            if (card) {
+                card.classList.add('delivering');
+                setTimeout(() => {
+                    if (socket) socket.emit('mark-delivered', orderId);
+                    const idx = orders.findIndex(o => o.id === orderId);
+                    if (idx !== -1) orders.splice(idx, 1);
+                    lateAlertedOrders.delete(orderId);
+                    renderOrders();
+                }, 500);
+            }
+        };
+
+        // ── Filter ──
+        window.filterOrders = function(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.kds-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderOrders();
+        };
+
+        // ── Clock ──
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('ar-EG', { hour12: false });
+        }
+
+        // ── Update Timers + Check Late Orders ──
+        function updateTimers() {
+            let hasNewLate = false;
+            document.querySelectorAll('.kds-order').forEach(card => {
+                const id = card.dataset.id;
+                const order = orders.find(o => o.id === id);
+                if (!order) return;
+                const timerEl = card.querySelector('.kds-order-timer');
+                if (!timerEl) return;
+                const elapsed = getElapsedTime(order.createdAt);
+                const isLate = elapsed.mins >= prepTimeLimit && order.status === 'preparing';
+                timerEl.textContent = `⏱️ ${elapsed.text}`;
+                timerEl.className = `kds-order-timer ${isLate ? 'urgent' : ''}`;
+
+                // Check if order just became late
+                if (isLate && !lateAlertedOrders.has(order.id)) {
+                    lateAlertedOrders.add(order.id);
+                    hasNewLate = true;
+                    // Add late class to card
+                    card.classList.add('late');
+                }
+            });
+
+            if (hasNewLate) {
+                playLateBell();
+                // Flash red
+                document.body.style.transition = 'background 0.15s';
+                document.body.style.background = '#2a1a1a';
+                setTimeout(() => { document.body.style.background = 'var(--bg)'; }, 400);
+            }
+        }
+
+        // ── Init ──
+        connectSocket();
+        updateClock();
+        setInterval(updateClock, 1000);
+        setInterval(updateTimers, 1000);
+
+        // ── Prevent sleep on mobile ──
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(() => {});
+        }
+
+        // ── Fullscreen on double tap ──
+        document.addEventListener('dblclick', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+    })();
+    </script>
+</body>
+</html>

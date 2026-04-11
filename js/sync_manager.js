@@ -121,35 +121,77 @@ const SyncManager = {
     }
   },
 
-  // مزامنة مجموعة بيانات محددة مع ضمان عدم التكرار
+  // مزامنة مجموعة بيانات محددة — يقرأ من SQLite (المصدر الوحيد للحقيقة)
     syncCollection: async function(collectionName) {
         if (this.isSyncing || localStorage.getItem('_firebaseBlocked') === 'true') return;
 
         try {
-            let localData = JSON.parse(localStorage.getItem(collectionName) || '[]');
-            // 🛡️ لو الداتا object مش array (زي settings)، حوّلها أو اتجاهلها
-            if (!Array.isArray(localData)) {
-                localData = (localData && typeof localData === 'object') ? [localData] : [];
+            // ═══ قراءة البيانات غير المرفوعة من SQLite ═══
+            const sqlTable = this.getSqlTable(collectionName);
+            let unsyncedData = [];
+
+            if (sqlTable && window.DBService && typeof window.DBService.getUnsynced === 'function') {
+                try {
+                    unsyncedData = await window.DBService.getUnsynced(sqlTable);
+                } catch(e) {
+                    console.warn(`[SyncManager] getUnsynced(${sqlTable}) failed:`, e.message);
+                }
             }
-            // 🛡️ نرفع فقط اللي واخد علامة false صريحة
-            const unsyncedData = localData.filter(item => item._synced === false);
 
-            if (unsyncedData.length === 0) return;
+            // fallback للمفاتيح غير التشغيلية (settings, users, etc.)
+            if (unsyncedData.length === 0) {
+                const nonOperational = ['settings', 'users', 'notifications', 'performance', 'daily_log', 'performance_snapshots'];
+                if (nonOperational.includes(collectionName)) {
+                    try {
+                        let localData = JSON.parse(localStorage.getItem(collectionName) || '[]');
+                        if (!Array.isArray(localData)) {
+                            localData = (localData && typeof localData === 'object') ? [localData] : [];
+                        }
+                        unsyncedData = localData.filter(item => item._synced === false);
+                        if (unsyncedData.length === 0) return;
 
+                        // sync these from localStorage
+                        this.isSyncing = true;
+                        for (const item of unsyncedData) {
+                            try {
+                                const dataToSync = { ...item };
+                                delete dataToSync._synced;
+                                delete dataToSync._localId;
+                                const _rid = localStorage.getItem('userId') || localStorage.getItem('_saasUid');
+                                if (_rid && !dataToSync.restaurantId) dataToSync.restaurantId = _rid;
+                                await window.FirestoreService.set(collectionName, item.id, dataToSync);
+                                const idx = localData.findIndex(x => x.id === item.id);
+                                if (idx !== -1) localData[idx]._synced = true;
+                            } catch (error) {
+                                if (error.code === 'resource-exhausted') {
+                                    localStorage.setItem('_firebaseBlocked', 'true');
+                                    break;
+                                }
+                            }
+                        }
+                        localStorage.setItem(collectionName, JSON.stringify(localData));
+                        return;
+                    } catch(e) {}
+                }
+                return; // لا يوجد بيانات لمزامنتها
+            }
+
+            // ═══ رفع البيانات من SQLite إلى Firebase ═══
             this.isSyncing = true;
             for (const item of unsyncedData) {
                 try {
                     const dataToSync = { ...item };
                     delete dataToSync._synced;
                     delete dataToSync._localId;
-                    // 🔒 ضمان restaurantId في كل doc بيترفع لـ Firestore
+                    delete dataToSync.sync_status;
                     const _rid = localStorage.getItem('userId') || localStorage.getItem('_saasUid');
                     if (_rid && !dataToSync.restaurantId) dataToSync.restaurantId = _rid;
                     await window.FirestoreService.set(collectionName, item.id, dataToSync);
 
-                    // تحديث الحالة في اللوكال فوراً
-                    const idx = localData.findIndex(x => x.id === item.id);
-                    if (idx !== -1) localData[idx]._synced = true;
+                    // تحديث sync_status في SQLite
+                    if (sqlTable && window.DBService) {
+                        window.DBService.markSynced(sqlTable, item.id).catch(() => {});
+                    }
                 } catch (error) {
                     if (error.code === 'resource-exhausted') {
                         localStorage.setItem('_firebaseBlocked', 'true');
@@ -157,7 +199,6 @@ const SyncManager = {
                     }
                 }
             }
-            localStorage.setItem(collectionName, JSON.stringify(localData));
         } finally {
             this.isSyncing = false;
         }
@@ -271,30 +312,36 @@ const SyncManager = {
 
       // إذا نجحت المزامنة، احذف من قائمة الانتظار
       this.removeFromQueue(queueItem.id);
-      
-      // تحديث العنصر في localStorage ليكون _synced = true بدلاً من حذفه
-      // (نحتفظ به في localStorage كنسخة احتياطية)
+
+      // ── تحديث sync_status في SQLite ──────────────────────────────────────
+      if (data.id && window.DBService) {
+        const sqlTable = this.getSqlTable(collection);
+        if (sqlTable) {
+          window.DBService.markSynced(sqlTable, data.id).catch(() => {});
+        }
+      }
+
+      // ── تحديث sync_status في SQLite بعد المزامنة الناجحة ──────────
+      // (markSynced already called above — this block kept for non-operational keys)
       if (queueItem.id.startsWith('local_')) {
-        try {
-          const storageKey = this.getStorageKey(collection);
-          const items = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const itemIndex = items.findIndex(item => 
-            item._localId === queueItem.id || 
-            (data.id && item.id === data.id && !item._synced)
-          );
-          
-          if (itemIndex !== -1) {
-            items[itemIndex]._synced = true;
-            // Update the item with the real ID from Firestore
-            if (result && result.id) {
-              items[itemIndex].id = result.id;
+        const nonOperational = ['settings', 'users', 'notifications', 'performance', 'daily_log', 'performance_snapshots'];
+        if (nonOperational.includes(collection)) {
+            try {
+              const storageKey = this.getStorageKey(collection);
+              const items = JSON.parse(localStorage.getItem(storageKey) || '[]');
+              const itemIndex = items.findIndex(item =>
+                item._localId === queueItem.id ||
+                (data.id && item.id === data.id && !item._synced)
+              );
+              if (itemIndex !== -1) {
+                items[itemIndex]._synced = true;
+                if (result && result.id) items[itemIndex].id = result.id;
+                delete items[itemIndex]._localId;
+                localStorage.setItem(storageKey, JSON.stringify(items));
+              }
+            } catch (e) {
+              console.error('Error updating sync status:', e);
             }
-            // حذف _localId بعد المزامنة الناجحة
-            delete items[itemIndex]._localId;
-            localStorage.setItem(storageKey, JSON.stringify(items));
-          }
-        } catch (e) {
-          console.error('Error updating sync status in localStorage:', e);
         }
       }
 
@@ -414,13 +461,16 @@ const SyncManager = {
         // سيتم إضافتها لاحقاً
         result = service.addTable ? await service.addTable(data) : null;
         break;
-      case 'salesHistory': 
-        result = await service.set('salesHistory', data.id, data); 
+      case 'salesHistory':
+        result = await service.set('salesHistory', data.id, data);
+        break;
+      case 'customers':
+        result = await service.saveCustomer(data);
         break;
       default:
         throw new Error(`Unknown collection: ${collection}`);
     }
-    
+
     return result; // Return the result (which includes the ID)
   },
 
@@ -481,8 +531,10 @@ const SyncManager = {
       }
       case 'performance_snapshots':
         return await service.setPerformanceSnapshot(data.businessDate || id, data);
-      case 'salesHistory': 
+      case 'salesHistory':
         return await service.set('salesHistory', id, data);
+      case 'customers':
+        return await service.saveCustomer(data);
       default:
         throw new Error(`Unknown collection: ${collection}`);
     }
@@ -525,6 +577,8 @@ const SyncManager = {
         return await service.deleteUser(id);
       case 'salesHistory':
         return await service.deleteDocument('salesHistory', id);
+      case 'customers':
+        return await service.deleteCustomer(id);
       default:
         throw new Error(`Unknown collection: ${collection}`);
     }
@@ -603,6 +657,26 @@ const SyncManager = {
     } catch (e) {
       console.error('Error removing from localStorage:', e);
     }
+  },
+
+  // الحصول على اسم جدول SQLite المقابل للكولكشن
+  getSqlTable(collection) {
+    const tableMap = {
+      'orders':          'orders',
+      'expenses':        'expenses',
+      'expensesHistory': 'expensesHistory',
+      'shifts':          'cashSessions',
+      'menuItems':       'menuItems',
+      'categories':      'categories',
+      'employees':       'employees',
+      'customers':       'customers',
+      'aggregators':     'aggregators',
+      'attendance':      'attendance',
+      'ingredients':     'ingredients',
+      'suppliers':       'suppliers',
+      'salesHistory':    'salesHistory',
+    };
+    return tableMap[collection] || null;
   },
 
   // الحصول على مفتاح localStorage للكولكشن

@@ -602,6 +602,7 @@
     <script src="js/firebase.js"></script>
     <script src="js/firestore_service.js"></script>
     <script src="js/sync_manager.js"></script>
+    <script src="js/db-service.js"></script>
     <script src="js/data.js"></script>
     <!-- <script src="js/activation.js"></script> -->
     <script src="js/utils.js"></script>
@@ -747,7 +748,7 @@
             // Apply date filter
             if (dateFilter) {
                 orders = orders.filter(order => {
-                    const orderDate = new Date(order.date).toISOString().split('T')[0];
+                    const orderDate = (order.date || order.createdAt || order.created_at || '').slice(0, 10);
                     return orderDate === dateFilter;
                 });
             }
@@ -833,7 +834,7 @@
                 orderItem.innerHTML = `
                     <div class="order-item-header">
                         <div class="order-item-id">${order.id}</div>
-                        <div class="order-item-date">${Utils.formatDate(order.date)}</div>
+                        <div class="order-item-date">${Utils.formatDate(order.createdAt || order.created_at || order.date)}</div>
                     </div>
                     <div class="order-item-footer">
                         <div class="order-item-total">${Utils.formatCurrency(orderTotal)}</div>
@@ -882,7 +883,7 @@
                     <div class="order-details-meta">
                         <div class="order-meta-item">
                             <i class="fas fa-calendar"></i>
-                            <span>${Utils.formatDate(order.date)}</span>
+                            <span>${Utils.formatDate(order.createdAt || order.created_at || order.date)}</span>
                         </div>
                         <div class="order-meta-item">
                             <i class="fas fa-box"></i>
@@ -950,10 +951,22 @@
                             <span style="color: #d63031; font-weight: 700;">-${Utils.formatCurrency(order.discount)}</span>
                         </div>
                     ` : ''}
-                    ${order.orderType === 'delivery' && order.deliveryFee ? `
+                    ${order.tax && parseFloat(order.tax) > 0 ? `
+                        <div class="summary-row" style="background: #f3e8ff; padding: 8px; border-radius: 8px; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #7c3aed;">ضريبة القيمة المضافة</span>
+                            <span style="color: #7c3aed; font-weight: 700;">+${Utils.formatCurrency(order.tax)}</span>
+                        </div>
+                    ` : ''}
+                    ${order.serviceCharge && parseFloat(order.serviceCharge) > 0 ? `
+                        <div class="summary-row" style="background: #ede9fe; padding: 8px; border-radius: 8px; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #6d28d9;">رسوم الخدمة</span>
+                            <span style="color: #6d28d9; font-weight: 700;">+${Utils.formatCurrency(order.serviceCharge)}</span>
+                        </div>
+                    ` : ''}
+                    ${order.deliveryFee && parseFloat(order.deliveryFee) > 0 ? `
                         <div class="summary-row">
                             <span>سعر التوصيل</span>
-                            <span>${Utils.formatCurrency(order.deliveryFee || 0)}</span>
+                            <span>${Utils.formatCurrency(order.deliveryFee)}</span>
                         </div>
                     ` : ''}
                     <div class="summary-row total">
@@ -1060,23 +1073,18 @@
                 
                 // Fallback: مسح محلي فقط
                 console.log('بدء حذف جميع الطلبات...');
-                
-                // حذف من localStorage - الطلبات والمبيعات فقط (بدون المساس بالشيفت النقدي أو بيانات المستخدم)
-                localStorage.removeItem('orders');
-                localStorage.removeItem('ordersOnHold');
-                localStorage.removeItem('salesHistory');
+
+                // حذف من SQLite عبر DBService
+                if (window.DBService && typeof window.DBService.clearOperationalData === 'function') {
+                    await window.DBService.clearOperationalData();
+                }
                 localStorage.removeItem('resumeOrder');
                 // لا نمسح: cashSessions, isLoggedIn, username, userType, currentUser, userRole
-                
-                // إعادة تهيئة كقوائم فارغة
-                localStorage.setItem('orders', JSON.stringify([]));
-                localStorage.setItem('ordersOnHold', JSON.stringify([]));
-                localStorage.setItem('salesHistory', JSON.stringify([]));
-                
+
                 // تعطيل دمج Firebase لمدة 30 دقيقة
                 localStorage.setItem('_ordersCleared', Date.now().toString());
-                
-                console.log('✅ تم حذف البيانات من localStorage');
+
+                console.log('✅ تم حذف البيانات من DBService');
                 
                 Notification.success('✅ تم حذف جميع الطلبات بنجاح');
                 

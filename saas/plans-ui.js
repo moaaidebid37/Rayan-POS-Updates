@@ -15,29 +15,42 @@
   const GREEN  = '#27ae60';
 
   // ── الباقات ──────────────────────────────────────────────────────────────────
-  const PLANS = [ 
-    { 
-      id:    'trial', 
-      label: 'تجربة مجانية', 
-      price: 'مجاني', 
-      days:  '30 يوم', 
-      color: '#4a9eff', 
-      features: ['نظام POS كامل', 'المطبخ والطلبات', 'التقارير والمخزون', 'تحليل المنيو بالـ AI 🤖', 'بدون كارت بنكي'],
-      cta:   'جرّب مجاناً', 
-    }, 
+  // كل باقة تحتوي على قائمة المميزات الكاملة مع تحديد المفتوح/المقفول
+  const ALL_FEATURES = [
+    { text: 'الرئيسية (POS كامل)'       },
+    { text: 'الأصناف والمنيو'            },
+    { text: 'إدارة الطلبات'              },
+    { text: 'تحليل المنيو بالـ AI 🤖'    },
+    { text: 'التقارير والإحصائيات'       },
+    { text: 'إدارة المخزون'              },
+    { text: 'الموردين'                   },
+    { text: 'إدارة الموظفين'             },
+    { text: 'إدارة العملاء'              },
+    { text: 'التسويق والواتساب'          },
+    { text: 'شركات التوصيل'             },
+  ];
+
+  function _planFeatures(unlockedCount) {
+    return ALL_FEATURES.map((f, i) => ({ text: f.text, locked: i >= unlockedCount }));
+  }
+
+  const PLANS = [
+    {
+      id:    'trial',
+      label: 'تجربة مجانية',
+      price: 'مجاني',
+      days:  '30 يوم',
+      color: '#4a9eff',
+      features: _planFeatures(11),   // كل المميزات مفتوحة في التجربة
+      cta:   'جرّب مجاناً',
+    },
     {
       id:    'basic',
       label: 'Basic',
       price: '499 ج',
       period: '/شهر',
       color: GOLD,
-      features: [
-        'الرئيسية (POS كامل)',
-        'الأصناف والمنيو',
-        'إدارة الطلبات',
-        'الإعدادات',
-        'تحليل المنيو بالـ AI 🤖',
-      ],
+      features: _planFeatures(4),    // أول 4 مميزات مفتوحة
       cta:   'ابدأ بـ Basic',
     },
     {
@@ -46,14 +59,7 @@
       price: '799 ج',
       period: '/شهر',
       color: '#9b59b6',
-      features: [
-        'كل Basic +',
-        'التقارير والإحصائيات',
-        'إدارة المخزون',
-        'الموردين',
-        'إدارة الموظفين',
-        'تحليل المنيو بالـ AI 🤖',
-      ],
+      features: _planFeatures(8),    // أول 8 مميزات مفتوحة
       cta:   'ترقية لـ Pro',
     },
     {
@@ -63,15 +69,7 @@
       period: '/شهر',
       color: '#e74c3c',
       badge: 'الأكثر مبيعاً',
-      features: [
-        'كل Pro +',
-        'إدارة العملاء',
-        'التسويق والواتساب',
-        'الموردين',
-        'إدارة الموظفين',
-        'شركات التوصيل (Talabat وغيرها)',
-        'تحليل المنيو بالـ AI 🤖',
-      ],
+      features: _planFeatures(11),   // كل المميزات مفتوحة
       cta:   'احصل على Mega 🚀',
     },
   ];
@@ -143,8 +141,11 @@
 
         <ul style="list-style:none;padding:0;margin:0 0 24px;text-align:right;">
           ${p.features.map(f => `
-            <li style="color:#ccc;font-size:13px;padding:6px 0;border-bottom:1px solid ${BORDER};">
-              <i class="fas fa-check" style="color:${GREEN};margin-left:8px;"></i>${f}
+            <li style="font-size:13px;padding:6px 0;border-bottom:1px solid ${BORDER};
+              color:${f.locked ? '#444' : '#ccc'};
+              ${f.locked ? 'text-decoration:line-through;opacity:0.5;' : ''}">
+              <i class="fas fa-${f.locked ? 'times' : 'check'}"
+                 style="color:${f.locked ? '#444' : GREEN};margin-left:8px;"></i>${f.text}
             </li>
           `).join('')}
         </ul>
@@ -260,10 +261,13 @@
           ${priceSectionHtml}
           <ul style="list-style:none;padding:0;margin:0 0 18px;text-align:right;flex:1;">
             ${p.features.map(f => `
-              <li style="color:#555;font-size:12px;padding:5px 0;border-bottom:1px solid #f5f5f5;
-                display:flex;align-items:center;gap:7px;">
-                <i class="fas fa-check-circle" style="color:${p.color};font-size:11px;flex-shrink:0;"></i>
-                <span>${f}</span>
+              <li style="font-size:12px;padding:5px 0;border-bottom:1px solid #f5f5f5;
+                display:flex;align-items:center;gap:7px;
+                color:${f.locked ? '#ccc' : '#555'};
+                ${f.locked ? 'opacity:0.55;text-decoration:line-through;' : ''}">
+                <i class="fas fa-${f.locked ? 'times-circle' : 'check-circle'}"
+                   style="color:${f.locked ? '#ddd' : p.color};font-size:11px;flex-shrink:0;"></i>
+                <span>${f.text}</span>
               </li>`).join('')}
           </ul>
           <button onclick="window.SaaSPlansUI._handleUpgrade('${p.id}')" style="

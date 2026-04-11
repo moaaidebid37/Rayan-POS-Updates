@@ -13,6 +13,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path    = require('path');
 const os      = require('os');
 const crypto  = require('crypto');
+const { execSync } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 require('./phone-auth-ipc');
 
@@ -23,35 +24,77 @@ let mainWindow;
 // ══════════════════════════════════════════════════════════════════════════════
 // 🔑 Hardware ID — مشتق من بيانات الجهاز الفعلية
 // ══════════════════════════════════════════════════════════════════════════════
+// ── قراءة Serial من أمر النظام ─────────────────────────────────────────────
+function _readSerial(cmd) {
+  try {
+    const out = execSync(cmd, { timeout: 4000, windowsHide: true })
+      .toString().trim();
+    // نظّف المخرجات من أسطر فارغة وكلمات "SerialNumber" غير المطلوبة
+    const lines = out.split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l && l !== 'SerialNumber' && l !== 'To Be Filled By O.E.M.'
+                    && l !== 'Default string' && l.length > 2);
+    return lines[0] || '';
+  } catch { return ''; }
+}
+
 function generateHardwareId() {
   try {
-    // جمّع بيانات فريدة للجهاز
+    const platform = os.platform(); // 'win32' | 'darwin' | 'linux'
+    let mbSerial  = '';
+    let diskSerial = '';
+    let cpuId      = '';
+
+    if (platform === 'win32') {
+      // ── Windows: wmic — أقوى مصدر للـ serial حقيقي ──────────────────────
+      mbSerial   = _readSerial('wmic baseboard get serialnumber');
+      diskSerial = _readSerial('wmic diskdrive where "Index=0" get serialnumber');
+      cpuId      = _readSerial('wmic cpu get processorid');
+    } else if (platform === 'darwin') {
+      // ── macOS: ioreg — Serial Number للجهاز ──────────────────────────────
+      mbSerial   = _readSerial(
+        "ioreg -r -d 1 -c IOPlatformExpertDevice | awk '/IOPlatformSerialNumber/{print $NF}' | tr -d '\"'"
+      );
+      cpuId      = _readSerial(
+        "sysctl -n machdep.cpu.brand_string"
+      );
+    } else {
+      // ── Linux ──────────────────────────────────────────────────────────────
+      mbSerial   = _readSerial('cat /sys/class/dmi/id/board_serial 2>/dev/null');
+      diskSerial = _readSerial('lsblk -d -o SERIAL 2>/dev/null | tail -1');
+    }
+
+    // Fallback على MAC + hostname لو فشلنا نجيب سيريال حقيقي
     const interfaces = os.networkInterfaces();
     const macs = [];
-
     Object.values(interfaces).forEach(iface => {
       iface?.forEach(i => {
-        if (!i.internal && i.mac && i.mac !== '00:00:00:00:00:00') {
+        if (!i.internal && i.mac && i.mac !== '00:00:00:00:00:00')
           macs.push(i.mac.toUpperCase());
-        }
       });
     });
 
+    // ادمج كل المصادر: Hardware serials أولاً + MAC كـ fallback ثانوي
     const raw = [
-      macs.sort().join(','),    // MAC addresses
-      os.hostname(),            // اسم الجهاز
-      os.platform(),            // Windows / macOS / Linux
-      os.arch(),                // x64 / arm64
-      os.cpus()?.[0]?.model || '',  // موديل المعالج
+      mbSerial   || 'NO-MB',
+      diskSerial || 'NO-DISK',
+      cpuId      || os.cpus()?.[0]?.model || 'NO-CPU',
+      macs.sort().join(',') || 'NO-MAC',
+      os.platform(),
+      os.arch(),
     ].join('|');
 
     const hash = crypto.createHash('sha256').update(raw).digest('hex');
-    return 'SOLO-' + hash.substring(0, 16).toUpperCase();
+    // نوضح في الـ prefix إيه المصدر الرئيسي
+    const prefix = (mbSerial || diskSerial) ? 'SOLO-HW' : 'SOLO-MAC';
+    return prefix + '-' + hash.substring(0, 12).toUpperCase();
 
   } catch (e) {
-    // fallback لو أي حاجة فشلت
-    const fallback = crypto.randomBytes(8).toString('hex').toUpperCase();
-    return 'SOLO-FB-' + fallback;
+    // Last resort: fallback ثابت مبني على hostname + arch
+    const stable = crypto.createHash('sha256')
+      .update(os.hostname() + os.arch() + os.platform())
+      .digest('hex');
+    return 'SOLO-FB-' + stable.substring(0, 12).toUpperCase();
   }
 }
 
@@ -60,6 +103,12 @@ const HARDWARE_ID = generateHardwareId();
 
 // ── IPC Handler ─────────────────────────────────────────────────────────────
 ipcMain.handle('get-hardware-id', () => HARDWARE_ID);
+
+// إعادة تشغيل التطبيق (بعد حذف الحساب مثلاً)
+ipcMain.on('restart-app', () => {
+  app.relaunch();
+  app.exit(0);
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Window
@@ -103,6 +152,266 @@ function startLocalServer(callback) {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 🍳 KDS Server — سيرفر المطبخ على الشبكة المحلية (port 3002)
+// ══════════════════════════════════════════════════════════════════════════════
+const http = require('http');
+const { Server: SocketServer } = require('socket.io');
+
+const kdsApp = express();
+const kdsHttpServer = http.createServer(kdsApp);
+const kdsIO = new SocketServer(kdsHttpServer, { cors: { origin: '*' } });
+
+// Middleware
+kdsApp.use(require('cors')());
+kdsApp.use(express.json());
+
+// خدمة ملف KDS الثابت (no-cache عشان التحديثات تظهر فوراً)
+kdsApp.get('/kds', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.sendFile(path.join(__dirname, 'kds.html'));
+});
+// خدمة الملفات الثابتة (CSS, JS, sounds, images)
+kdsApp.use('/sounds', express.static(path.join(__dirname, 'sounds')));
+kdsApp.use('/css', express.static(path.join(__dirname, 'css')));
+kdsApp.use('/js', express.static(path.join(__dirname, 'js')));
+kdsApp.use('/img', express.static(path.join(__dirname, 'img')));
+kdsApp.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// استخراج IP الشبكة المحلية — ذكي ومتوافق مع Windows + Mac + Linux
+// ══════════════════════════════════════════════════════════════════════════════
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+
+  // ─── Step 1: قائمة الواجهات الوهمية (تخطيها نهائياً) ───
+  const SKIP = new RegExp([
+    // Windows virtual
+    'vEthernet', 'WSL', 'Hyper-V', 'Virtual', 'VMware', 'VirtualBox',
+    // Docker / Containers
+    'docker', 'veth', 'br-', 'virbr', 'cni', 'flannel', 'cali',
+    // Mac internal
+    'utun', 'awdl', 'llw', 'anpi', 'gif', 'stf', 'ap\\d',
+    // VPN / Tunnels
+    'ipsec', 'ppp', 'tun\\d', 'tap\\d', 'ZeroTier', 'Tailscale',
+    // P2P / AirDrop
+    'p2p', 'bridge\\d',
+    // VBox
+    'vbox',
+  ].join('|'), 'i');
+
+  const all = []; // كل الواجهات الصالحة
+
+  for (const name of Object.keys(interfaces)) {
+    if (SKIP.test(name)) continue;
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        all.push({ addr: iface.address, name });
+      }
+    }
+  }
+
+  console.log('KDS all valid interfaces:', all.map(c => `${c.name}=${c.addr}`).join(', ') || 'NONE');
+
+  if (all.length === 0) return '127.0.0.1';
+  if (all.length === 1) { console.log('KDS selected IP:', all[0].addr); return all[0].addr; }
+
+  // ─── Step 2: أولوية 1 — Windows Wi-Fi ───
+  const winWifi = all.find(c => /wi-?fi|wireless|wlan/i.test(c.name));
+  if (winWifi) { console.log('KDS selected IP (Win Wi-Fi):', winWifi.addr, winWifi.name); return winWifi.addr; }
+
+  // ─── Step 3: أولوية 2 — Mac Wi-Fi (en0) أو iPhone Hotspot (172.20.10.x) ───
+  const macWifi = all.find(c => c.name === 'en0');
+  if (macWifi) { console.log('KDS selected IP (Mac en0):', macWifi.addr); return macWifi.addr; }
+  const iphoneHotspot = all.find(c => c.addr.startsWith('172.20.10.'));
+  if (iphoneHotspot) { console.log('KDS selected IP (iPhone Hotspot):', iphoneHotspot.addr, iphoneHotspot.name); return iphoneHotspot.addr; }
+
+  // ─── Step 4: أولوية 3 — أي شبكة محلية معروفة ───
+  const localNet = all.find(c =>
+    c.addr.startsWith('192.168.') || c.addr.startsWith('10.') || c.addr.startsWith('172.16.') ||
+    c.addr.startsWith('172.17.') || c.addr.startsWith('172.18.') || c.addr.startsWith('172.19.') ||
+    c.addr.startsWith('172.2') || c.addr.startsWith('172.3')
+  );
+  if (localNet) { console.log('KDS selected IP (Local Net):', localNet.addr, localNet.name); return localNet.addr; }
+
+  // ─── Step 5: آخر حل — أول واجهة متاحة ───
+  console.log('KDS selected IP (fallback):', all[0].addr, all[0].name);
+  return all[0].addr;
+}
+
+// ── KDS State — الأوردرات النشطة في المطبخ ──
+let kdsOrders = [];        // [{id, items, orderType, tableNumber, total, createdAt, status:'preparing'|'ready'}]
+let kdsConnectedDevices = 0;
+
+// مدة التحضير — محفوظة في ملف عشان تفضل بعد الريستارت
+let kdsPrepTimeLimit = 15;
+const kdsPrepTimeFile = path.join(__dirname, '.kds-prep-time');
+try {
+  const fs = require('fs');
+  if (fs.existsSync(kdsPrepTimeFile)) {
+    kdsPrepTimeLimit = parseInt(fs.readFileSync(kdsPrepTimeFile, 'utf8')) || 15;
+  }
+} catch(e) {}
+
+// API: جلب الأوردرات النشطة
+kdsApp.get('/api/kds/orders', (req, res) => {
+  res.json(kdsOrders);
+});
+
+// API: تحديث حالة أوردر
+kdsApp.post('/api/kds/order/:id/status', (req, res) => {
+  const { status } = req.body;
+  const order = kdsOrders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  order.status = status;
+  order.readyAt = status === 'ready' ? new Date().toISOString() : null;
+  // إبلاغ كل الأجهزة المتصلة
+  kdsIO.emit('order-updated', order);
+  // إبلاغ الكاشير عبر IPC
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('kds-order-status-changed', order);
+  }
+  res.json(order);
+});
+
+// API: حذف أوردر (بعد التسليم)
+kdsApp.post('/api/kds/order/:id/delivered', (req, res) => {
+  const idx = kdsOrders.findIndex(o => o.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Order not found' });
+  const order = kdsOrders[idx];
+  order.status = 'delivered';
+  kdsOrders.splice(idx, 1);
+  kdsIO.emit('order-delivered', order);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('kds-order-delivered', order);
+  }
+  res.json({ success: true });
+});
+
+// WebSocket للتواصل اللحظي
+kdsIO.on('connection', (socket) => {
+  kdsConnectedDevices++;
+  console.log(`🍳 KDS device connected (${kdsConnectedDevices} devices)`);
+  // أرسل الأوردرات الحالية + الإعدادات للجهاز الجديد
+  socket.emit('all-orders', kdsOrders);
+  socket.emit('connected-devices', kdsConnectedDevices);
+  socket.emit('kds-settings', { prepTimeLimit: kdsPrepTimeLimit });
+
+  // تم الاستلام من المطبخ
+  socket.on('mark-received', (orderId) => {
+    const order = kdsOrders.find(o => o.id === orderId);
+    if (order) {
+      order._received = true;
+      order.receivedAt = new Date().toISOString();
+      kdsIO.emit('order-updated', order);
+    }
+  });
+
+  socket.on('mark-ready', (orderId) => {
+    const order = kdsOrders.find(o => o.id === orderId);
+    if (order) {
+      order.status = 'ready';
+      order.readyAt = new Date().toISOString();
+      kdsIO.emit('order-updated', order);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('kds-order-status-changed', order);
+      }
+    }
+  });
+
+  socket.on('mark-delivered', (orderId) => {
+    const idx = kdsOrders.findIndex(o => o.id === orderId);
+    if (idx !== -1) {
+      const order = kdsOrders[idx];
+      order.status = 'delivered';
+      kdsOrders.splice(idx, 1);
+      kdsIO.emit('order-delivered', order);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('kds-order-delivered', order);
+      }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    kdsConnectedDevices--;
+    console.log(`🍳 KDS device disconnected (${kdsConnectedDevices} devices)`);
+    kdsIO.emit('connected-devices', kdsConnectedDevices);
+  });
+});
+
+// بدء سيرفر KDS على 0.0.0.0:3002 (يقبل اتصالات من الشبكة)
+let kdsPort = 3002;
+function startKDSServer() {
+  kdsHttpServer.listen(kdsPort, '0.0.0.0', () => {
+    const ip = getLocalIP();
+    console.log(`🍳 KDS Server running on http://${ip}:${kdsPort}/kds`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') { kdsPort++; startKDSServer(); }
+    else console.error('KDS server error:', err);
+  });
+}
+
+// ── IPC Handlers للـ KDS ──
+// إرسال أوردر للمطبخ
+ipcMain.handle('kds-send-order', (event, order) => {
+  const kdsOrder = {
+    id: order.id,
+    items: order.items || [],
+    orderType: order.orderType || order.type || 'takeaway',
+    orderSource: order.orderSource || 'direct',
+    tableNumber: order.tableNumber || order.table_number || null,
+    total: order.total || 0,
+    customerName: order.customerName || null,
+    notes: order.notes || '',
+    createdAt: new Date().toISOString(),
+    status: 'preparing',
+    readyAt: null,
+  };
+  kdsOrders.push(kdsOrder);
+  kdsIO.emit('new-order', kdsOrder);
+  return { success: true, order: kdsOrder };
+});
+
+// جلب حالة الأوردرات
+ipcMain.handle('kds-get-orders', () => kdsOrders);
+
+// جلب معلومات KDS (IP, port, connected devices)
+ipcMain.handle('kds-get-info', async () => {
+  const ip = getLocalIP();
+  const url = `http://${ip}:${kdsPort}/kds`;
+  let qrDataUrl = null;
+  try {
+    const qrcode = require('qrcode');
+    qrDataUrl = await qrcode.toDataURL(url, { width: 280, margin: 2, color: { dark: '#000', light: '#fff' } });
+  } catch (e) { console.error('QR generation error:', e); }
+  return { ip, port: kdsPort, url, qrCode: qrDataUrl, connectedDevices: kdsConnectedDevices, prepTimeLimit: kdsPrepTimeLimit };
+});
+
+// حفظ إعدادات KDS (مدة التحضير)
+ipcMain.handle('kds-set-prep-time', (event, minutes) => {
+  kdsPrepTimeLimit = Math.max(1, Math.min(60, parseInt(minutes) || 15));
+  // حفظ في ملف عشان يفضل بعد الريستارت
+  try { require('fs').writeFileSync(kdsPrepTimeFile, String(kdsPrepTimeLimit)); } catch(e) {}
+  // أبلغ كل الأجهزة المتصلة بالإعدادات الجديدة
+  kdsIO.emit('kds-settings', { prepTimeLimit: kdsPrepTimeLimit });
+  return { success: true, prepTimeLimit: kdsPrepTimeLimit };
+});
+
+// تسليم أوردر من الكاشير
+ipcMain.handle('kds-mark-delivered', (event, orderId) => {
+  const idx = kdsOrders.findIndex(o => o.id === orderId);
+  if (idx !== -1) {
+    const order = kdsOrders[idx];
+    order.status = 'delivered';
+    kdsOrders.splice(idx, 1);
+    kdsIO.emit('order-delivered', order);
+    return { success: true };
+  }
+  return { success: false, error: 'Order not found' };
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width:  1920,
@@ -144,7 +453,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // ── تهيئة قاعدة البيانات أولاً قبل أي شيء آخر ──────────────────────────
+  const { initDatabase } = require('./database');
+  initDatabase();
+
   createWindow();
+  startKDSServer();
   startWhatsAppServer();
   autoUpdater.autoDownload = false;
   autoUpdater.checkForUpdates();
@@ -183,7 +497,8 @@ ipcMain.on('print-receipt-hidden', (event, receiptHtml) => {
 // التحديث التلقائي (بدون تغيير)
 // ══════════════════════════════════════════════════════════════════════════════
 autoUpdater.on('checking-for-update', () => {
-  dialog.showMessageBox({ type: 'info', title: 'فحص التحديثات 🔍', message: 'السيستم بيبحث عن تحديثات...' });
+  // صامت — لا نزعج المستخدم عند كل فحص
+  console.log('[Updater] Checking for updates...');
 });
 
 autoUpdater.on('update-available', (info) => {
@@ -191,20 +506,14 @@ autoUpdater.on('update-available', (info) => {
   const releaseNotes = info.releaseNotes
     ? info.releaseNotes.replace(/<[^>]*>?/gm, '')
     : 'تحسينات جديدة وإصلاح أخطاء سابقة.';
-  dialog.showMessageBox({
-    type: 'info', title: 'تحديث جديد متاح 🚀',
-    message: `إصدار ${version}\n\n${releaseNotes}\n\nهل تريد تحميل التحديث؟`,
-    buttons: ['نعم، قم بالتحميل', 'لاحقاً'], defaultId: 0, cancelId: 1,
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.downloadUpdate();
-      dialog.showMessageBox({ type: 'info', title: 'جاري التحميل... ⏳', message: 'التحديث يتحمل في الخلفية.', buttons: ['حسناً'] });
-    }
-  });
+  // أرسل للـ renderer عشان يعرض الإشعار في الواجهة بدل native dialog
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) win.webContents.send('show-update-modal', { version, notes: releaseNotes });
 });
 
 autoUpdater.on('update-not-available', (info) => {
-  dialog.showMessageBox({ type: 'info', title: 'النتيجة ✅', message: `البرنامج محدث. النسخة الحالية: ${info.version}` });
+  // صامت — المستخدم مش محتاج يعرف إنه محدث في كل مرة
+  console.log('[Updater] Already up to date:', info.version);
 });
 
 autoUpdater.on('update-downloaded', () => {

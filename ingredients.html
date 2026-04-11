@@ -358,6 +358,7 @@
 <script src="js/firebase.js"></script>
 <script src="js/firestore_service.js"></script>
 <script src="js/sync_manager.js"></script>
+<script src="js/db-service.js"></script>
 <script src="js/data.js"></script>
 <!-- <script src="js/activation.js"></script> -->
 <script src="js/utils.js"></script>
@@ -455,16 +456,16 @@
                     console.warn('Error loading ingredients from Firebase, using local:', error);
                 }
             }
-            if (localStorage.getItem('ingredients')) {
+            if (window.DBService && typeof window.DBService.getIngredients === 'function') {
                 try {
-                    localIngredients = JSON.parse(localStorage.getItem('ingredients')) || [];
+                    localIngredients = await window.DBService.getIngredients() || [];
                 } catch (e) {
                     localIngredients = [];
                 }
             }
             if (firebaseIngredients.length > 0 || localIngredients.length > 0) {
                 ingredients = mergeIngredientsWithLocal(firebaseIngredients, localIngredients);
-                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                // Note: لا نعيد حفظ كل المخزون — ده كان بيسبب بطء وفقدان بيانات
             }
             if (ingredients.length === 0) {
                 const hasFirebaseApi = typeof window !== 'undefined' &&
@@ -514,7 +515,7 @@
         }
         
         // دالة لإضافة المخزون الأساسية
-        function populateDefaultIngredients() {
+        async function populateDefaultIngredients() {
             // التحقق من أن أول تشغيل تم - لا نضيف مخزون افتراضي بعد أول تشغيل
             if (localStorage.getItem('first_run_completed')) {
                 return;
@@ -762,9 +763,13 @@
                 }
             });
             
-            // حفظ المخزون المحدثة
-            localStorage.setItem('ingredients', JSON.stringify(ingredients));
-            
+            // حفظ المخزون المحدثة إلى DBService
+            if (window.DBService && typeof window.DBService.saveIngredient === 'function') {
+                for (const ing of ingredients) {
+                    try { await window.DBService.saveIngredient(ing); } catch(e) {}
+                }
+            }
+
             if (addedCount > 0) {
                 // تحديث العرض بدون إشعار عند التحميل الأولي
                 renderIngredients();
@@ -868,7 +873,7 @@
             buyingPriceInput.addEventListener('input', calculateCostPrice);
             buyingQuantityInput.addEventListener('input', calculateCostPrice);
             
-            document.getElementById('ingredientForm').addEventListener('submit', (e) => {
+            document.getElementById('ingredientForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const buyingPrice = parseFloat(document.getElementById('ingredientBuyingPrice').value) || 0;
@@ -920,8 +925,11 @@
                     ingredients.push(ingredientData);
                 }
                 
-                localStorage.setItem('ingredients', JSON.stringify(ingredients));
-                
+                // Save to DBService
+                if (window.DBService && typeof window.DBService.saveIngredient === 'function') {
+                    try { await window.DBService.saveIngredient(ingredientData); } catch(e) { console.error('DBService saveIngredient error:', e); }
+                }
+
                 // إضافة للمزامنة مع Firebase
                 if (typeof window !== 'undefined' && window.SyncManager) {
                     const syncId = window.SyncManager.addToSyncQueue('ingredients', editingIngredient ? 'update' : 'add', ingredientData, localId);
@@ -930,7 +938,9 @@
                         const itemInLocalStorage = ingredients.find(i => i._localId === localId);
                         if (itemInLocalStorage) {
                             itemInLocalStorage.id = syncId;
-                            localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                            if (window.DBService && typeof window.DBService.saveIngredient === 'function') {
+                                try { await window.DBService.saveIngredient(itemInLocalStorage); } catch(e) {}
+                            }
                         }
                     }
                 }
@@ -998,9 +1008,11 @@
                         await window.FirestoreService.deleteIngredient(id);
                     }
 
-                    // Step 2: Delete from local array and localStorage
+                    // Step 2: Delete from local array and DBService
                     ingredients = ingredients.filter(i => String(i.id) !== String(id));
-                    localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                    if (window.DBService && typeof window.DBService.removeIngredient === 'function') {
+                        try { await window.DBService.removeIngredient(id); } catch(e) { console.error('DBService removeIngredient error:', e); }
+                    }
 
                     if (typeof Notification !== 'undefined') {
                         Notification.success('تم حذف المخزون بنجاح من قاعدة البيانات والمخزون المحلي.');

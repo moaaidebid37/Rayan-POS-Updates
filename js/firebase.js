@@ -14,17 +14,16 @@
      // 3. تعريف قاعدة البيانات 
      const db = firebase.firestore(); 
  
-     // 4. تفعيل الكاش (Offline Persistence) عشان السيستم يفضل شغال سريع ومن غير نت 
-     db.enablePersistence({ synchronizeTabs: true }) 
-       .catch((err) => { 
-         if (err.code === 'failed-precondition') { 
-           console.warn('⚠️ Multiple tabs open, persistence can only be enabled in one tab at a time.'); 
-         } else if (err.code === 'unimplemented') { 
-           console.warn('⚠️ The current browser doesn\'t support all of the features necessary to enable persistence'); 
-         } else { 
-           console.warn('⚠️ Firestore persistence error:', err.message); 
-         } 
-       }); 
+     // 4. تفعيل الكاش (النسخة الحديثة لإخفاء التحذير) 
+    try { 
+        db.settings({ 
+            localCache: firebase.firestore.persistentLocalCache({ 
+                tabManager: firebase.firestore.persistentMultipleTabManager() 
+            }) 
+        }); 
+    } catch (err) { 
+        console.warn('⚠️ Firestore cache error:', err.message); 
+    } 
  
      // 5. إتاحة المتغيرات للبرنامج كله 
      window.firebaseDb = db; 

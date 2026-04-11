@@ -487,53 +487,83 @@
     const fullPhone = '+20' + phone;
 
     // ── فحص وجود الحساب قبل إرسال الـ OTP ──────────────────────────────────
-    _setBtnLoading('saas-send-otp', true, 'جاري الفحص...');
-    try {
-      const db = await window.firestoreReady;
-      const snap = await db.collection('subscriptions').where('phone', '==', fullPhone).limit(1).get();
-      const exists = !snap.empty;
+    // في Electron: الفحص بيتم server-side عبر Admin SDK (أدق وبيتخطى rules)
+    // في Web: لازم نفحص client-side لأن مفيش IPC
+    const isElectronEnv = !!window.require;
+    if (!isElectronEnv) {
+      _setBtnLoading('saas-send-otp', true, 'جاري الفحص...');
+      try {
+        const db = await window.firestoreReady;
+        const snap = await db.collection('subscriptions').where('phone', '==', fullPhone).limit(1).get();
+        const exists = !snap.empty;
 
-      if (mode === 'register' && exists) {
-        _setMsg('هذا الرقم مسجّل بالفعل. سجّل دخولك بدلاً من إنشاء حساب جديد.', 'error');
-        const msgEl = document.getElementById('saas-auth-msg');
-        if (msgEl) msgEl.innerHTML += `<br><button onclick="
-          localStorage.setItem('_soloAuthMode','login');
-          document.getElementById('saas-auth-msg').innerHTML='';
-          document.getElementById('saas-phone').value='${phone}';
-        " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
-          تسجيل الدخول بهذا الرقم ←
-        </button>`;
+        if (mode === 'register' && exists) {
+          _setMsg('هذا الرقم مسجّل بالفعل. سجّل دخولك بدلاً من إنشاء حساب جديد.', 'error');
+          const msgEl = document.getElementById('saas-auth-msg');
+          if (msgEl) msgEl.innerHTML += `<br><button onclick="
+            localStorage.setItem('_soloAuthMode','login');
+            document.getElementById('saas-auth-msg').innerHTML='';
+            document.getElementById('saas-phone').value='${phone}';
+          " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
+            تسجيل الدخول بهذا الرقم ←
+          </button>`;
+          _setBtnLoading('saas-send-otp', false);
+          return;
+        }
+
+        if (mode === 'login' && !exists) {
+          _setMsg('هذا الرقم غير مسجّل. يرجى إنشاء حساب جديد أولاً.', 'error');
+          const msgEl = document.getElementById('saas-auth-msg');
+          if (msgEl) msgEl.innerHTML += `<br><button onclick="
+            document.getElementById('saas-blocking-screen')?.remove();
+            localStorage.setItem('_soloAuthMode','register');
+            window._saasInitRunning=false; window._saasInitDone=false;
+            if(window.SaaSOnboardingUI) window.SaaSOnboardingUI.show();
+          " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
+            إنشاء حساب جديد ←
+          </button>`;
+          _setBtnLoading('saas-send-otp', false);
+          return;
+        }
+      } catch(e) {
+        console.warn('Phone check failed:', e);
+        _setMsg('تعذر التحقق من الرقم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.', 'error');
         _setBtnLoading('saas-send-otp', false);
         return;
       }
-
-      if (mode === 'login' && !exists) {
-        _setMsg('هذا الرقم غير مسجّل. يرجى إنشاء حساب جديد أولاً.', 'error');
-        const msgEl = document.getElementById('saas-auth-msg');
-        if (msgEl) msgEl.innerHTML += `<br><button onclick="
-          document.getElementById('saas-blocking-screen')?.remove();
-          localStorage.setItem('_soloAuthMode','register');
-          window._saasInitRunning=false; window._saasInitDone=false;
-          if(window.SaaSOnboardingUI) window.SaaSOnboardingUI.show();
-        " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
-          إنشاء حساب جديد ←
-        </button>`;
-        _setBtnLoading('saas-send-otp', false);
-        return;
-      }
-    } catch(e) {
-      console.warn('Phone check failed due to Firebase Rules, proceeding to OTP:', e);
     }
 
     _setBtnLoading('saas-send-otp', true, 'جاري الإرسال...');
     try {
       if (window.require) {
         const { ipcRenderer } = window.require('electron');
-        const result = await ipcRenderer.invoke('send-otp', phone);
+        const result = await ipcRenderer.invoke('send-otp', phone, mode);
         if (result.success) {
           _renderOTPStep(modal, phone, null, true, result.fallbackCode || null);
         } else {
           _setMsg(result.error || 'فشل الإرسال', 'error');
+          // إضافة زر تحويل لو الخطأ متعلق بوجود/عدم وجود الحساب
+          const msgEl = document.getElementById('saas-auth-msg');
+          if (msgEl && result.error) {
+            if (result.error.includes('غير مسجّل') && mode === 'login') {
+              msgEl.innerHTML += `<br><button onclick="
+                document.getElementById('saas-blocking-screen')?.remove();
+                localStorage.setItem('_soloAuthMode','register');
+                window._saasInitRunning=false; window._saasInitDone=false;
+                if(window.SaaSOnboardingUI) window.SaaSOnboardingUI.show();
+              " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
+                إنشاء حساب جديد ←
+              </button>`;
+            } else if (result.error.includes('مسجّل بالفعل') && mode === 'register') {
+              msgEl.innerHTML += `<br><button onclick="
+                localStorage.setItem('_soloAuthMode','login');
+                document.getElementById('saas-auth-msg').innerHTML='';
+                document.getElementById('saas-phone').value='${phone}';
+              " style="margin-top:8px;background:none;border:none;color:#c8a84b;font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit;">
+                تسجيل الدخول بهذا الرقم ←
+              </button>`;
+            }
+          }
           _setBtnLoading('saas-send-otp', false);
         }
       } else {
@@ -557,7 +587,8 @@
       if (isElectron && window.require) {
         const { ipcRenderer } = window.require('electron');
         const phone = document.querySelector('.saas-phone-chip')?.textContent?.replace('+20 ', '').trim() || '';
-        const result = await ipcRenderer.invoke('verify-otp', phone, code);
+        const currentMode = localStorage.getItem('_soloAuthMode') || 'login';
+        const result = await ipcRenderer.invoke('verify-otp', phone, code, currentMode);
         if (result.success) {
           await firebase.auth().signInWithCustomToken(result.customToken);
           // خزّن الرقم بصيغة كاملة عشان _registerNewUser يقدر يعمل فحص التكرار

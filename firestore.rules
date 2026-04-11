@@ -39,13 +39,29 @@ service cloud.firestore {
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
         && request.resource.data.plan == 'trial';
-      // العميل يقدر يحدّث lastVerified و hardwareIds بس
+      // العميل يقدر يحدّث هذه الحقول بس (heartbeat + hardware + fraud detection)
       allow update: if isOwner(uid)
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['lastVerified', 'hardwareIds']);
+             .hasOnly(['lastVerified', 'hardwareIds', 'lastActiveAt',
+                       'fraudFlag', 'fraudReason', 'fraudDetectedAt', 'fraudDevices']);
       // باقي التغييرات للـ Admin بس
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // ── Audit Log (sub-collection) ────────────────────────────
+    match /subscriptions/{uid}/audit_log/{logId} {
+      allow read:          if isOwner(uid) || isAdmin();
+      allow create:        if isOwner(uid) || isAdmin();
+      // لا حد يعدّل أو يحذف (audit integrity)
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Login Events — Anti-Fraud tracking ────────────────────
+    match /subscriptions/{uid}/login_events/{eventId} {
+      allow read:           if isAdmin();
+      allow create:         if isOwner(uid);
+      allow update, delete: if isAdmin();
     }
 
     // ── بيانات المطعم — كل المجموعات تحت uid المستخدم ───────
