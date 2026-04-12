@@ -1121,15 +1121,17 @@
   };
 
   function _applyFeatureGates() {
-    document.querySelectorAll('.sidebar-item[href]').forEach(function (item) {
-      const href    = item.getAttribute('href') || '';
+    // نعالج كل عناصر الـ sidebar — سواء كان معاها href أو اترمت (عناصر مقفولة مسبقاً)
+    document.querySelectorAll('.sidebar-item').forEach(function (item) {
+      const href    = item.getAttribute('href') || item.dataset.lockedHref || '';
+      if (!href) return;
       const page    = href.split('/').pop().split('?')[0];
       const feature = PAGE_FEATURE_MAP[page];
 
       if (!feature) return;
 
       if (!canUse(feature)) {
-        // تنسيق العنصر المقفول — أحمر واضح بدل التعتيم
+        // ── قفل ──────────────────────────────────────────────────────────────
         item.style.cssText += ';cursor:not-allowed;background:rgba(231,76,60,0.06);border-right:3px solid #e74c3c;color:#c0392b;';
 
         // أيقونة القفل الحمراء (مرة واحدة)
@@ -1141,14 +1143,34 @@
         }
 
         // إلغاء الـ href ومنع التنقل
-        item.dataset.lockedHref = href;
-        item.removeAttribute('href');
+        if (item.getAttribute('href')) {
+          item.dataset.lockedHref = href;
+          item.removeAttribute('href');
+        }
 
-        item.addEventListener('click', function (e) {
+        item.onclick = function (e) {
           e.preventDefault();
           e.stopPropagation();
           _showUpgradePrompt(feature);
-        });
+        };
+      } else {
+        // ── فتح (لو الـ plan اتحسّن) ─────────────────────────────────────────
+        const lockIcon = item.querySelector('.saas-lock');
+        if (lockIcon) lockIcon.remove();
+
+        // إرجاع الـ href
+        if (item.dataset.lockedHref && !item.getAttribute('href')) {
+          item.setAttribute('href', item.dataset.lockedHref);
+          delete item.dataset.lockedHref;
+        }
+
+        // إلغاء تنسيق القفل
+        item.style.cssText = item.style.cssText
+          .replace(/cursor:[^;]+;?/g, '')
+          .replace(/background:rgba\(231[^;]+\);?/g, '')
+          .replace(/border-right:[^;]+;?/g, '')
+          .replace(/color:#c0392b;?/g, '');
+        item.onclick = null;
       }
     });
   }

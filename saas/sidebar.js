@@ -132,6 +132,10 @@
     // Hamburger
     _ensureHamburger();
 
+    // لو SaaS جاهز قبل _render() (race condition) — طبّق الـ gates فوراً
+    if (window._saasReady && window.SaaS && typeof window.SaaS._applyFeatureGates === 'function') {
+      window.SaaS._applyFeatureGates();
+    }
   }
 
   // ── تشغيل فوري ───────────────────────────────────────────────────────
@@ -141,8 +145,10 @@
     _render();
   }
 
-  // لما SaaS يجهز: أعد تطبيق الـ feature gates (بدون إعادة رسم كامل)
+  // لما SaaS يجهز: أعد رسم الـ sidebar نظيف وطبّق الـ gates صح
+  // (يحل مشكلة: قفل قديم فضل لما الـ plan اتغير من كاش غلط)
   window.addEventListener('saas-ready', function() {
+    _render();   // reset كامل → يمسح أي قفل غلط من كاش قديم
     if (window.SaaS && typeof window.SaaS._applyFeatureGates === 'function') {
       window.SaaS._applyFeatureGates();
     }
