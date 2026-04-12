@@ -2008,7 +2008,7 @@ setTimeout(forceSyncAllToFirebase, 5000);
          const input = document.getElementById('_secPinInput');
          const pin = input?.value || '';
 
-         // ابحث عن المستخدم المطابق للـ PIN — من DBService أو localStorage
+         // ابحث عن المستخدم المطابق للـ PIN — من DBService أو localStorage أو Firestore
          let allUsers = [];
          try {
              if (window.DBService) {
@@ -2017,6 +2017,9 @@ setTimeout(forceSyncAllToFirebase, 5000);
          } catch(e) {}
          if (!allUsers.length) {
              try { allUsers = JSON.parse(localStorage.getItem('users') || '[]'); } catch(_) {}
+         }
+         if (!allUsers.length && window.FirestoreService) {
+             try { allUsers = (await window.FirestoreService.getAllUsers()) || []; } catch(_) {}
          }
 
          const matched = allUsers.find(u => String(u.pin || u.password || '') === pin);
@@ -2080,9 +2083,19 @@ setTimeout(forceSyncAllToFirebase, 5000);
          // المالك/أدمن دايماً مسموح — الكاشير بس لو canViewShiftNumbers === true
          const _getAllowedUsers = () => {
              try {
-                 return JSON.parse(localStorage.getItem('users') || '[]');
-             } catch(_) { return []; }
+                 const local = JSON.parse(localStorage.getItem('users') || '[]');
+                 if (local.length) return local;
+             } catch(_) {}
+             // Firestore fallback (sync)
+             try {
+                 if (window._cachedFirestoreUsers && window._cachedFirestoreUsers.length) return window._cachedFirestoreUsers;
+             } catch(_) {}
+             return [];
          };
+         // Pre-fetch users from Firestore for PIN checks
+         if (window.FirestoreService && !window._cachedFirestoreUsers) {
+             window.FirestoreService.getAllUsers().then(u => { window._cachedFirestoreUsers = u || []; }).catch(() => {});
+         }
 
          const overlay = document.createElement('div');
          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
