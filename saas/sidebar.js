@@ -16,7 +16,6 @@
     { href: 'employees.html',   icon: 'users',           label: 'الموظفون',       restricted: 'owner' },
     { href: 'suppliers.html',   icon: 'truck',           label: 'الموردين',       restricted: 'owner' },
     { href: 'marketing.html',   icon: 'bullhorn',        label: 'ادارة التسويق', restricted: 'owner' },
-    { href: 'settings.html?section=aggregators', icon: 'motorcycle', label: 'شركات التوصيل', restricted: 'owner' },
     { href: 'settings.html',    icon: 'cog',             label: 'الاعدادات',     restricted: 'owner' },
   ];
 
@@ -133,10 +132,6 @@
     // Hamburger
     _ensureHamburger();
 
-    // Re-apply SaaS feature gates after sidebar rebuild
-    if (window.SaaS && typeof window.SaaS._applyFeatureGates === 'function') {
-      window.SaaS._applyFeatureGates();
-    }
   }
 
   // ── تشغيل فوري ───────────────────────────────────────────────────────
@@ -146,8 +141,12 @@
     _render();
   }
 
-  // إعادة الرسم لما SaaS يجهز
-  window.addEventListener('saas-ready', _render);
+  // لما SaaS يجهز: أعد تطبيق الـ feature gates (بدون إعادة رسم كامل)
+  window.addEventListener('saas-ready', function() {
+    if (window.SaaS && typeof window.SaaS._applyFeatureGates === 'function') {
+      window.SaaS._applyFeatureGates();
+    }
+  });
 
   window.SaaSSidebar = { render: _render, open: _toggle, close: _close };
 })();
