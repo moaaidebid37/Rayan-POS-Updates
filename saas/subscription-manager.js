@@ -18,21 +18,21 @@
   const OFFLINE_MAX_DAYS = 30;         // أقصى وقت أوفلاين مسموح
   const TRIAL_DAYS       = 30;
 
-   // ─── خريطة الفيتشرز لكل باقة ─────────────────────────────────────────────── 
-   const PLAN_FEATURES = { 
-     // التريال واخد مميزات البرو (الأساسيات + التقارير والمخزون + الموردين + الموظفين)
-     trial: ['pos', 'orders', 'kitchen', 'settings', 'reports', 'inventory', 'suppliers', 'employees'],
-     
-     // البيزك (الأساسيات والإعدادات فقط) 
-     basic: ['pos', 'orders', 'kitchen', 'settings'], 
-     
-     // البرو (البيزك + التقارير والمخزون + الموردين + الموظفين)
-     pro:   ['pos', 'orders', 'kitchen', 'settings', 'reports', 'inventory', 'suppliers', 'employees'],
-     
-     // الميجا (كل حاجة حرفياً) 
-     mega:  ['pos', 'orders', 'kitchen', 'settings', 'reports', 'inventory',
+   // ─── خريطة الفيتشرز لكل باقة ───────────────────────────────────────────────
+   const PLAN_FEATURES = {
+     // التريال واخد مميزات البرو (الأساسيات + التقارير والمخزون + الموردين + الموظفين + العملاء)
+     trial: ['pos', 'orders', 'kitchen', 'settings', 'kds', 'reports', 'inventory', 'suppliers', 'employees', 'customers'],
+
+     // البيزك (الأساسيات + المطبخ KDS)
+     basic: ['pos', 'orders', 'kitchen', 'settings', 'kds'],
+
+     // البرو (البيزك + التقارير والمخزون + الموردين + الموظفين + العملاء)
+     pro:   ['pos', 'orders', 'kitchen', 'settings', 'kds', 'reports', 'inventory', 'suppliers', 'employees', 'customers'],
+
+     // الميجا (كل حاجة حرفياً + Solo AI)
+     mega:  ['pos', 'orders', 'kitchen', 'settings', 'kds', 'reports', 'inventory',
              'customers', 'marketing', 'suppliers', 'employees', 'aggregators',
-             'whatsapp', 'dashboard', 'bulk_messages', 'advanced_reports', 'multi_branch', 'kds'],
+             'whatsapp', 'dashboard', 'bulk_messages', 'advanced_reports', 'multi_branch', 'solo_ai'],
    }; 
 
   const PLAN_LABELS = {
@@ -1051,7 +1051,7 @@
       reports:         'Pro',
       inventory:       'Pro',
       whatsapp:        'Mega',
-      customers:       'Mega',
+      customers:       'Pro',
       employees:       'Pro',
       suppliers:       'Pro',
       marketing:       'Mega',
@@ -1060,7 +1060,8 @@
       advanced_reports:'Mega',
       multi_branch:    'Mega',
       bulk_messages:   'Mega',
-      kds:             'Mega',
+      kds:             'Basic',
+      solo_ai:         'Mega',
     };
     const label       = featureLabels[feature]       || feature;
     const planNeeded  = featureRequiredPlan[feature] || null;

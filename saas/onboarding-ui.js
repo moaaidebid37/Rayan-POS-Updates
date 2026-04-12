@@ -28,13 +28,13 @@
   // ── Plans ───────────────────────────────────────────────────────
   const PLANS = [
     { id: 'basic', label: 'Basic',    price: '499', period: '/شهر', color: GOLD,      trialDays: 30,
-      features: ['الرئيسية (POS كامل)', 'المطبخ والطلبات', 'العملاء', 'دعم فني'],
+      features: ['POS + المطبخ KDS', 'الأصناف والطلبات', 'الإعدادات', 'دعم فني'],
       cta: 'ابدأ مجاناً ← Basic' },
     { id: 'pro',   label: 'Pro',      price: '799', period: '/شهر', color: '#9b59b6', trialDays: 14,
-      features: ['كل صفحات Basic', 'التقارير والإحصائيات', 'المخزون', 'دعم أولوية'],
+      features: ['كل صفحات Basic', 'التقارير والمخزون', 'العملاء والموظفين', 'دعم أولوية'],
       cta: 'ابدأ مجاناً ← Pro', recommended: true },
     { id: 'mega',  label: 'Mega 🚀',  price: '999', period: '/شهر', color: '#e74c3c', trialDays: 7,
-      features: ['كل صفحات Pro', 'الموظفين والموردين', 'التسويق والواتساب', 'فروع متعددة'],
+      features: ['كل صفحات Pro', 'التسويق والواتساب', 'Solo AI مدير الحسابات 🤖', 'فروع متعددة'],
       cta: 'ابدأ مجاناً ← Mega', recommended: true },
   ];
 
