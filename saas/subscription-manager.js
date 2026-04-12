@@ -1175,6 +1175,7 @@
     getOfflineDays,
     getHardwareId,
     signOut,
+    _applyFeatureGates,
     PLAN_FEATURES,
     PLAN_LABELS,
   };

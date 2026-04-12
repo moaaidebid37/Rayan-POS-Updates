@@ -132,6 +132,11 @@
 
     // Hamburger
     _ensureHamburger();
+
+    // Re-apply SaaS feature gates after sidebar rebuild
+    if (window.SaaS && typeof window.SaaS._applyFeatureGates === 'function') {
+      window.SaaS._applyFeatureGates();
+    }
   }
 
   // ── تشغيل فوري ───────────────────────────────────────────────────────
