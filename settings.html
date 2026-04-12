@@ -1412,7 +1412,13 @@
                 console.log('Re-initializing nav (fallback for Electron)');
                 initSettingsNav();
             }
-        }, 500);
+            // Auto-open section from URL param (e.g. settings.html?section=aggregators)
+            const urlSection = new URLSearchParams(window.location.search).get('section');
+            if (urlSection) {
+                const target = document.querySelector(`.settings-nav-item[data-section="${urlSection}"]`);
+                if (target) target.click();
+            }
+        }, 600);
         
         function loadSettings() {
             // لم يعد هناك إعدادات أخرى أو حساب شخصي

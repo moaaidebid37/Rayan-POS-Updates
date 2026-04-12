@@ -2639,21 +2639,33 @@ async function renderVariantDeliveryPrices(variantId, existingPrices = {}) {
         
 
 
-window.renderDeliveryPrices = async function(existingPrices = {}) { 
-     const container = document.getElementById('delivery-companies-container'); 
-     if (!container) return; 
-     container.innerHTML = ''; 
- 
-     let aggregators = []; 
-     try { 
-         aggregators = await DataManager.loadData('aggregators') || []; 
-     } catch(e) { 
-         console.error("Error loading aggregators:", e); 
-     } 
- 
-     if (aggregators.length === 0) { 
-         container.innerHTML = '<p style="color: #666666; margin: 0; font-size: 14px;">لا توجد شركات توصيل مضافة في الإعدادات.</p>'; 
-         return; 
+window.renderDeliveryPrices = async function(existingPrices = {}) {
+     const container = document.getElementById('delivery-companies-container');
+     if (!container) return;
+     container.innerHTML = '';
+
+     // ── Gate: Mega only ──
+     const canUseAgg = !window.SaaS || (window.SaaS.canUse && window.SaaS.canUse('aggregators'));
+     if (!canUseAgg) {
+         container.innerHTML = `
+             <div style="text-align:center;padding:16px 0;width:100%;cursor:pointer;" onclick="if(window.SaaS && window.SaaS.requireFeature) window.SaaS.requireFeature('aggregators');">
+                 <i class="fas fa-lock" style="font-size:20px;color:#e74c3c;margin-bottom:8px;display:block;"></i>
+                 <p style="color:#e74c3c;font-size:13px;font-weight:700;margin:0;">هذه الميزة متاحة في باقة Mega فقط 🚀</p>
+                 <p style="color:#999;font-size:11px;margin:4px 0 0;">اضغط هنا للترقية</p>
+             </div>`;
+         return;
+     }
+
+     let aggregators = [];
+     try {
+         aggregators = await DataManager.loadData('aggregators') || [];
+     } catch(e) {
+         console.error("Error loading aggregators:", e);
+     }
+
+     if (aggregators.length === 0) {
+         container.innerHTML = '<p style="color: #666666; margin: 0; font-size: 14px;">لا توجد شركات توصيل مضافة في الإعدادات.</p>';
+         return;
      } 
  
      aggregators.forEach(company => { 

@@ -16,6 +16,7 @@
     { href: 'employees.html',   icon: 'users',           label: 'الموظفون',       restricted: 'owner' },
     { href: 'suppliers.html',   icon: 'truck',           label: 'الموردين',       restricted: 'owner' },
     { href: 'marketing.html',   icon: 'bullhorn',        label: 'ادارة التسويق', restricted: 'owner' },
+    { href: 'settings.html?section=aggregators', icon: 'motorcycle', label: 'شركات التوصيل', restricted: 'owner' },
     { href: 'settings.html',    icon: 'cog',             label: 'الاعدادات',     restricted: 'owner' },
   ];
 
